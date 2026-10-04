@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Figtree } from 'next/font/google';
 import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import { cn } from "@/lib/utils";
+import { Navbar } from '@/components/navbar';
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable)}
     >
       <body className='min-h-full flex flex-col'>
+        <Navbar />
         {children}
         <Analytics />
       </body>
