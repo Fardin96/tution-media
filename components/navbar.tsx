@@ -21,7 +21,7 @@ const navLinks = [
 
 export function Navbar() {
   return (
-    <header className='sticky top-[36px] z-50 -mb-[72px] w-full bg-transparent'>
+    <header className='sticky flex items-center top-[36px] z-50 -mb-[72px] w-full bg-transparent'>
       <nav className='mx-auto flex h-[72px] max-w-[1280px] items-center lg:justify-between lg:gap-[170px] px-4 sm:px-6 lg:px-8'>
         <Link href='/' className='mx-auto flex items-center gap-2'>
           <Image
