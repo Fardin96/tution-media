@@ -42,7 +42,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className='whitespace-nowrap text-lg font-regular text-[var(--color-neutral-gray)] transition-colors hover:text-[var(--color-neutral-charcoal)]'
+              className='whitespace-nowrap text-lg font-regular text-[color-mix(in_oklab,var(--color-neutral-gray),var(--color-neutral-charcoal))] transition-colors hover:text-[var(--color-neutral-charcoal)]'
             >
               {link.label}
             </Link>

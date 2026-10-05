@@ -33,7 +33,7 @@ export function CtaButton({
       >
         <span
           aria-hidden
-          className='size-3.5 shrink-0 bg-[#3DDC84] [mask:url(/assets/ic/ic-arrow-up.png)_center/contain_no-repeat]'
+          className='size-3.5 shrink-0 bg-[var(--color-primary-core)] [mask:url(/assets/ic/ic-arrow-up.png)_center/contain_no-repeat]'
         />
       </span>
     </HoverBorderGradient>

@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,20 +49,30 @@
 }
 
 :root {
-  --color-primary-core: #3DDC84;
-  --color-primary-hover: #5CFF9D;
-  --color-primary-pressed: #1FA35C;
-  --color-secondary-peach: #FBE8DA;
-  --color-secondary-sky: #7EC8E8;
-  --color-secondary-sky-deep: #3FA9DC;
-  --color-neutral-off-white: #FAFAF8;
-  --color-neutral-white: #FFFFFF;
-  --color-neutral-charcoal: #1E2320;
-  --color-neutral-gray: #5B655F;
-  --color-neutral-border: #E7EAE6;
-  --color-semantic-success: #3DDC84;
-  --color-semantic-warning: #F5A623;
-  --color-semantic-error: #F16A6A;
+  /* Figma variables: Primary, primary/primary-900 */
+  --color-primary-core: #0066ff;
+  --color-primary-deep: #002b6b;
+  /* ponytail: not in Figma, mixed toward primary-900; swap for real values if the file adds them */
+  --color-primary-hover: color-mix(in oklab, var(--color-primary-core) 85%, var(--color-primary-deep));
+  --color-primary-pressed: color-mix(in oklab, var(--color-primary-core) 70%, var(--color-primary-deep));
+  /* Sampled from the talent card backgrounds (public/assets/avatar-demo) */
+  --color-secondary-peach: #ffeed2;
+  --color-secondary-cream: #f3f0d1;
+  --color-secondary-sky: #e1e9fe;
+  --color-secondary-lime: #ecf5d6;
+  /* Figma variables: White 2, Pure White, neutral-800, neutral-300, Neutral/30 */
+  --color-neutral-off-white: #fafafa;
+  --color-neutral-white: #ffffff;
+  --color-neutral-charcoal: #272f3a;
+  --color-neutral-gray: #848d9b;
+  --color-neutral-border: #ededed;
+  /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
+  --color-mesh-deep: #6547e8;
+  --color-mesh-corner: #a079e8;
+  --color-mesh-glow: #b5aaf4;
+  --color-semantic-success: #3ddc84;
+  --color-semantic-warning: #f5a623;
+  --color-semantic-error: #f16a6a;
 
   --border-radius-8: 8px;
   --border-radius-12: 12px;
@@ -70,8 +80,8 @@
   --border-radius-24: 24px;
   --border-radius-full: 999px;
 
-  --box-shadow-card: 0 8 24 rgba(0,0,0,.06);
-  --box-shadow-button-hover: 0 8 16 rgba(0,0,0,.12);
+  --box-shadow-card: 0 8 24 rgba(0, 0, 0, 0.06);
+  --box-shadow-button-hover: 0 8 16 rgba(0, 0, 0, 0.12);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

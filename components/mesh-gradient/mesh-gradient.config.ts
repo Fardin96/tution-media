@@ -20,15 +20,15 @@ export interface MeshBlob {
 export const MESH_VIEWBOX = { width: 1440, height: 768 } as const;
 
 /**
- * Primary shades, ordered dark to light the same way the reference purples
- * were: deep beams < mid beams < corners < pale wash.
+ * Mesh shades (own tokens, not the brand primary), ordered dark to light:
+ * deep beams < mid beams < corners < pale wash.
  */
-const DEEP = 'var(--color-primary-pressed)';
-const MID = 'color-mix(in oklab, var(--color-primary-pressed) 50%, var(--color-primary-core))';
-const CORNER = 'var(--color-primary-core)';
-const GLOW = 'var(--color-primary-hover)';
+const DEEP = 'var(--color-mesh-deep)';
+const MID = 'color-mix(in oklab, var(--color-mesh-deep) 50%, var(--color-mesh-corner))';
+const CORNER = 'var(--color-mesh-corner)';
+const GLOW = 'var(--color-mesh-glow)';
 const tint = (pct: number) =>
-  `color-mix(in oklab, var(--color-primary-core) ${pct}%, var(--color-neutral-white))`;
+  `color-mix(in oklab, var(--color-mesh-corner) ${pct}%, var(--color-neutral-white))`;
 const WHITE = 'var(--color-neutral-white)';
 
 /*

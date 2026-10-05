@@ -19,6 +19,8 @@ export interface MeshGradientProps {
 
 /** Each blob is drawn out to this many standard deviations (alpha < 0.3%). */
 const SIGMAS = 3.5;
+/** Opacity multiplier; 1.1 measured closest to hero-bg.png (RMSE 2.88 vs 3.11 at 1.0). */
+const STRENGTH = 1.1;
 const STOPS = Array.from({ length: 15 }, (_, i) => i / 14);
 const HALF = MESH_VIEWBOX.width / 2;
 
@@ -104,7 +106,7 @@ function BlobLayer({ id, blobs, viewBoxX, width, className }: BlobLayerProps) {
                 offset={t}
                 // `style`, not the attribute: only CSS resolves var()/color-mix.
                 style={{ stopColor: blob.color }}
-                stopOpacity={blob.opacity * Math.exp(-0.5 * (SIGMAS * t) ** 2)}
+                stopOpacity={Math.min(1, blob.opacity * STRENGTH) * Math.exp(-0.5 * (SIGMAS * t) ** 2)}
               />
             ))}
           </radialGradient>
