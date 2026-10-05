@@ -27,9 +27,8 @@ export function Navbar() {
           <Image
             src='/assets/ic-demo/Icon.png'
             alt='Masters Hub'
-            className='h-14 w-auto'
             width={183}
-            height={108}
+            height={17}
             priority
           />
         </Link>
