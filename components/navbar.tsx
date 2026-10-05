@@ -23,7 +23,10 @@ export function Navbar() {
   return (
     <header className='sticky flex items-center top-[36px] z-50 -mb-[72px] w-full bg-transparent'>
       <nav className='mx-auto flex h-[72px] w-full max-w-[1280px] items-center gap-6 px-4 sm:px-6 lg:justify-between lg:px-8'>
-        <Link href='/' className='mx-auto flex shrink-0 items-center gap-2 lg:mx-0'>
+        <Link
+          href='/'
+          className='mx-auto flex shrink-0 items-center gap-2 lg:mx-0'
+        >
           <Image
             src='/assets/ic-demo/Icon.png'
             alt='Masters Hub'
@@ -64,29 +67,26 @@ export function Navbar() {
               />
             </button>
           </SheetTrigger>
-          <SheetContent side='right' className='max-w-sm bg-white data-[side=right]:w-full'>
-            <div className='flex h-full flex-col px-6 pt-12'>
-              <div className='flex flex-col gap-6'>
+          <SheetContent
+            side='right'
+            className='h-dvh! w-screen! max-w-none! border-l-0! bg-white'
+          >
+            <div className='flex h-full flex-col pt-12'>
+              <div className='flex flex-col gap-6 px-6'>
                 {navLinks.map((link) => (
                   <SheetClose asChild key={link.href}>
                     <Link
                       href={link.href}
-                      className='text-lg font-medium text-[var(--color-neutral-charcoal)] transition-colors hover:text-[var(--color-secondary-sky-deep)]'
+                      className='text-lg font-medium text-[var(--color-neutral-charcoal)] transition-colors hover:text-[var(--color-primary-hover)]'
                     >
                       {link.label}
                     </Link>
                   </SheetClose>
                 ))}
               </div>
-              <div className='mt-auto pb-8'>
+              <div className='mt-auto flex w-full justify-center bg-[var(--color-primary-core)] px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]'>
                 <SheetClose asChild>
-                  <CtaButton
-                    href='/register'
-                    containerClassName='w-full border-[var(--color-neutral-charcoal)]'
-                    className='w-full py-3 text-[var(--color-neutral-charcoal)]'
-                  >
-                    Register Now
-                  </CtaButton>
+                  <CtaButton href='/register'>Register Now</CtaButton>
                 </SheetClose>
               </div>
             </div>
