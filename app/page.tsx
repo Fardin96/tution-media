@@ -1,6 +1,7 @@
 import { MeshGradient } from '@/components/mesh-gradient/mesh-gradient';
 import TagLine from '@/components/TagLine';
 import SearchBar from '@/components/SearchBar';
+import OurHeroes from '@/components/OurHeroes';
 
 export default function Home() {
   return (
@@ -19,7 +20,10 @@ export default function Home() {
           A smarter way to connect students and tutors—built for clarity, trust,
           and real results.
         </p>
+
         <SearchBar className='mt-[37px]' />
+
+        <OurHeroes />
       </MeshGradient>
     </div>
   );

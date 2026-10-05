@@ -27,16 +27,16 @@ export default function SearchBar({ className = '' }: { className?: string }) {
       {/* action/method keep search working before hydration */}
       <form
         role='search'
-        action='/talents'
+        // action='/talents'
         method='get'
-        onSubmit={(e) => {
-          e.preventDefault();
-          const params = new URLSearchParams();
-          for (const [k, v] of new FormData(e.currentTarget)) {
-            if (typeof v === 'string' && v.trim()) params.set(k, v.trim());
-          }
-          router.push(`/talents${params.size ? `?${params}` : ''}`);
-        }}
+        // onSubmit={(e) => {
+        //   e.preventDefault();
+        //   const params = new URLSearchParams();
+        //   for (const [k, v] of new FormData(e.currentTarget)) {
+        //     if (typeof v === 'string' && v.trim()) params.set(k, v.trim());
+        //   }
+        //   router.push(`/talents${params.size ? `?${params}` : ''}`);
+        // }}
         className='flex flex-col gap-1 rounded-[var(--border-radius-24)] border border-chip-border bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.06)] focus-within:ring-2 focus-within:ring-[var(--color-primary-core)]/30 @xl:flex-row @xl:items-center @xl:rounded-chip'
       >
         <div className={field}>
