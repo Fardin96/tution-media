@@ -22,7 +22,7 @@ export function CtaButton({
         containerClassName
       )}
       className={cn(
-        'flex items-center justify-between gap-4 bg-transparent py-1 pr-1 pl-6 text-sm font-semibold text-white text-lg',
+        'flex items-center justify-between gap-4 bg-transparent py-1 pr-1 pl-6 font-bold text-white text-lg',
         className
       )}
     >

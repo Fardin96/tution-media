@@ -22,7 +22,7 @@ const navLinks = [
 export function Navbar() {
   return (
     <header className='sticky top-[36px] z-50 -mb-[72px] w-full bg-transparent'>
-      <nav className='mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-4 sm:px-6 lg:px-8'>
+      <nav className='mx-auto flex h-[72px] max-w-[1280px] items-center justify-between lg:gap-[170px] px-4 sm:px-6 lg:px-8'>
         <Link href='/' className='flex items-center gap-2'>
           <Image
             src='/assets/ic-demo/Icon.png'
@@ -39,7 +39,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className='text-sm font-medium text-[var(--color-neutral-gray)] transition-colors hover:text-[var(--color-neutral-charcoal)]'
+              className='text-lg font-medium text-[var(--color-neutral-gray)] transition-colors hover:text-[var(--color-neutral-charcoal)]'
             >
               {link.label}
             </Link>
