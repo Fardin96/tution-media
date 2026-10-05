@@ -10,7 +10,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Menu01Icon } from '@hugeicons/core-free-icons';
+import { Menu01Icon, Menu02Icon } from '@hugeicons/core-free-icons';
 
 const navLinks = [
   { href: '/categories', label: 'Categories' },
@@ -22,11 +22,12 @@ const navLinks = [
 export function Navbar() {
   return (
     <header className='sticky top-[36px] z-50 -mb-[72px] w-full bg-transparent'>
-      <nav className='mx-auto flex h-[72px] max-w-[1280px] items-center justify-between lg:gap-[170px] px-4 sm:px-6 lg:px-8'>
-        <Link href='/' className='flex items-center gap-2'>
+      <nav className='mx-auto flex h-[72px] max-w-[1280px] items-center lg:justify-between lg:gap-[170px] px-4 sm:px-6 lg:px-8'>
+        <Link href='/' className='mx-auto flex items-center gap-2'>
           <Image
             src='/assets/ic-demo/Icon.png'
             alt='Masters Hub'
+            className='h-14 w-auto'
             width={183}
             height={17}
             priority
@@ -38,7 +39,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className='text-lg font-medium text-[var(--color-neutral-gray)] transition-colors hover:text-[var(--color-neutral-charcoal)]'
+              className='text-lg font-regular text-[var(--color-neutral-gray)] transition-colors hover:text-[var(--color-neutral-charcoal)]'
             >
               {link.label}
             </Link>
@@ -53,11 +54,11 @@ export function Navbar() {
           <SheetTrigger asChild className='md:hidden'>
             <button
               type='button'
-              className='inline-flex items-center justify-center rounded-lg p-2 text-[var(--color-neutral-charcoal)] transition-colors hover:bg-black/5'
+              className='absolute right-6 inline-flex items-center justify-center rounded-lg p-2 text-[var(--color-neutral-charcoal)] transition-colors hover:bg-black/5'
               aria-label='Open menu'
             >
               <HugeiconsIcon
-                icon={Menu01Icon}
+                icon={Menu02Icon}
                 className='size-6'
                 strokeWidth={2}
               />
