@@ -83,6 +83,9 @@
   --border-radius-24: 24px;
   --border-radius-full: 999px;
 
+  --navbar-height: 72px;
+  --navbar-top-offset: 36px;
+
   --box-shadow-card: 0 8 24 rgba(0, 0, 0, 0.06);
   --box-shadow-button-hover: 0 8 16 rgba(0, 0, 0, 0.12);
 

@@ -4,7 +4,9 @@ type TagLineProps = {
   line?: string;
 };
 
-export default function TagLine({ line }: TagLineProps) {
+export default function TagLine({
+  line = 'Your #1 Platform for Tutors',
+}: TagLineProps) {
   return (
     <div
       data-testid='chip'
@@ -19,7 +21,7 @@ export default function TagLine({ line }: TagLineProps) {
         priority
       />
       <span className='text-base font-normal leading-[1.5] text-primary-900'>
-        {!line ? 'Your #1 Platform for Tutors' : line}
+        {line}
       </span>
     </div>
   );

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-export const assets = {
+const assets = {
   bgGradient: '/hero-assets/hero-bg.png',
   gradients: {
     left: '/hero-assets/gradient-left.svg',
@@ -50,7 +50,7 @@ export const assets = {
     fill: '#002B6B',
     src: null as string | null,
   },
-} as const;
+};
 
 // Repeats per side: 312px per card fills up to ~5000px wide screens.
 const PHOTO_REPEATS = 7;

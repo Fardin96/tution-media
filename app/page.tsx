@@ -7,8 +7,7 @@ export default function Home() {
   return (
     <div className='flex flex-col flex-1'>
       <MeshGradient
-        // pt: navbar bottom (36px top offset + 72px height) + 45px gap
-        className='min-h-[80vh] flex flex-col items-center px-6 pt-[calc(36px+72px+45px)] text-center'
+        className='min-h-[80vh] flex flex-col items-center px-6 pt-[calc(var(--navbar-top-offset)+var(--navbar-height)+45px)] text-center'
         animated
       >
         <TagLine />
