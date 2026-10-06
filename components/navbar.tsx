@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CtaButton } from "@/components/cta-button";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ArrowLinkButton } from "@/components/arrow-link-button";
 import {
   Sheet,
   SheetTrigger,
@@ -13,14 +15,28 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu02Icon } from "@hugeicons/core-free-icons";
 
 const navLinks = [
-  { href: "/categories", label: "Categories" },
+  { href: "/#categories", label: "Categories" },
   { href: "/talents", label: "Talents" },
   { href: "/about-us", label: "About Us" },
   { href: "/blogs", label: "Blogs" },
   { href: "/admin", label: "Admin" },
 ];
 
+// Next skips scrolling when the URL hash is unchanged, so a second click on
+// "/#categories" would do nothing. Scroll by hand when already on that page.
+function scrollToHash(e: React.MouseEvent, href: string, pathname: string) {
+  const [path, hash] = href.split("#");
+  if (!hash || path !== pathname) return;
+  const target = document.getElementById(hash);
+  if (!target) return;
+  e.preventDefault();
+  history.replaceState(null, "", href);
+  target.scrollIntoView();
+}
+
 export function Navbar() {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="sticky top-[var(--navbar-top-offset)] z-50 -mb-[var(--navbar-height)] flex w-full items-center bg-transparent">
       <nav className="mx-auto flex h-[var(--navbar-height)] w-full max-w-[1280px] items-center gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
@@ -43,6 +59,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
+              onClick={(e) => scrollToHash(e, link.href, pathname)}
               className="font-regular text-lg whitespace-nowrap text-[color-mix(in_oklab,var(--color-neutral-gray),var(--color-neutral-charcoal))] transition-colors hover:text-[var(--color-neutral-charcoal)]"
             >
               {link.label}
@@ -51,10 +68,10 @@ export function Navbar() {
         </div>
 
         <div className="hidden shrink-0 lg:block">
-          <CtaButton href="/register">Register Now</CtaButton>
+          <ArrowLinkButton href="/register">Register Now</ArrowLinkButton>
         </div>
 
-        <Sheet>
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger asChild className="lg:hidden">
             <button
               type="button"
@@ -75,19 +92,24 @@ export function Navbar() {
             <div className="flex h-full flex-col pt-12">
               <div className="flex flex-col gap-6 px-6">
                 {navLinks.map((link) => (
-                  <SheetClose asChild key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-lg font-medium text-[var(--color-neutral-charcoal)] transition-colors hover:text-[var(--color-primary-hover)]"
-                    >
-                      {link.label}
-                    </Link>
-                  </SheetClose>
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={(e) => {
+                      setMenuOpen(false);
+                      scrollToHash(e, link.href, pathname);
+                    }}
+                    className="text-lg font-medium text-[var(--color-neutral-charcoal)] transition-colors hover:text-[var(--color-primary-hover)]"
+                  >
+                    {link.label}
+                  </Link>
                 ))}
               </div>
               <div className="mt-auto flex w-full justify-center bg-[var(--color-primary-core)] px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <SheetClose asChild>
-                  <CtaButton href="/register">Register Now</CtaButton>
+                  <ArrowLinkButton href="/register">
+                    Register Now
+                  </ArrowLinkButton>
                 </SheetClose>
               </div>
             </div>

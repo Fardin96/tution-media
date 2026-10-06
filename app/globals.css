@@ -77,6 +77,9 @@
   --color-neutral-charcoal: #272f3a;
   --color-neutral-gray: #848d9b;
   --color-neutral-border: #ededed;
+  /* Sampled from the category tabs screenshot (Figma 4021:452) */
+  --color-tab-inactive: #646d7b;
+  --color-tab-rule: #c5cad3;
   /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
   --color-mesh-deep: #6547e8;
   --color-mesh-corner: #a079e8;

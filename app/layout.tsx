@@ -26,8 +26,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={cn(
         "h-full",
+        "scroll-smooth motion-reduce:scroll-auto",
         "antialiased",
         geistSans.variable,
         geistMono.variable,
