@@ -46,9 +46,57 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-chip: var(--border-radius-full);
+  --radius-photo: 20px;
+  --color-chip-border: var(--color-neutral-border);
 }
 
 :root {
+  /* Figma variables: Primary, primary/primary-900 */
+  --color-primary-core: #0066ff;
+  --color-primary-deep: #002b6b;
+  /* ponytail: not in Figma, mixed toward primary-900; swap for real values if the file adds them */
+  --color-primary-hover: color-mix(
+    in oklab,
+    var(--color-primary-core) 85%,
+    var(--color-primary-deep)
+  );
+  --color-primary-pressed: color-mix(
+    in oklab,
+    var(--color-primary-core) 70%,
+    var(--color-primary-deep)
+  );
+  /* Sampled from the talent card backgrounds (public/assets/avatar-demo) */
+  --color-secondary-peach: #ffeed2;
+  --color-secondary-cream: #f3f0d1;
+  --color-secondary-sky: #e1e9fe;
+  --color-secondary-lime: #ecf5d6;
+  /* Figma variables: White 2, Pure White, neutral-800, neutral-300, Neutral/30 */
+  --color-neutral-off-white: #fafafa;
+  --color-neutral-white: #ffffff;
+  --color-neutral-charcoal: #272f3a;
+  --color-neutral-gray: #848d9b;
+  --color-neutral-border: #ededed;
+  /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
+  --color-mesh-deep: #6547e8;
+  --color-mesh-corner: #a079e8;
+  --color-mesh-glow: #b5aaf4;
+  --color-semantic-success: #3ddc84;
+  --color-semantic-warning: #f5a623;
+  --color-semantic-error: #f16a6a;
+
+  --border-radius-8: 8px;
+  --border-radius-12: 12px;
+  --border-radius-16: 16px;
+  --border-radius-24: 24px;
+  --border-radius-full: 999px;
+
+  --navbar-height: 72px;
+  --navbar-top-offset: 36px;
+
+  --box-shadow-card: 0 8 24 rgba(0, 0, 0, 0.06);
+  --box-shadow-button-hover: 0 8 16 rgba(0, 0, 0, 0.12);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
