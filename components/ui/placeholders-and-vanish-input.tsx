@@ -36,7 +36,7 @@ export function PlaceholdersAndVanishInput({
       clearInterval(id);
       id = setInterval(
         () => setCurrentPlaceholder((p) => (p + 1) % placeholders.length),
-        3000
+        3000,
       );
     };
     const onVisibility = () =>
@@ -138,13 +138,15 @@ export function PlaceholdersAndVanishInput({
   }, [draw, animate, reduceMotion]);
 
   return (
-    <div className={cn("relative h-12 min-w-0 flex-1 overflow-hidden", className)}>
+    <div
+      className={cn("relative h-12 min-w-0 flex-1 overflow-hidden", className)}
+    >
       <canvas
         aria-hidden
         ref={canvasRef}
         className={cn(
           "pointer-events-none absolute top-[20%] left-0 origin-top-left scale-50",
-          animating ? "opacity-100" : "opacity-0"
+          animating ? "opacity-100" : "opacity-0",
         )}
       />
       <input
@@ -157,27 +159,35 @@ export function PlaceholdersAndVanishInput({
         onChange={(e) => !animating && setValue(e.target.value)}
         className={cn(
           "relative z-10 h-full w-full bg-transparent text-base text-[var(--color-neutral-charcoal)] outline-none [&::-webkit-search-cancel-button]:hidden",
-          animating && "text-transparent"
+          animating && "text-transparent",
         )}
       />
       {/* Hidden instantly on input; the exit animation is only for rotation. */}
       <div
         className={cn(
           "pointer-events-none absolute inset-0 flex items-center",
-          value && "invisible"
+          value && "invisible",
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.p
-              aria-hidden
-              key={currentPlaceholder}
-              initial={{ y: 6, opacity: 0 }}
-              animate={{ y: 0, opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }}
-              exit={{ y: -8, opacity: 0, transition: { duration: 0.18, ease: "easeIn" } }}
-              className="w-full truncate text-start text-base text-[var(--color-neutral-gray)]"
-            >
-              {placeholders[currentPlaceholder]}
-            </motion.p>
+            aria-hidden
+            key={currentPlaceholder}
+            initial={{ y: 6, opacity: 0 }}
+            animate={{
+              y: 0,
+              opacity: 1,
+              transition: { duration: 0.25, ease: "easeOut" },
+            }}
+            exit={{
+              y: -8,
+              opacity: 0,
+              transition: { duration: 0.18, ease: "easeIn" },
+            }}
+            className="w-full truncate text-start text-base text-[var(--color-neutral-gray)]"
+          >
+            {placeholders[currentPlaceholder]}
+          </motion.p>
         </AnimatePresence>
       </div>
     </div>

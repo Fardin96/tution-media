@@ -22,7 +22,7 @@ export function AnimatedMeshGradientLayer({
   return (
     <motion.div
       aria-hidden="true"
-      className="absolute inset-0 -z-10 pointer-events-none"
+      className="pointer-events-none absolute inset-0 -z-10"
       initial={{ scale: 1.04 }}
       animate={
         shouldReduceMotion
@@ -39,7 +39,7 @@ export function AnimatedMeshGradientLayer({
         scale: { duration: 32, repeat: Infinity, ease: "easeInOut" },
       }}
     >
-      <div className="absolute inset-0 animate-in fade-in duration-1000 ease-out">
+      <div className="animate-in fade-in absolute inset-0 duration-1000 ease-out">
         {children}
       </div>
     </motion.div>

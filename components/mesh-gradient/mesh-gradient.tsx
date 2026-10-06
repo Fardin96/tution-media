@@ -71,7 +71,7 @@ export function MeshGradient({
       ) : (
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 pointer-events-none"
+          className="pointer-events-none absolute inset-0 -z-10"
         >
           {layers}
         </div>
@@ -106,7 +106,10 @@ function BlobLayer({ id, blobs, viewBoxX, width, className }: BlobLayerProps) {
                 offset={t}
                 // `style`, not the attribute: only CSS resolves var()/color-mix.
                 style={{ stopColor: blob.color }}
-                stopOpacity={Math.min(1, blob.opacity * STRENGTH) * Math.exp(-0.5 * (SIGMAS * t) ** 2)}
+                stopOpacity={
+                  Math.min(1, blob.opacity * STRENGTH) *
+                  Math.exp(-0.5 * (SIGMAS * t) ** 2)
+                }
               />
             ))}
           </radialGradient>

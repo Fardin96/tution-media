@@ -63,23 +63,23 @@ export function HoverBorderGradient({
       }}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        "relative flex rounded-full border content-center transition duration-500 items-center flex-col flex-nowrap gap-10 h-min justify-center overflow-visible p-px decoration-clone w-fit",
-        containerClassName
+        "relative flex h-min w-fit flex-col flex-nowrap content-center items-center justify-center gap-10 overflow-visible rounded-full border decoration-clone p-px transition duration-500",
+        containerClassName,
       )}
       style={{ background: "var(--hbg-bg, rgba(0,0,0,0.2))", ...style }}
       {...props}
     >
       <div
         className={cn(
-          "w-auto text-white z-10 bg-black px-4 py-2 rounded-[inherit]",
-          className
+          "z-10 w-auto rounded-[inherit] bg-black px-4 py-2 text-white",
+          className,
         )}
       >
         {children}
       </div>
       <motion.div
         className={cn(
-          "flex-none inset-0 overflow-hidden absolute z-0 rounded-[inherit]"
+          "absolute inset-0 z-0 flex-none overflow-hidden rounded-[inherit]",
         )}
         style={{
           filter: "blur(2px)",

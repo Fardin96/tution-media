@@ -1,6 +1,6 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -56,8 +56,16 @@
   --color-primary-core: #0066ff;
   --color-primary-deep: #002b6b;
   /* ponytail: not in Figma, mixed toward primary-900; swap for real values if the file adds them */
-  --color-primary-hover: color-mix(in oklab, var(--color-primary-core) 85%, var(--color-primary-deep));
-  --color-primary-pressed: color-mix(in oklab, var(--color-primary-core) 70%, var(--color-primary-deep));
+  --color-primary-hover: color-mix(
+    in oklab,
+    var(--color-primary-core) 85%,
+    var(--color-primary-deep)
+  );
+  --color-primary-pressed: color-mix(
+    in oklab,
+    var(--color-primary-core) 70%,
+    var(--color-primary-deep)
+  );
   /* Sampled from the talent card backgrounds (public/assets/avatar-demo) */
   --color-secondary-peach: #ffeed2;
   --color-secondary-cream: #f3f0d1;
