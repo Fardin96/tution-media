@@ -16,6 +16,7 @@ const navLinks = [
   { href: "/categories", label: "Categories" },
   { href: "/talents", label: "Talents" },
   { href: "/about-us", label: "About Us" },
+  { href: "/blogs", label: "Blogs" },
   { href: "/admin", label: "Admin" },
 ];
 
