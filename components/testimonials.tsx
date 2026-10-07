@@ -203,33 +203,35 @@ export function Testimonials() {
                 </Face>
 
                 <Face hidden={!flipped} back>
-                  <Byline t={t} />
-                  <button
-                    type="button"
-                    aria-expanded
-                    data-focus-key="flip"
-                    className={cn(
-                      "grid max-w-[33rem] cursor-pointer rounded-lg text-left",
-                      focusRing,
-                    )}
-                  >
-                    {/* Every comment is stacked in one cell so the card is always as tall as
+                  <div className="flex w-full flex-1 flex-col items-center justify-center gap-4 sm:gap-6">
+                    <Byline t={t} />
+                    <button
+                      type="button"
+                      aria-expanded
+                      data-focus-key="flip"
+                      className={cn(
+                        "grid max-w-[33rem] cursor-pointer rounded-lg text-left",
+                        focusRing,
+                      )}
+                    >
+                      {/* Every comment is stacked in one cell so the card is always as tall as
                         the longest one: no height jump between slides or when flipping. */}
-                    {testimonials.map((x) => (
-                      <span
-                        key={x.id}
-                        aria-hidden={x.id !== t.id || undefined}
-                        className={cn(
-                          "text-sm leading-[1.5] font-semibold text-pretty text-[var(--color-neutral-white)] [grid-area:1/1] sm:text-xl sm:leading-[1.5]",
-                          x.id !== t.id && "invisible",
-                        )}
-                      >
-                        {x.comment}
-                      </span>
-                    ))}
-                  </button>
+                      {testimonials.map((x) => (
+                        <span
+                          key={x.id}
+                          aria-hidden={x.id !== t.id || undefined}
+                          className={cn(
+                            "text-sm leading-[1.5] font-semibold text-pretty text-[var(--color-neutral-white)] [grid-area:1/1] sm:text-xl sm:leading-[1.5]",
+                            x.id !== t.id && "invisible",
+                          )}
+                        >
+                          {x.comment}
+                        </span>
+                      ))}
+                    </button>
+                  </div>
                   {/* Phones: tap the card to go back; arrows return on the front. Keeps the card short. */}
-                  <Arrows onStep={go} className="hidden sm:mt-auto sm:flex" />
+                  <Arrows onStep={go} className="hidden sm:flex" />
                 </Face>
               </motion.div>
             </div>
@@ -276,8 +278,8 @@ function Face({
       inert={hidden}
       aria-hidden={hidden}
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-[20px] bg-[var(--color-surface-inverse)] px-5 py-6 text-center [backface-visibility:hidden] [grid-area:1/1] sm:gap-10 sm:px-12 lg:min-h-[500px] lg:py-[67px]",
-        back && "[transform:rotateY(180deg)] sm:gap-6 lg:py-10",
+        "flex flex-col items-center justify-center gap-4 rounded-[20px] bg-[var(--color-surface-inverse)] px-5 py-6 text-center [backface-visibility:hidden] [grid-area:1/1] sm:gap-10 sm:px-12 sm:py-8 lg:min-h-[500px] lg:py-10",
+        back && "[transform:rotateY(180deg)] sm:gap-6",
       )}
     >
       {children}

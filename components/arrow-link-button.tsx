@@ -6,7 +6,8 @@ type ArrowLinkButtonProps = Omit<
   React.ComponentProps<typeof Link>,
   "as" | "href"
 > & {
-  href: string;
+  /** Omit for a placeholder that renders a <button> and goes nowhere yet (solid only). */
+  href?: string;
   /** `glass`: transparent with animated border, for gradient backgrounds. `solid`: white pill, blue badge. */
   variant?: "glass" | "solid";
   containerClassName?: string;
@@ -36,22 +37,32 @@ export function ArrowLinkButton({
   className,
   containerClassName,
   variant = "glass",
+  href,
   ...props
 }: ArrowLinkButtonProps) {
   if (variant === "solid") {
+    const solidClass = cn(
+      "inline-flex items-center gap-4 rounded-full border border-[var(--color-primary-core)] bg-[var(--color-neutral-white)] py-[3px] pr-[3px] pl-[23px] text-base leading-6 font-bold whitespace-nowrap text-[var(--color-primary-core)] transition-[color,scale] duration-150 ease-out hover:text-[var(--color-primary-hover)] active:scale-[0.96]",
+      className,
+    );
+    const badge = (
+      <ArrowBadge
+        circle="bg-[var(--color-primary-core)]"
+        arrow="bg-[var(--color-neutral-white)]"
+      />
+    );
+    if (!href) {
+      return (
+        <button type="button" className={cn("cursor-pointer", solidClass)}>
+          {children}
+          {badge}
+        </button>
+      );
+    }
     return (
-      <Link
-        {...props}
-        className={cn(
-          "inline-flex items-center gap-4 rounded-full border border-[var(--color-primary-core)] bg-[var(--color-neutral-white)] py-[3px] pr-[3px] pl-[23px] text-base leading-6 font-bold whitespace-nowrap text-[var(--color-primary-core)] transition-[color,scale] duration-150 ease-out hover:text-[var(--color-primary-hover)] active:scale-[0.96]",
-          className,
-        )}
-      >
+      <Link {...props} href={href} className={solidClass}>
         {children}
-        <ArrowBadge
-          circle="bg-[var(--color-primary-core)]"
-          arrow="bg-[var(--color-neutral-white)]"
-        />
+        {badge}
       </Link>
     );
   }
@@ -60,6 +71,7 @@ export function ArrowLinkButton({
     <HoverBorderGradient
       as={Link}
       {...props}
+      href={href}
       containerClassName={cn(
         "rounded-full border-1 [--hbg-bg:transparent] [--hbg-gradient:#F8F7FF] [--hbg-highlight:white] shadow-[inset_0_0_0_1px_rgba(148,163,184,0.22)]",
         containerClassName,

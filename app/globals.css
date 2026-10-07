@@ -78,11 +78,15 @@
   --color-neutral-gray: #848d9b;
   --color-neutral-border: #ededed;
   /* Sampled from the category tabs screenshot (Figma 4021:452) */
-  --color-tab-inactive: #646d7b;
+  /* Secondary body text: 5.23:1 on white (--color-neutral-gray is 3.35:1, too low for paragraphs). */
+  --color-text-secondary: #646d7b;
+  --color-tab-inactive: var(--color-text-secondary);
   --color-tab-rule: #c5cad3;
   --color-card-border: #edeef0;
   /* Testimonial card (Figma). White text 15.63:1, --color-neutral-gray 4.66:1 on it. */
   --color-surface-inverse: #1e242c;
+  /* Quiet fill for small chips/badges on white (FAQ numbers). */
+  --color-surface-subtle: #f4f5f7;
   /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
   --color-mesh-deep: #6547e8;
   --color-mesh-corner: #a079e8;
