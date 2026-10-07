@@ -4,7 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import OurHeroes from "@/components/OurHeroes";
 import { SectionHeader } from "@/components/section-header";
 import { ArrowLinkButton } from "@/components/arrow-link-button";
-import { CategoryTabs } from "@/components/category-tabs";
+import { TutorDirectory } from "@/components/tutor-directory";
 
 export default function Home() {
   return (
@@ -39,9 +39,7 @@ export default function Home() {
           description="Find the best master for your kids and boosts your results 10x!"
         />
 
-        <CategoryTabs className="mt-10">
-          {/* ponytail: cards go here as TabsContent (Figma 4021:474) */}
-        </CategoryTabs>
+        <TutorDirectory className="mt-10" />
 
         <ArrowLinkButton href="/talents" variant="solid" className="mt-10">
           View All
