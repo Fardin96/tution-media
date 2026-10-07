@@ -81,6 +81,8 @@
   --color-tab-inactive: #646d7b;
   --color-tab-rule: #c5cad3;
   --color-card-border: #edeef0;
+  /* Testimonial card (Figma). White text 15.63:1, --color-neutral-gray 4.66:1 on it. */
+  --color-surface-inverse: #1e242c;
   /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
   --color-mesh-deep: #6547e8;
   --color-mesh-corner: #a079e8;
