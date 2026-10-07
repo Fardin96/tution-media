@@ -56,7 +56,8 @@ test.describe("Hero section", () => {
   test("photo row fills viewport edges on desktop", async ({ page }) => {
     for (const width of [1440, 1920, 2560, 3840]) {
       await page.setViewportSize({ width, height: 1000 });
-      const cards = page.locator("section ul > li");
+      // Scope to the hero: later sections (e.g. #categories) also contain lists.
+      const cards = page.locator("section").first().locator("ul > li");
       const first = await cards.first().boundingBox();
       const last = await cards.last().boundingBox();
       expect(first!.x).toBeLessThanOrEqual(0);
