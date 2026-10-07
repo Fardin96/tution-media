@@ -2,6 +2,9 @@ import { MeshGradient } from "@/components/mesh-gradient/mesh-gradient";
 import TagLine from "@/components/TagLine";
 import SearchBar from "@/components/SearchBar";
 import OurHeroes from "@/components/OurHeroes";
+import { SectionHeader } from "@/components/section-header";
+import { ArrowLinkButton } from "@/components/arrow-link-button";
+import { TutorDirectory } from "@/components/tutor-directory";
 
 export default function Home() {
   return (
@@ -24,6 +27,24 @@ export default function Home() {
 
         <OurHeroes />
       </MeshGradient>
+
+      <section
+        id="categories"
+        aria-labelledby="categories-title"
+        className="flex scroll-mt-[calc(var(--navbar-top-offset)+var(--navbar-height))] flex-col items-center bg-[var(--color-neutral-off-white)] px-6 py-14 sm:py-16 lg:py-[88px]"
+      >
+        <SectionHeader
+          titleId="categories-title"
+          title="Discover the Emerging Masters"
+          description="Find the best master for your kids and boosts your results 10x!"
+        />
+
+        <TutorDirectory className="mt-10" />
+
+        <ArrowLinkButton href="/talents" variant="solid" className="mt-10">
+          View All
+        </ArrowLinkButton>
+      </section>
     </div>
   );
 }

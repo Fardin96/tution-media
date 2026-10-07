@@ -77,10 +77,19 @@
   --color-neutral-charcoal: #272f3a;
   --color-neutral-gray: #848d9b;
   --color-neutral-border: #ededed;
+  /* Sampled from the category tabs screenshot (Figma 4021:452) */
+  --color-tab-inactive: #646d7b;
+  --color-tab-rule: #c5cad3;
+  --color-card-border: #edeef0;
   /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
   --color-mesh-deep: #6547e8;
   --color-mesh-corner: #a079e8;
   --color-mesh-glow: #b5aaf4;
+  /* Card border glow (components/ui/glowing-effect.tsx): brand blue -> hero indigo -> hero violet.
+     Each clears 3:1 on --color-neutral-off-white; mesh-glow (2.01:1) is too faint for a 2px ring. */
+  --color-glow-start: var(--color-primary-core);
+  --color-glow-mid: var(--color-mesh-deep);
+  --color-glow-end: var(--color-mesh-corner);
   --color-semantic-success: #3ddc84;
   --color-semantic-warning: #f5a623;
   --color-semantic-error: #f16a6a;
