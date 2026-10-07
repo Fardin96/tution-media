@@ -16,10 +16,10 @@ import { Menu02Icon } from "@hugeicons/core-free-icons";
 
 const navLinks = [
   { href: "/#categories", label: "Categories" },
+  { href: "/#testimonials", label: "Testimonials" },
   { href: "/talents", label: "Talents" },
   { href: "/about-us", label: "About Us" },
   { href: "/blogs", label: "Blogs" },
-  { href: "/admin", label: "Admin" },
 ];
 
 // Next skips scrolling when the URL hash is unchanged, so a second click on

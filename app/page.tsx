@@ -5,10 +5,12 @@ import OurHeroes from "@/components/OurHeroes";
 import { SectionHeader } from "@/components/section-header";
 import { ArrowLinkButton } from "@/components/arrow-link-button";
 import { TutorDirectory } from "@/components/tutor-directory";
+import { Testimonials } from "@/components/testimonials";
 
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
+      {/* Hero Section */}
       <MeshGradient
         className="flex min-h-[80vh] flex-col items-center px-6 pt-[calc(var(--navbar-top-offset)+var(--navbar-height)+45px)] text-center"
         animated
@@ -28,6 +30,7 @@ export default function Home() {
         <OurHeroes />
       </MeshGradient>
 
+      {/* Categories Section */}
       <section
         id="categories"
         aria-labelledby="categories-title"
@@ -45,6 +48,9 @@ export default function Home() {
           View All
         </ArrowLinkButton>
       </section>
+
+      {/* Testimonials Section */}
+      <Testimonials />
     </div>
   );
 }
