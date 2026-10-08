@@ -6,6 +6,9 @@ import { SectionHeader } from "@/components/section-header";
 import { ArrowLinkButton } from "@/components/arrow-link-button";
 import { TutorDirectory } from "@/components/tutor-directory";
 import { Testimonials } from "@/components/testimonials";
+import { TutorShowcase } from "@/components/tutor-showcase";
+import { HowItWorks } from "@/components/how-it-works";
+import { Faq } from "@/components/faq";
 
 export default function Home() {
   return (
@@ -51,6 +54,12 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <Testimonials />
+
+      <TutorShowcase />
+
+      <HowItWorks />
+
+      <Faq />
     </div>
   );
 }
