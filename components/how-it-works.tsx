@@ -274,7 +274,7 @@ function Fade({ children }: { children: React.ReactNode }) {
 
 function StepCard({ step }: { step: Step }) {
   return (
-    <div className="flex min-w-0 flex-1 items-start gap-4 rounded-[20px] bg-[var(--color-neutral-white)] p-4 shadow-[0_0_0_1px_var(--color-card-border),0_8px_24px_-12px_oklch(0_0_0/0.1)] sm:p-6">
+    <div className="flex min-w-0 flex-1 items-start gap-4 rounded-[20px] bg-[var(--color-neutral-white)] p-4 shadow-[0_0_0_1px_var(--color-card-border),0_16px_32px_-12px_oklch(0_0_0/0.1)] sm:p-6 xl:shadow-[0_0_0_1px_var(--color-card-border),0_32px_64px_-16px_oklch(0_0_0/0.2)]">
       <span
         aria-hidden
         className="grid size-12 shrink-0 place-items-center rounded-full sm:size-14"

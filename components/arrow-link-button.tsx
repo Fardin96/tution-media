@@ -6,10 +6,10 @@ type ArrowLinkButtonProps = Omit<
   React.ComponentProps<typeof Link>,
   "as" | "href"
 > & {
-  /** Omit for a placeholder that renders a <button> and goes nowhere yet (solid only). */
+  /** Omit for a placeholder that renders a <button> and goes nowhere yet (solid or primary only). */
   href?: string;
-  /** `glass`: transparent with animated border, for gradient backgrounds. `solid`: white pill, blue badge. */
-  variant?: "glass" | "solid";
+  /** `glass`: transparent with animated border. `solid`: white pill, blue badge. `primary`: solid blue pill, white badge. */
+  variant?: "glass" | "solid" | "primary";
   containerClassName?: string;
 };
 
@@ -40,6 +40,33 @@ export function ArrowLinkButton({
   href,
   ...props
 }: ArrowLinkButtonProps) {
+  if (variant === "primary") {
+    const primaryClass = cn(
+      "inline-flex items-center gap-4 rounded-full bg-[var(--color-primary-core)] py-[3px] pr-[3px] pl-[23px] text-base leading-6 font-bold whitespace-nowrap text-white transition-[background-color,scale] duration-150 ease-out hover:bg-[var(--color-primary-hover)] active:scale-[0.96] active:bg-[var(--color-primary-pressed)] shadow-[0_4px_14px_0_color-mix(in_oklab,var(--color-primary-core)_40%,transparent)]",
+      className,
+    );
+    const badge = (
+      <ArrowBadge
+        circle="bg-[var(--color-neutral-white)]"
+        arrow="bg-[var(--color-primary-core)]"
+      />
+    );
+    if (!href) {
+      return (
+        <button type="button" className={cn("cursor-pointer", primaryClass)}>
+          {children}
+          {badge}
+        </button>
+      );
+    }
+    return (
+      <Link {...props} href={href} className={primaryClass}>
+        {children}
+        {badge}
+      </Link>
+    );
+  }
+
   if (variant === "solid") {
     const solidClass = cn(
       "inline-flex items-center gap-4 rounded-full border border-[var(--color-primary-core)] bg-[var(--color-neutral-white)] py-[3px] pr-[3px] pl-[23px] text-base leading-6 font-bold whitespace-nowrap text-[var(--color-primary-core)] transition-[color,scale] duration-150 ease-out hover:text-[var(--color-primary-hover)] active:scale-[0.96]",

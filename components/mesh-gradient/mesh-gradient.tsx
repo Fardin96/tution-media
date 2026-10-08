@@ -15,6 +15,8 @@ export interface MeshGradientProps {
   className?: string;
   /** Slow drift animation. Off when the user prefers reduced motion. */
   animated?: boolean;
+  /** Wrapper element tag; defaults to "section". */
+  as?: React.ElementType;
 }
 
 /** Each blob is drawn out to this many standard deviations (alpha < 0.3%). */
@@ -37,6 +39,7 @@ export function MeshGradient({
   children,
   className,
   animated = false,
+  as: Tag = "section",
 }: MeshGradientProps) {
   const layers = (
     <>
@@ -65,7 +68,7 @@ export function MeshGradient({
   );
 
   return (
-    <section className={cn("relative isolate overflow-hidden", className)}>
+    <Tag className={cn("relative isolate overflow-hidden", className)}>
       {animated ? (
         <AnimatedMeshGradientLayer>{layers}</AnimatedMeshGradientLayer>
       ) : (
@@ -77,7 +80,7 @@ export function MeshGradient({
         </div>
       )}
       {children}
-    </section>
+    </Tag>
   );
 }
 
