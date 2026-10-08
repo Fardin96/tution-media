@@ -69,11 +69,18 @@ const raw: (
   },
 ];
 
-export const showcase: ShowcaseItem[] = raw.map(
-  (item, i) =>
-    ({
-      ...item,
-      id: `showcase-${i + 1}`,
-      thumbnail: thumb((i % 4) + 1),
-    }) as ShowcaseItem,
-);
+export const showcase: ShowcaseItem[] = raw.map((item, i) => {
+  let videoIndex = 0;
+  if (item.kind === "video") {
+    // Calculate a stable, 1-based index for video items up to this point.
+    videoIndex = raw.slice(0, i + 1).filter((r) => r.kind === "video").length;
+  }
+  return {
+    ...item,
+    id: `showcase-${i + 1}`,
+    thumbnail: thumb((i % 4) + 1),
+    ...(item.kind === "video" && {
+      video: `/videos/tutor${videoIndex}.mp4`,
+    }),
+  } as ShowcaseItem;
+});

@@ -87,6 +87,13 @@
   --color-surface-inverse: #1e242c;
   /* Quiet fill for small chips/badges on white (FAQ numbers). */
   --color-surface-subtle: #f4f5f7;
+  /* Decorative step numerals (How it works). Tint of the charcoal text hue so it
+     stays in-family; order is carried by the <ol>, so the numerals are aria-hidden. */
+  --color-step-number: color-mix(
+    in oklab,
+    var(--color-neutral-charcoal) 14%,
+    white
+  );
   /* Hero mesh, sampled from public/assets/hero-bg.png. Not part of the brand palette. */
   --color-mesh-deep: #6547e8;
   --color-mesh-corner: #a079e8;

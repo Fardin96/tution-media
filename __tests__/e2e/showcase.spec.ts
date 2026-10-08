@@ -7,6 +7,22 @@ const playing = (page: Page) =>
       .join(""),
   );
 
+// Taps can scroll the strip (scroll-snap then settles); wait so the next tap
+// doesn't land on a moving card.
+const stripSettled = async (page: Page) => {
+  let last = -1;
+  await expect
+    .poll(async () => {
+      const now = await page
+        .locator("#tutors ul")
+        .evaluate((el) => Math.round(el.scrollLeft));
+      const still = now === last;
+      last = now;
+      return still;
+    })
+    .toBe(true);
+};
+
 test.describe("Tutor showcase", () => {
   test("first video plays in view, hover/tap switch it, leaving view pauses all", async ({
     page,
@@ -27,6 +43,7 @@ test.describe("Tutor showcase", () => {
       await second.hover();
     }
     await expect.poll(() => playing(page)).toBe("01000000");
+    await stripSettled(page);
 
     // Tap/click the playing card to pause it.
     if (hasTouch) await second.tap();

@@ -2,20 +2,12 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  MotionConfig,
-  motion,
-  useReducedMotion,
-} from "motion/react";
+import { MotionConfig, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft02Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { SectionHeader } from "@/components/section-header";
-import {
-  showcase,
-  type CommentShowcase,
-  type VideoShowcase,
-} from "@/lib/showcase";
+import { VideoCard } from "@/components/video-card";
+import { showcase, type CommentShowcase } from "@/lib/showcase";
 import { cn } from "@/lib/utils";
 
 // Track padding lines the first card up with the 1240px content column while the
@@ -153,7 +145,12 @@ export function TutorShowcase() {
             >
               {item.kind === "video" ? (
                 <VideoCard
-                  item={item}
+                  title={item.name}
+                  subtitle={item.subject}
+                  thumbnail={item.thumbnail}
+                  video={item.video}
+                  label={`Play ${item.name}'s video, ${item.subject}`}
+                  sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
                   playing={playingId === item.id}
                   onHover={() => {
                     if (reduceMotion) return;
@@ -174,110 +171,6 @@ export function TutorShowcase() {
         </ul>
       </MotionConfig>
     </section>
-  );
-}
-
-function VideoCard({
-  item,
-  playing,
-  onHover,
-  onToggle,
-}: {
-  item: VideoShowcase;
-  playing: boolean;
-  onHover: () => void;
-  onToggle: () => void;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    // play() rejects if the browser blocks it; the poster simply stays.
-    if (playing) v.play().catch(() => {});
-    else v.pause();
-  }, [playing]);
-
-  return (
-    <button
-      type="button"
-      aria-pressed={playing}
-      aria-label={`Play ${item.name}'s video, ${item.subject}`}
-      onClick={onToggle}
-      onPointerEnter={(e) => e.pointerType === "mouse" && onHover()}
-      className={cn(
-        "relative block size-full cursor-pointer overflow-hidden rounded-[20px] bg-[var(--color-surface-inverse)] text-left outline-1 -outline-offset-1 outline-[oklch(0_0_0/0.1)]",
-        focusRing,
-      )}
-    >
-      <Image
-        src={item.thumbnail}
-        alt=""
-        fill
-        sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
-        className="object-cover"
-      />
-      {item.video && (
-        <video
-          ref={videoRef}
-          src={item.video}
-          poster={item.thumbnail}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 size-full object-cover"
-        />
-      )}
-      {/* Scrim so white text stays readable on any frame. */}
-      <span
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(to_top,oklch(0_0_0/0.72),transparent)]"
-      />
-      <span className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 sm:inset-x-6 sm:bottom-6">
-        <span className="min-w-0">
-          <span className="block text-xl leading-[1.25] font-semibold text-[var(--color-neutral-white)] sm:text-2xl">
-            {item.name}
-          </span>
-          <span className="mt-1 block text-sm leading-[1.5] text-[oklch(1_0_0/0.85)] sm:text-base">
-            {item.subject}
-          </span>
-        </span>
-        <PlayState playing={playing} />
-      </span>
-    </button>
-  );
-}
-
-/** Play/pause glyph cross-fade (better-ui icon recipe: scale .25, blur 4px, spring 0.3, no bounce). */
-function PlayState({ playing }: { playing: boolean }) {
-  const swap = {
-    initial: { opacity: 0, scale: 0.25, filter: "blur(4px)" },
-    animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
-    exit: { opacity: 0, scale: 0.25, filter: "blur(4px)" },
-    transition: { type: "spring" as const, duration: 0.3, bounce: 0 },
-  };
-  return (
-    <span
-      aria-hidden
-      className="relative grid size-12 shrink-0 place-items-center rounded-full bg-[var(--color-neutral-white)] text-[var(--color-primary-deep)] sm:size-14"
-    >
-      <AnimatePresence initial={false}>
-        {playing ? (
-          <motion.span key="pause" {...swap} className="absolute flex gap-1">
-            <span className="h-4 w-1 rounded-full bg-current" />
-            <span className="h-4 w-1 rounded-full bg-current" />
-          </motion.span>
-        ) : (
-          <motion.span
-            key="play"
-            {...swap}
-            // Triangle's visual centre sits left of its box; nudge it right.
-            className="absolute ml-0.5 size-[18px] bg-current [mask:url(/assets/ic/ic-play.png)_center/contain_no-repeat]"
-          />
-        )}
-      </AnimatePresence>
-    </span>
   );
 }
 
