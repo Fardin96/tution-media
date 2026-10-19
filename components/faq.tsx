@@ -81,7 +81,11 @@ export function Faq() {
           ))}
         </Accordion.Root>
 
-        <ArrowLinkButton variant="solid" className="mt-10 self-center">
+        <ArrowLinkButton
+          href="/sign-in"
+          variant="solid"
+          className="mt-10 self-center"
+        >
           View All
         </ArrowLinkButton>
       </div>

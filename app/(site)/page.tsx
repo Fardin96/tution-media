@@ -48,7 +48,7 @@ export default function Home() {
 
         <TutorDirectory className="mt-10" />
 
-        <ArrowLinkButton href="/talents" variant="solid" className="mt-10">
+        <ArrowLinkButton href="/sign-in" variant="solid" className="mt-10">
           View All
         </ArrowLinkButton>
       </section>
