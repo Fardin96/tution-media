@@ -12,8 +12,8 @@ test.describe("Auth pages", () => {
         page.getByText(/with your Google account to continue/),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Continue with Google" }),
-      ).toBeVisible();
+        page.getByRole("link", { name: "Continue with Google" }),
+      ).toHaveAttribute("href", /accounts\.google\.com/);
       await expect(
         page.getByRole("img", { name: "Masters Hub" }),
       ).toBeVisible();
@@ -47,5 +47,12 @@ test.describe("Auth pages", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Create your account",
     );
+  });
+
+  test("dashboard redirects unauthenticated users to sign in", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 });

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { buildGoogleAuthUrl } from "@/lib/auth";
 import { AnimatedMeshGradientLayer } from "@/components/mesh-gradient/mesh-gradient-animated";
 import { cn } from "@/lib/utils";
 
@@ -87,14 +88,13 @@ export function AuthSplit({
           </p>
 
           <div className={cn(enter, "mt-8 delay-200")}>
-            {/* ponytail: UI only, wire Google OAuth here. */}
-            <button
-              type="button"
+            <a
+              href={buildGoogleAuthUrl()}
               className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[var(--color-neutral-white)] px-6 text-base font-semibold text-[var(--color-neutral-charcoal)] shadow-[0_1px_2px_0_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow,scale] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] hover:shadow-[0_4px_12px_-2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.96]"
             >
               <GoogleIcon />
               Continue with Google
-            </button>
+            </a>
           </div>
 
           {!hideSwitch && (
