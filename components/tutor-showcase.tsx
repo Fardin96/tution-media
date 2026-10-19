@@ -177,7 +177,7 @@ export function TutorShowcase() {
 function CommentCard({ item }: { item: CommentShowcase }) {
   return (
     <article className="flex size-full flex-col overflow-hidden rounded-[20px] bg-[var(--color-surface-inverse)]">
-      <div className="relative shrink-0 basis-[35%] sm:basis-1/2">
+      <div className="relative shrink-0 basis-[50%] sm:basis-1/2">
         <Image
           src={item.thumbnail}
           alt=""
