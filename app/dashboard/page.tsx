@@ -1,8 +1,6 @@
 import Image from "next/image";
-import { requireSession, signOut } from "@/lib/auth";
-import { RoleDialog } from "@/components/auth/role-dialog";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { requireSession } from "@/lib/auth.server";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export default async function DashboardPage() {
   const user = await requireSession();
@@ -30,20 +28,14 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           {user.email}
         </p>
+        <p className="mt-1 text-xs font-medium tracking-wide text-[var(--color-text-secondary)] uppercase">
+          {user.role}
+        </p>
 
-        <form action={signOut} className="mt-8">
-          <Button
-            type="submit"
-            variant="outline"
-            className="h-12 w-full gap-2 rounded-full border-[var(--color-neutral-border)] text-base font-semibold text-[var(--color-neutral-charcoal)] hover:bg-[var(--color-neutral-off-white)] active:scale-[0.96]"
-          >
-            <LogOut className="size-4" />
-            Log out
-          </Button>
-        </form>
+        <div className="mt-8">
+          <LogoutButton />
+        </div>
       </div>
-
-      <RoleDialog />
     </main>
   );
 }

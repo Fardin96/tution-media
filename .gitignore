@@ -47,3 +47,6 @@ next-env.d.ts
 
 # assets
 public/reference/
+
+# planning
+endpoints.md
