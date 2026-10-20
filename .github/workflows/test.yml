@@ -19,6 +19,10 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GOOGLE_OAUTH_SECRET: ${{ secrets.GOOGLE_OAUTH_SECRET }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      NEXT_APP_URL: "http://localhost:3000"
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +45,10 @@ jobs:
     name: E2E tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      GOOGLE_OAUTH_SECRET: ${{ secrets.GOOGLE_OAUTH_SECRET }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      NEXT_APP_URL: "http://localhost:3000"
     steps:
       - uses: actions/checkout@v4
 
