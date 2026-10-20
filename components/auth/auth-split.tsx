@@ -1,10 +1,16 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { buildGoogleAuthUrl } from "@/lib/auth";
+import { GraduationCap, Users } from "lucide-react";
 import { AnimatedMeshGradientLayer } from "@/components/mesh-gradient/mesh-gradient-animated";
 import { cn } from "@/lib/utils";
+import { GoogleSignInButton } from "./google-sign-in-button";
+import type { UserRole } from "@/lib/api";
 
 type AuthMode = "sign-in" | "sign-up";
+type PublicRole = Extract<UserRole, "STUDENT" | "TUTOR">;
 
 const COPY: Record<
   AuthMode,
@@ -25,7 +31,7 @@ const COPY: Record<
   },
   "sign-up": {
     title: "Create your account",
-    description: "Sign up with your Google account to continue.",
+    description: "Choose how you want to use Masters Hub, then sign up.",
     switchText: "Already have an account?",
     switchLabel: "Sign in",
     switchHref: "/sign-in",
@@ -34,11 +40,14 @@ const COPY: Record<
 
 export interface AuthSplitProps {
   mode: AuthMode;
+  clientId: string;
   /** Override the default heading, e.g. "Admin sign in". */
   title?: string;
   description?: string;
   /** Hide the "Sign up / Sign in" switch link (admin has no public sign-up). */
   hideSwitch?: boolean;
+  /** Fixed role sent to the backend (e.g. ADMIN). When omitted on sign-up the user picks Student/Tutor. */
+  role?: Extract<UserRole, "STUDENT" | "TUTOR" | "ADMIN">;
 }
 
 // Soft brand-blue light wash; drifts via the hero's mesh animation layer.
@@ -58,11 +67,19 @@ const enter =
  */
 export function AuthSplit({
   mode,
+  clientId,
   title,
   description,
   hideSwitch = false,
+  role: fixedRole,
 }: AuthSplitProps) {
   const copy = COPY[mode];
+  const [selectedRole, setSelectedRole] = useState<PublicRole | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const showRolePicker = mode === "sign-up" && !fixedRole;
+  const effectiveRole = fixedRole ?? selectedRole ?? undefined;
+  const canSubmit = !showRolePicker || selectedRole !== null;
 
   return (
     <main className="flex min-h-dvh flex-col bg-[var(--color-neutral-white)] lg:grid lg:grid-cols-2">
@@ -87,15 +104,48 @@ export function AuthSplit({
             {description ?? copy.description}
           </p>
 
-          <div className={cn(enter, "mt-8 delay-200")}>
-            <a
-              href={buildGoogleAuthUrl()}
-              className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[var(--color-neutral-white)] px-6 text-base font-semibold text-[var(--color-neutral-charcoal)] shadow-[0_1px_2px_0_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow,scale] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] hover:shadow-[0_4px_12px_-2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.96]"
+          {showRolePicker && (
+            <div
+              className={cn(enter, "mt-8 grid gap-3 delay-150 sm:grid-cols-2")}
             >
-              <GoogleIcon />
-              Continue with Google
-            </a>
+              <RoleOption
+                icon={<GraduationCap className="size-6" />}
+                label="Student"
+                description="Find a tutor"
+                selected={selectedRole === "STUDENT"}
+                onClick={() => setSelectedRole("STUDENT")}
+              />
+              <RoleOption
+                icon={<Users className="size-6" />}
+                label="Tutor"
+                description="Offer lessons"
+                selected={selectedRole === "TUTOR"}
+                onClick={() => setSelectedRole("TUTOR")}
+              />
+            </div>
+          )}
+
+          <div className={cn(enter, "mt-8 delay-200")}>
+            <GoogleSignInButton
+              clientId={clientId}
+              mode={mode}
+              role={effectiveRole}
+              disabled={!canSubmit}
+              onError={setError}
+            />
           </div>
+
+          {error && (
+            <p className="mt-4 text-sm text-[var(--color-semantic-error)]">
+              {error}
+            </p>
+          )}
+
+          {canSubmit === false && (
+            <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
+              Pick a role above to continue.
+            </p>
+          )}
 
           {!hideSwitch && (
             <p
@@ -179,25 +229,38 @@ function BrandPanel() {
   );
 }
 
-function GoogleIcon() {
+function RoleOption({
+  icon,
+  label,
+  description,
+  selected,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0">
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.56c2.08-1.92 3.28-4.74 3.28-8.1Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.93l3.66-2.84Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38Z"
-      />
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "flex flex-col items-center gap-2 rounded-[16px] border bg-[var(--color-neutral-off-white)] p-5 text-center transition-[border-color,background-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.96]",
+        selected
+          ? "border-[var(--color-primary-core)] bg-[color-mix(in_oklab,var(--color-secondary-sky)_30%,white)]"
+          : "border-[var(--color-neutral-border)] hover:border-[var(--color-primary-core)] hover:bg-[color-mix(in_oklab,var(--color-secondary-sky)_30%,white)]",
+      )}
+    >
+      <span className="text-[var(--color-primary-core)]">{icon}</span>
+      <span className="font-semibold text-[var(--color-neutral-charcoal)]">
+        {label}
+      </span>
+      <span className="text-xs text-[var(--color-text-secondary)]">
+        {description}
+      </span>
+    </button>
   );
 }

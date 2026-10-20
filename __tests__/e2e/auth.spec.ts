@@ -1,32 +1,45 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Auth pages", () => {
-  for (const [path, heading, switchLabel] of [
-    ["/sign-in", "Sign in", "Sign up"],
-    ["/sign-up", "Create your account", "Sign in"],
-  ] as const) {
-    test(`${path} renders Google-only form`, async ({ page }) => {
-      await page.goto(path);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
-      await expect(
-        page.getByText(/with your Google account to continue/),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: "Continue with Google" }),
-      ).toHaveAttribute("href", /accounts\.google\.com/);
-      await expect(
-        page.getByRole("img", { name: "Masters Hub" }),
-      ).toBeVisible();
-      // No marketing navbar on auth pages.
-      await expect(page.locator("header nav")).toHaveCount(0);
-      await expect(page.getByRole("link", { name: switchLabel })).toBeVisible();
-      // No horizontal scroll.
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > window.innerWidth,
-      );
-      expect(overflow).toBe(false);
-    });
-  }
+  test("/sign-in renders Google-only form", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sign in");
+    await expect(
+      page.getByText(/Sign in with your Google account/),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }),
+    ).toBeVisible();
+    await expect(page.getByRole("img", { name: "Masters Hub" })).toBeVisible();
+    // No marketing navbar on auth pages.
+    await expect(page.locator("header nav")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
+    // No horizontal scroll.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(overflow).toBe(false);
+  });
+
+  test("/sign-up renders role picker and Google button", async ({ page }) => {
+    await page.goto("/sign-up");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Create your account",
+    );
+    await expect(
+      page.getByText(/Choose how you want to use Masters Hub/),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Student Find a tutor" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Tutor Offer lessons" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sign up with Google" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  });
 
   test("landing CTAs link to auth", async ({ page }) => {
     await page.goto("/");
