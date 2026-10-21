@@ -68,7 +68,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden shrink-0 lg:block">
-          <ArrowLinkButton href="/sign-up">Register Now</ArrowLinkButton>
+          <ArrowLinkButton href="/sign-in">Register Now</ArrowLinkButton>
         </div>
 
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -107,7 +107,7 @@ export function Navbar() {
               </div>
               <div className="mt-auto flex w-full justify-center bg-[var(--color-primary-core)] px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <SheetClose asChild>
-                  <ArrowLinkButton href="/sign-up">
+                  <ArrowLinkButton href="/sign-in">
                     Register Now
                   </ArrowLinkButton>
                 </SheetClose>

@@ -45,21 +45,19 @@ test.describe("Auth pages", () => {
     await page.goto("/");
     await expect(
       page.getByRole("link", { name: "Get Started" }),
-    ).toHaveAttribute("href", "/sign-up");
+    ).toHaveAttribute("href", "/sign-in");
     const viewAll = page.getByRole("link", { name: "View All" });
     await expect(viewAll).toHaveCount(2);
     for (const link of await viewAll.all())
       await expect(link).toHaveAttribute("href", "/sign-in");
   });
 
-  test("Register Now opens sign up", async ({ page, isMobile }) => {
+  test("Register Now opens sign in first", async ({ page, isMobile }) => {
     await page.goto("/");
     if (isMobile) await page.getByRole("button", { name: "Open menu" }).click();
     await page.getByRole("link", { name: "Register Now" }).click();
-    await expect(page).toHaveURL(/\/sign-up$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Create your account",
-    );
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sign in");
   });
 
   test("dashboard redirects unauthenticated users to sign in", async ({

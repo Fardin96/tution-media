@@ -71,7 +71,7 @@ export function Footer() {
               syllabus, learning pace, and academic goals.
             </p>
             <div className="mt-8 flex justify-center sm:mt-10">
-              <ArrowLinkButton href="/sign-up" variant="solid">
+              <ArrowLinkButton href="/sign-in" variant="solid">
                 Get Started
               </ArrowLinkButton>
             </div>
