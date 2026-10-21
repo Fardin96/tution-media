@@ -5,8 +5,9 @@ import { api } from "@/lib/api";
 import { signOut } from "@/lib/auth.server";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function LogoutButton() {
+export function LogoutButton({ className }: { className?: string }) {
   const [isPending, startTransition] = useTransition();
 
   const handleLogout = async () => {
@@ -33,7 +34,10 @@ export function LogoutButton() {
       onClick={handleLogout}
       disabled={isPending}
       variant="outline"
-      className="h-12 w-full gap-2 rounded-full border-[var(--color-neutral-border)] text-base font-semibold text-[var(--color-neutral-charcoal)] hover:bg-[var(--color-neutral-off-white)] active:scale-[0.96]"
+      className={cn(
+        "h-12 w-full gap-2 rounded-full border-[var(--color-neutral-border)] text-base font-semibold text-[var(--color-neutral-charcoal)] hover:bg-[var(--color-neutral-off-white)] active:scale-[0.96]",
+        className,
+      )}
     >
       <LogOut className="size-4" />
       {isPending ? "Logging out..." : "Log out"}
