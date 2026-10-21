@@ -6,7 +6,7 @@ import Link from "next/link";
 import { GraduationCap, Users } from "lucide-react";
 import { AnimatedMeshGradientLayer } from "@/components/mesh-gradient/mesh-gradient-animated";
 import { cn } from "@/lib/utils";
-import { GoogleSignInButton } from "./google-sign-in-button";
+import { GoogleSignInButton, NO_ACCOUNT } from "./google-sign-in-button";
 import type { UserRole } from "@/lib/api";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -136,8 +136,23 @@ export function AuthSplit({
           </div>
 
           {error && (
-            <p className="mt-4 text-sm text-[var(--color-semantic-error)]">
+            <p
+              role="alert"
+              className="mt-4 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3 text-sm text-pretty text-[var(--color-semantic-error-text)]"
+            >
               {error}
+              {error === NO_ACCOUNT && (
+                <>
+                  {" "}
+                  <Link
+                    href="/sign-up"
+                    className="rounded-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)]"
+                  >
+                    Sign up
+                  </Link>{" "}
+                  to create one.
+                </>
+              )}
             </p>
           )}
 

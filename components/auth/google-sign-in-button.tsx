@@ -40,6 +40,9 @@ interface GoogleSignInButtonProps {
   onError?: (message: string) => void;
 }
 
+export const NO_ACCOUNT =
+  "There's no Masters Hub account for this Google account yet.";
+
 function decodeJwtPayload(jwt: string): { name?: string; picture?: string } {
   try {
     const b64 = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -69,12 +72,16 @@ export function GoogleSignInButton({
       client_id: clientId,
       callback: async (response) => {
         try {
-          const authRole = role ?? "STUDENT";
+          // No role on sign-in: the API then refuses to create a new account.
           const res = await api.post("/api/v1/auth/google", {
             idToken: response.credential,
-            role: authRole,
+            role,
           });
 
+          if (res.status === 404) {
+            onError?.(NO_ACCOUNT);
+            return;
+          }
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: "" }));
             throw new Error(
