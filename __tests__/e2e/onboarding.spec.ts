@@ -34,8 +34,35 @@ test.describe("Onboarding", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Location",
     );
+    // No area chosen yet.
+    await page.getByRole("button", { name: "Finish setup" }).click();
+    await expect(page.getByText("Choose your area.")).toBeVisible();
+    await expect(
+      page.getByRole("searchbox", { name: "Search areas" }),
+    ).toBeFocused();
+
+    const suggestions = page.getByRole("list", { name: "Suggested areas" });
     await page.getByRole("searchbox", { name: "Search areas" }).fill("dhan");
-    await page.getByText("Dhanmondi", { exact: true }).click();
+    await suggestions.getByRole("button", { name: "Dhanmondi" }).click();
+    // Chosen area moves into the field and leaves the list; no duplicates.
+    await expect(
+      page.getByRole("button", { name: "Remove Dhanmondi" }),
+    ).toBeVisible();
+    await expect(
+      suggestions.getByRole("button", { name: "Dhanmondi" }),
+    ).toHaveCount(0);
+    await expect(
+      suggestions.getByRole("button", { name: "Gulshan" }),
+    ).toHaveCount(1);
+    // Single choice: picking another replaces it, and the old one returns to the list once.
+    await suggestions.getByRole("button", { name: "Gulshan" }).click();
+    await expect(
+      page.getByRole("button", { name: "Remove Dhanmondi" }),
+    ).toHaveCount(0);
+    await expect(
+      suggestions.getByRole("button", { name: "Dhanmondi" }),
+    ).toHaveCount(1);
+    await suggestions.getByRole("button", { name: "Dhanmondi" }).click();
     await page.getByLabel("Address").fill("House 1, Road 2");
     await page.getByRole("button", { name: "Finish setup" }).click();
 
@@ -75,7 +102,16 @@ test.describe("Onboarding", () => {
       "Teaching",
     );
     await page.getByText("Physics", { exact: true }).click();
-    await page.getByText("Uttara", { exact: true }).click();
+    const suggestions = page.getByRole("list", { name: "Suggested areas" });
+    await suggestions.getByRole("button", { name: "Uttara" }).click();
+    await suggestions.getByRole("button", { name: "Mirpur" }).click();
+    await page.getByRole("button", { name: "Remove Uttara" }).click();
+    await expect(
+      suggestions.getByRole("button", { name: "Uttara" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "Remove Mirpur" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Finish setup" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -86,6 +122,9 @@ test.describe("Onboarding", () => {
     ]);
     expect(writes.find((w) => w.path === "/tutors/me/subjects")?.body).toEqual({
       subjectIds: [5],
+    });
+    expect(writes.find((w) => w.path === "/tutors/me/areas")?.body).toEqual({
+      areaIds: [5],
     });
   });
 

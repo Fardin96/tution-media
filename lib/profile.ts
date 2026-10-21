@@ -47,8 +47,8 @@ export interface Option {
 
 /* ───────── Lookups ───────── */
 
-// shortcut: placeholder Dhaka areas with made-up ids. Replace with Google Places
-// suggestions (mapped to backend area ids) when that integration lands.
+// shortcut: placeholder Dhaka areas; ids match tuition-api/src/seed/index.ts. Replace with
+// Google Places suggestions (mapped to backend area ids) when that integration lands.
 export const AREAS: Option[] = [
   "Dhanmondi",
   "Gulshan",
@@ -72,7 +72,7 @@ export const AREAS: Option[] = [
   "Jatrabari",
 ].map((name, i) => ({ id: i + 1, name }));
 
-// shortcut: static list until GET /api/v1/subjects exists; ids must match the seeded table.
+// shortcut: static list until GET /api/v1/subjects exists; ids match tuition-api/src/seed/index.ts.
 export const SUBJECTS: Option[] = [
   "Bangla",
   "English",
