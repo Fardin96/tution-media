@@ -103,6 +103,8 @@ export function GoogleSignInButton({
         shape: "pill",
         size: "large",
         text: mode === "sign-up" ? "signup_with" : "continue_with",
+        // Match page language; this button is the accessible one when active.
+        locale: "en",
         width: Math.min(overlayRef.current.offsetWidth || 400, 400),
       });
     }
@@ -111,7 +113,7 @@ export function GoogleSignInButton({
   return (
     <div className="relative">
       <Script
-        src="https://accounts.google.com/gsi/client"
+        src="https://accounts.google.com/gsi/client?hl=en"
         strategy="afterInteractive"
         // onReady also fires on remount (e.g. after logout navigation), onLoad doesn't
         onReady={() => setReady(true)}
