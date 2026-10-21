@@ -16,11 +16,13 @@ vi.mock("next/script", () => ({
   },
 }));
 
-let callback: (r: { credential: string }) => Promise<void>;
+let callback: ((r: { credential: string }) => Promise<void>) | undefined;
 
 beforeEach(() => {
   vi.restoreAllMocks();
   push.mockReset();
+  // Each test must wait for its own component's callback, not the previous one.
+  callback = undefined;
   window.google = {
     accounts: {
       id: {
@@ -46,7 +48,7 @@ describe("GoogleSignInButton", () => {
     );
     await waitFor(() => expect(callback).toBeDefined());
 
-    await callback({ credential: fakeJwt });
+    await callback!({ credential: fakeJwt });
 
     expect(post).toHaveBeenCalledWith("/api/v1/auth/google", {
       idToken: fakeJwt,
@@ -71,7 +73,7 @@ describe("GoogleSignInButton", () => {
     );
     await waitFor(() => expect(callback).toBeDefined());
 
-    await callback({ credential: fakeJwt });
+    await callback!({ credential: fakeJwt });
 
     expect(post.mock.calls[0][1]).toEqual({ idToken: fakeJwt, role: "TUTOR" });
   });
