@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { requireSession } from "@/lib/auth.server";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ProfileDashboard } from "@/components/profile/profile-dashboard";
+
+export const metadata: Metadata = { title: "Dashboard · Masters Hub" };
 
 export default async function DashboardPage() {
   const user = await requireSession();
+
+  if (user.role === "STUDENT" || user.role === "TUTOR")
+    return <ProfileDashboard session={user} />;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[var(--color-neutral-off-white)] px-6 py-12">

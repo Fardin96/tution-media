@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { profileApi, profileOf } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { GoogleIcon } from "./google-icon";
 import type { UserRole } from "@/lib/api";
@@ -37,6 +38,16 @@ interface GoogleSignInButtonProps {
   role?: AuthRole;
   disabled?: boolean;
   onError?: (message: string) => void;
+}
+
+function decodeJwtPayload(jwt: string): { name?: string; picture?: string } {
+  try {
+    const b64 = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return {};
+  }
 }
 
 export function GoogleSignInButton({
@@ -82,13 +93,25 @@ export function GoogleSignInButton({
             refreshToken: data.refreshToken,
           });
 
+          // The API account has no name/photo; Google's (already verified) ID token does.
+          const google = decodeJwtPayload(response.credential);
           await fetch("/api/auth/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data.account),
+            body: JSON.stringify({
+              ...data.account,
+              name: google.name,
+              picture: google.picture,
+            }),
           });
 
-          router.push("/dashboard");
+          // First sign-in (no profile yet) goes to onboarding; the dashboard guards too.
+          const me = await profileApi.me().catch(() => null);
+          router.push(
+            me && me.role !== "ADMIN" && !profileOf(me)
+              ? "/onboarding"
+              : "/dashboard",
+          );
         } catch (err) {
           onError?.(err instanceof Error ? err.message : "Sign in failed");
         }
