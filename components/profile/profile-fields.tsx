@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { AddressAutocomplete } from "./address-autocomplete";
 import { Check, Circle, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
@@ -129,9 +130,46 @@ function Field({
     );
   }
 
+  if (field.kind === "address") {
+    return (
+      <div className="grid gap-2">
+        <AddressAutocomplete
+          id={id}
+          value={{
+            address: form.address,
+            placeId: form.placeId,
+            latitude: form.latitude,
+            longitude: form.longitude,
+          }}
+          label={field.label}
+          placeholder={field.placeholder}
+          hint={field.hint}
+          error={error}
+          optional={field.optional}
+          describedBy={describedBy}
+          autoComplete={field.autoComplete}
+          onChange={(value) =>
+            onChange({
+              address: value.address,
+              placeId: value.placeId,
+              latitude: value.latitude,
+              longitude: value.longitude,
+            })
+          }
+        />
+      </div>
+    );
+  }
+
   const key = field.key as Exclude<
     keyof ProfileForm,
-    "gender" | "areaIds" | "subjectIds"
+    | "gender"
+    | "areaIds"
+    | "subjectIds"
+    | "address"
+    | "placeId"
+    | "latitude"
+    | "longitude"
   >;
   const common = {
     id,

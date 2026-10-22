@@ -35,7 +35,7 @@ export const tutorProfile = {
   isListed: false,
 };
 
-/** Fakes the backend API in the browser. Returns the recorded write requests. */
+/** Fakes the backend API and local Places proxy in the browser. Returns the recorded write requests. */
 export async function mockApi(
   context: BrowserContext | Page,
   role: "STUDENT" | "TUTOR",
@@ -51,6 +51,16 @@ export async function mockApi(
       contentType: "application/json",
       body: JSON.stringify(body),
     });
+
+  await context.route("**/api/places/autocomplete", async (route) => {
+    return json(route, { predictions: [] });
+  });
+  await context.route("**/api/places/details", async (route) => {
+    return json(route, {
+      formattedAddress: "Mock Address",
+      location: { latitude: 23.7465, longitude: 90.376 },
+    });
+  });
 
   await context.route("**/api/v1/**", async (route) => {
     const req = route.request();

@@ -9,6 +9,9 @@ interface BaseProfile {
   id: string;
   name: string;
   address: string;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   emergencyContact: string;
   whatsappNumber: string;
   whatsappVerifiedAt: string | null;
@@ -122,6 +125,9 @@ export interface ProfileForm {
   whatsappNumber: string;
   emergencyContact: string;
   address: string;
+  placeId: string;
+  latitude: number | null;
+  longitude: number | null;
   parentsInfo: string;
   /** Student: exactly one area. Tutor: areas they teach in. */
   areaIds: number[];
@@ -130,7 +136,14 @@ export interface ProfileForm {
 
 export type FieldKey = keyof ProfileForm;
 export type FieldKind =
-  "text" | "tel" | "textarea" | "gender" | "area" | "areas" | "subjects";
+  | "text"
+  | "tel"
+  | "textarea"
+  | "address"
+  | "gender"
+  | "area"
+  | "areas"
+  | "subjects";
 
 export interface FieldDef {
   key: FieldKey;
@@ -175,11 +188,10 @@ const emergency: FieldDef = {
 };
 const address: FieldDef = {
   key: "address",
-  kind: "textarea",
+  kind: "address",
   label: "Address",
-  placeholder: "House 12, Road 4",
+  placeholder: "Start typing your address",
   autoComplete: "street-address",
-  maxLength: 500,
 };
 
 export const SECTIONS: Record<ProfileRole, Section[]> = {
@@ -272,6 +284,9 @@ export const emptyForm = (fullName = ""): ProfileForm => ({
   whatsappNumber: "",
   emergencyContact: "",
   address: "",
+  placeId: "",
+  latitude: null,
+  longitude: null,
   parentsInfo: "",
   areaIds: [],
   subjectIds: [],
@@ -288,6 +303,9 @@ export function formFromProfile(
     whatsappNumber: profile.whatsappNumber,
     emergencyContact: profile.emergencyContact,
     address: profile.address,
+    placeId: profile.placeId ?? "",
+    latitude: profile.latitude ?? null,
+    longitude: profile.longitude ?? null,
     parentsInfo: "parentsInfo" in profile ? (profile.parentsInfo ?? "") : "",
     areaIds: "areaId" in profile ? [profile.areaId] : (extras.areaIds ?? []),
     subjectIds: extras.subjectIds ?? [],
@@ -312,6 +330,7 @@ export function validate(fields: FieldDef[], form: ProfileForm): FormErrors {
           f.kind === "area" ? "Choose your area." : "Choose at least one.";
       continue;
     }
+    if (typeof value !== "string") continue;
     const text = value.trim();
     if (!text) {
       if (!f.optional)
@@ -349,7 +368,18 @@ export function toPayload(
       if (role === "STUDENT") body.areaId = form.areaIds[0];
       continue;
     }
-    const text = form[key].trim();
+    if (key === "address") {
+      body.address = form.address.trim();
+      if (form.placeId) {
+        body.placeId = form.placeId;
+        body.latitude = form.latitude;
+        body.longitude = form.longitude;
+      }
+      continue;
+    }
+    const value = form[key];
+    if (typeof value !== "string") continue;
+    const text = value.trim();
     if (key === "whatsappNumber" || key === "emergencyContact")
       body[key] = normalizeBdPhone(text);
     else if (key === "parentsInfo") body[key] = text || undefined;

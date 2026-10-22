@@ -82,4 +82,20 @@ describe("toPayload", () => {
     expect(
       toPayload("TUTOR", form, ["areaIds", "subjectIds", "parentsInfo"]),
     ).toEqual({ parentsInfo: undefined }));
+
+  it("includes placeId and coordinates for a Places address", () => {
+    const withPlace = {
+      ...form,
+      address: "Dhanmondi, Dhaka",
+      placeId: "ChIJ123",
+      latitude: 23.7465,
+      longitude: 90.376,
+    };
+    expect(toPayload("STUDENT", withPlace, ["address"])).toEqual({
+      address: "Dhanmondi, Dhaka",
+      placeId: "ChIJ123",
+      latitude: 23.7465,
+      longitude: 90.376,
+    });
+  });
 });

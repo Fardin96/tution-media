@@ -184,6 +184,7 @@ export function EditSection({
               className={cn(
                 "min-w-0",
                 (f.kind === "textarea" ||
+                  f.kind === "address" ||
                   f.kind === "areas" ||
                   f.kind === "subjects") &&
                   "sm:col-span-2",
