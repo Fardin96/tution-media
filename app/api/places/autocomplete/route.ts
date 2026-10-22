@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
 
 export async function POST(request: NextRequest) {
-  const apiKey =
-    process.env.GOOGLE_PLACES_KEY || process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { message: "Places API key is not configured." },

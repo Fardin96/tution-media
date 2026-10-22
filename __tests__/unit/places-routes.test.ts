@@ -23,12 +23,11 @@ function jsonRequest(body: unknown) {
 describe("POST /api/places/autocomplete", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    process.env.GOOGLE_PLACES_KEY = "test-key";
-    delete process.env.GOOGLE_MAPS_API_KEY;
+    process.env.GOOGLE_MAPS_API_KEY = "test-key";
   });
 
   it("returns 500 when the API key is missing", async () => {
-    delete process.env.GOOGLE_PLACES_KEY;
+    delete process.env.GOOGLE_MAPS_API_KEY;
     const res = await autocompletePost(
       jsonRequest({ input: "Dhan", sessionToken: "t1" }) as never,
     );
@@ -95,11 +94,11 @@ describe("POST /api/places/autocomplete", () => {
 describe("POST /api/places/details", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    process.env.GOOGLE_PLACES_KEY = "test-key";
+    process.env.GOOGLE_MAPS_API_KEY = "test-key";
   });
 
   it("returns 500 when the API key is missing", async () => {
-    delete process.env.GOOGLE_PLACES_KEY;
+    delete process.env.GOOGLE_MAPS_API_KEY;
     const res = await detailsPost(
       jsonRequest({ placeId: "ChIJ123", sessionToken: "t1" }) as never,
     );
