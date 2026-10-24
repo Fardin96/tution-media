@@ -499,6 +499,20 @@ export const profileApi = {
     ).verifications,
 
   deleteMe: async () => json(await api.delete("/api/v1/me")),
+
+  hardDeleteMe: async () => {
+    const tokens = api.getTokens();
+    const res = await fetch("/api/v1/me/hard-delete", {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: tokens?.accessToken
+          ? `Bearer ${tokens.accessToken}`
+          : "",
+      },
+    });
+    return json(await res);
+  },
 };
 
 /** Saves the tutor's subject and area sets. Both are full replacements. */
