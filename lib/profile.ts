@@ -497,6 +497,8 @@ export const profileApi = {
         await api.get("/api/v1/tutors/me/verifications"),
       )
     ).verifications,
+
+  deleteMe: async () => json(await api.delete("/api/v1/me")),
 };
 
 /** Saves the tutor's subject and area sets. Both are full replacements. */

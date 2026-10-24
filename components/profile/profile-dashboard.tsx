@@ -47,6 +47,8 @@ import {
   type VerificationStatus,
   type Video,
 } from "@/lib/profile";
+import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
+import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { EditSection } from "./edit-section";
 import {
@@ -150,7 +152,13 @@ async function loadDashboard(): Promise<LoadResult> {
   };
 }
 
-export function ProfileDashboard({ session }: { session: UserSession }) {
+export function ProfileDashboard({
+  session,
+  featureFlags,
+}: {
+  session: UserSession;
+  featureFlags: FeatureFlags;
+}) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
@@ -341,6 +349,7 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
                   since={me.createdAt}
                   whatsapp={profile.whatsappNumber}
                   whatsappVerified={!!profile.whatsappVerifiedAt}
+                  featureFlags={featureFlags}
                 />
                 <HelpCard />
               </aside>
@@ -1317,11 +1326,13 @@ function AccountCard({
   since,
   whatsapp,
   whatsappVerified,
+  featureFlags,
 }: {
   email: string;
   since: string;
   whatsapp: string;
   whatsappVerified: boolean;
+  featureFlags: FeatureFlags;
 }) {
   return (
     <section aria-labelledby="account-heading" className={cn(card, "p-5")}>
@@ -1354,6 +1365,11 @@ function AccountCard({
           </dd>
         </div>
       </dl>
+      {isFeatureEnabled("DELETE_ACCOUNT", featureFlags) && (
+        <div className="mt-5 border-t border-[var(--color-neutral-border)] pt-5">
+          <DeleteAccountButton />
+        </div>
+      )}
     </section>
   );
 }
