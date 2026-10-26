@@ -75,6 +75,40 @@ export const AREAS: Option[] = [
   "Jatrabari",
 ].map((name, i) => ({ id: i + 1, name }));
 
+// shortcut: static list until GET /api/v1/categories exists; ids match tuition-api/src/seed/index.ts.
+export const CATEGORIES: Option[] = [
+  "Bangla Medium",
+  "English Version",
+  "English Medium",
+  "Madrasa",
+  "Admission Test",
+  "University",
+].map((name, i) => ({ id: i + 1, name }));
+
+export const CLASS_LEVELS: { value: number; label: string }[] = [
+  ...Array.from({ length: 10 }, (_, i) => ({
+    value: i + 1,
+    label: `Class ${i + 1}`,
+  })),
+  { value: 11, label: "HSC 1st year" },
+  { value: 12, label: "HSC 2nd year" },
+  { value: 13, label: "Admission prep" },
+  { value: 14, label: "University year 1" },
+  { value: 15, label: "University year 2" },
+  { value: 16, label: "University year 3" },
+  { value: 17, label: "University year 4" },
+  { value: 18, label: "O Level" },
+  { value: 19, label: "A Level" },
+  { value: 20, label: "Other" },
+];
+
+export const TUITION_TYPES = [
+  "Home Tutoring Solo",
+  "Home Tutoring Group",
+  "Online",
+  "Group Coaching",
+];
+
 // shortcut: static list until GET /api/v1/subjects exists; ids match tuition-api/src/seed/index.ts.
 export const SUBJECTS: Option[] = [
   "Bangla",
@@ -93,10 +127,17 @@ export const SUBJECTS: Option[] = [
   "Arabic",
 ].map((name, i) => ({ id: i + 1, name }));
 
-/** Async so a Places-backed lookup can drop in without touching the picker. */
+/** Async so a Places/backend-backed lookup can drop in without touching the picker. */
 export async function searchAreas(query: string): Promise<Option[]> {
   const q = query.trim().toLowerCase();
   return q ? AREAS.filter((a) => a.name.toLowerCase().includes(q)) : AREAS;
+}
+
+export async function searchSubjects(query: string): Promise<Option[]> {
+  const q = query.trim().toLowerCase();
+  return q
+    ? SUBJECTS.filter((s) => s.name.toLowerCase().includes(q))
+    : SUBJECTS;
 }
 
 export const optionName = (list: Option[], id: number) =>
@@ -399,7 +440,7 @@ export class ApiError extends Error {
   }
 }
 
-async function json<T>(res: Response): Promise<T> {
+export async function parseJson<T>(res: Response): Promise<T> {
   if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
   const body = (await res.json().catch(() => ({}))) as { message?: string };
   const message =
@@ -443,62 +484,65 @@ export interface Verification {
 
 export const profileApi = {
   me: async () =>
-    (await json<{ account: Me }>(await api.get("/api/v1/me"))).account,
+    (await parseJson<{ account: Me }>(await api.get("/api/v1/me"))).account,
 
   /** Creates the profile, or updates it if a previous attempt already created it. */
   save: async (role: ProfileRole, body: Record<string, unknown>) => {
     const res = await api.post(profilePath(role), body);
     if (res.status === 409)
-      return json<StudentProfile | TutorProfile>(
+      return parseJson<StudentProfile | TutorProfile>(
         await api.patch(profilePath(role), body),
       );
-    return json<StudentProfile | TutorProfile>(res);
+    return parseJson<StudentProfile | TutorProfile>(res);
   },
 
   update: async (role: ProfileRole, body: Record<string, unknown>) =>
-    json<StudentProfile | TutorProfile>(
+    parseJson<StudentProfile | TutorProfile>(
       await api.patch(profilePath(role), body),
     ),
 
   setTutorAreas: async (areaIds: number[]) =>
-    json(await api.put("/api/v1/tutors/me/areas", { areaIds })),
+    parseJson(await api.put("/api/v1/tutors/me/areas", { areaIds })),
 
   setTutorSubjects: async (subjectIds: number[]) =>
-    json(await api.put("/api/v1/tutors/me/subjects", { subjectIds })),
+    parseJson(await api.put("/api/v1/tutors/me/subjects", { subjectIds })),
 
   /** Areas and subjects aren't on GET /me; the public profile has them. */
   tutorExtras: async (tutorId: string) =>
     (
-      await json<{ tutor: TutorExtras }>(
+      await parseJson<{ tutor: TutorExtras }>(
         await api.get(`/api/v1/tutors/${tutorId}`),
       )
     ).tutor,
 
   credentials: async () =>
     (
-      await json<{ credentials: Credential[] }>(
+      await parseJson<{ credentials: Credential[] }>(
         await api.get("/api/v1/tutors/me/credentials"),
       )
     ).credentials,
 
   deleteCredential: async (id: string) =>
-    json(await api.delete(`/api/v1/tutors/me/credentials/${id}`)),
+    parseJson(await api.delete(`/api/v1/tutors/me/credentials/${id}`)),
 
   videos: async () =>
-    (await json<{ videos: Video[] }>(await api.get("/api/v1/tutors/me/videos")))
-      .videos,
+    (
+      await parseJson<{ videos: Video[] }>(
+        await api.get("/api/v1/tutors/me/videos"),
+      )
+    ).videos,
 
   deleteVideo: async (id: string) =>
-    json(await api.delete(`/api/v1/tutors/me/videos/${id}`)),
+    parseJson(await api.delete(`/api/v1/tutors/me/videos/${id}`)),
 
   verifications: async () =>
     (
-      await json<{ verifications: Verification[] }>(
+      await parseJson<{ verifications: Verification[] }>(
         await api.get("/api/v1/tutors/me/verifications"),
       )
     ).verifications,
 
-  deleteMe: async () => json(await api.delete("/api/v1/me")),
+  deleteMe: async () => parseJson(await api.delete("/api/v1/me")),
 
   hardDeleteMe: async () => {
     const tokens = api.getTokens();
@@ -511,7 +555,7 @@ export const profileApi = {
           : "",
       },
     });
-    return json(await res);
+    return parseJson(await res);
   },
 };
 
