@@ -209,7 +209,10 @@ export function validateRequirementForm(
     errors.classLevel = "Choose a class.";
   }
   if (!form.categoryId) {
-    errors.categoryId = "Choose one.";
+    errors.categoryId = "Choose a category.";
+  }
+  if (!form.instituteName) {
+    errors.instituteName = "Please add the name of your institution.";
   }
   if (form.instituteName && form.instituteName.trim().length > 200) {
     errors.instituteName = "Keep it under 200 characters.";

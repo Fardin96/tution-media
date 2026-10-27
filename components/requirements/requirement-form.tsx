@@ -112,6 +112,9 @@ export function RequirementForm({
       return;
     }
     if (Object.keys(foundErrors).length > 0) {
+      toast.error(Object.values(foundErrors)[0], {
+        id: "requirement-validation",
+      });
       setErrors(foundErrors);
       focusFirstInvalid();
       return;
