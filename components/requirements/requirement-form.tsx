@@ -112,6 +112,9 @@ export function RequirementForm({
       return;
     }
     if (Object.keys(foundErrors).length > 0) {
+      toast.error(Object.values(foundErrors)[0], {
+        id: "requirement-validation",
+      });
       setErrors(foundErrors);
       focusFirstInvalid();
       return;
@@ -271,10 +274,6 @@ export function RequirementForm({
               className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
             >
               School or college
-              <span className="font-normal text-[var(--color-text-secondary)]">
-                {" "}
-                (optional)
-              </span>
             </label>
             <input
               id={`${idPrefix}-instituteName`}

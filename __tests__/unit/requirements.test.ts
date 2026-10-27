@@ -145,7 +145,7 @@ describe("requirements helpers", () => {
 
     expect(errors.subjectIds).toBe("Choose at least one subject.");
     expect(errors.classLevel).toBe("Choose a class.");
-    expect(errors.categoryId).toBe("Choose one.");
+    expect(errors.categoryId).toBe("Choose a category.");
     expect(errors.areaId).toBe("Choose your area.");
     expect(errors.timeOfDay).toBe("Pick a time.");
     expect(errors.salary).toBe("Enter a monthly amount in taka.");
