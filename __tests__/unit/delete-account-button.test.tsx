@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { api } from "@/lib/api";
 import { profileApi } from "@/lib/profile";
@@ -9,6 +10,10 @@ const replace = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -80,7 +85,7 @@ describe("DeleteAccountButton", () => {
     expect(replace).toHaveBeenCalledWith("/");
   });
 
-  it("displays an error message when deletion fails", async () => {
+  it("shows an error toast when deletion fails", async () => {
     vi.mocked(profileApi.deleteMe).mockRejectedValue(new Error("Server busy"));
 
     await openDeleteFlow();
@@ -89,7 +94,9 @@ describe("DeleteAccountButton", () => {
       screen.getByRole("button", { name: /confirm soft delete/i }),
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Server busy");
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Server busy"),
+    );
     expect(replace).not.toHaveBeenCalled();
   });
 

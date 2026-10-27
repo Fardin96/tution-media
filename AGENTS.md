@@ -22,6 +22,7 @@
 - **Branch/PR**: Default branch is `main`. Feature branches off `main`. PRs require at least one maintainer approval and all CI to pass.
 - **Env**: Variables in `.env.local` are for local dev only. Do not commit `.env*` files.
 - **Tailwind**: Config in `postcss.config.mjs`. Use `cn()` utility (from `@/lib/utils` or `class-variance-authority`) for class merging.
+- **Notifications**: Show action outcomes (saved, deleted, failed) with `toast` from `sonner`. `<Toaster />` (`components/ui/sonner.tsx`) is mounted once in `app/layout.tsx`. Field validation stays inline next to its field. Do not use `alert()` or inline status banners for outcomes.
 
 ## Directory ownership
 

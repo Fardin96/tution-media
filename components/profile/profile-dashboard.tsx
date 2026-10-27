@@ -4,7 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
+  ArrowDown,
+  ArrowUp,
   ArrowUpRight,
   BookOpen,
   Briefcase,
@@ -63,7 +66,6 @@ import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { EditSection } from "./edit-section";
-import { FieldError } from "./profile-fields";
 import {
   card,
   focusRing,
@@ -895,7 +897,6 @@ function RemovableRow({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5">
@@ -909,14 +910,6 @@ function RemovableRow({
         {meta && (
           <span className="block text-sm text-[var(--color-text-secondary)]">
             {meta}
-          </span>
-        )}
-        {error && (
-          <span
-            role="alert"
-            className="block text-sm font-medium text-[var(--color-semantic-error-text)]"
-          >
-            {error}
           </span>
         )}
       </span>
@@ -936,11 +929,10 @@ function RemovableRow({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
-              setError(null);
               try {
                 await onRemove();
               } catch (err) {
-                setError(
+                toast.error(
                   err instanceof Error ? err.message : "Couldn't remove.",
                 );
                 setBusy(false);
@@ -1203,8 +1195,10 @@ function RequirementsSection({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [banner, setBanner] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [showAllPast, setShowAllPast] = useState(false);
+  const past =
+    requirements?.filter((r) => r.status !== "OPEN" && r.status !== "DRAFT") ??
+    [];
 
   useEffect(() => {
     const posted = searchParams.get("posted");
@@ -1218,27 +1212,10 @@ function RequirementsSection({
           ? "Saved as draft"
           : "Changes saved";
 
-      void Promise.resolve().then(() => setBanner(message));
+      toast.success(message, { id: "requirement-status" });
+      router.replace("/dashboard#requirements");
     }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!banner) return;
-    const t = setTimeout(() => {
-      setBanner(null);
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        if (
-          params.has("posted") ||
-          params.has("saved") ||
-          params.has("draft")
-        ) {
-          router.replace("/dashboard#requirements");
-        }
-      }
-    }, 4000);
-    return () => clearTimeout(t);
-  }, [banner, router]);
+  }, [searchParams, router]);
 
   return (
     <section
@@ -1259,24 +1236,6 @@ function RequirementsSection({
           ) : undefined
         }
       />
-
-      <p aria-live="polite" className="empty:hidden">
-        {banner && (
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-semantic-success-surface)] px-3 py-1 text-sm font-medium text-[var(--color-semantic-success-text)]">
-            <Check aria-hidden="true" className="size-4" strokeWidth={2.5} />
-            {banner}
-          </span>
-        )}
-      </p>
-
-      {actionError && (
-        <div
-          role="alert"
-          className="mt-3 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3"
-        >
-          <FieldError message={actionError} />
-        </div>
-      )}
 
       {requirements === null ? (
         <div className={cn(card, "mt-5")}>{loadFailed}</div>
@@ -1307,31 +1266,41 @@ function RequirementsSection({
                     key={r.id}
                     requirement={r}
                     onUpdateRequirement={onUpdateRequirement}
-                    setActionError={setActionError}
                   />
                 ))}
             </ul>
           )}
 
-          {requirements.filter(
-            (r) => r.status !== "OPEN" && r.status !== "DRAFT",
-          ).length > 0 && (
+          {past.length > 0 && (
             <>
               <h3 className="mt-8 text-sm font-semibold text-[var(--color-text-secondary)]">
                 Past requirements
               </h3>
-              <ul className="mt-3 grid gap-4">
-                {requirements
-                  .filter((r) => r.status !== "OPEN" && r.status !== "DRAFT")
-                  .map((r) => (
-                    <RequirementItem
-                      key={r.id}
-                      requirement={r}
-                      onUpdateRequirement={onUpdateRequirement}
-                      setActionError={setActionError}
-                    />
-                  ))}
+              <ul id="past-requirements" className="mt-3 grid gap-4">
+                {past.slice(0, showAllPast ? undefined : 1).map((r) => (
+                  <RequirementItem
+                    key={r.id}
+                    requirement={r}
+                    onUpdateRequirement={onUpdateRequirement}
+                  />
+                ))}
               </ul>
+              {past.length > 1 && (
+                <button
+                  type="button"
+                  aria-expanded={showAllPast}
+                  aria-controls="past-requirements"
+                  onClick={() => setShowAllPast((v) => !v)}
+                  className={cn(ghostButton, "mt-4 min-h-10")}
+                >
+                  {showAllPast ? "Show less" : "View more"}
+                  {showAllPast ? (
+                    <ArrowUp aria-hidden="true" className="size-4" />
+                  ) : (
+                    <ArrowDown aria-hidden="true" className="size-4" />
+                  )}
+                </button>
+              )}
             </>
           )}
         </>
@@ -1343,11 +1312,9 @@ function RequirementsSection({
 function RequirementItem({
   requirement: r,
   onUpdateRequirement,
-  setActionError,
 }: {
   requirement: Requirement;
   onUpdateRequirement: (req: Requirement) => void;
-  setActionError: (msg: string | null) => void;
 }) {
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1362,12 +1329,12 @@ function RequirementItem({
 
   const handleClose = async () => {
     setBusy(true);
-    setActionError(null);
     try {
       const updated = await requirementApi.close(r.id);
       onUpdateRequirement(updated);
       setConfirmingClose(false);
       setAnnounce("Requirement closed.");
+      toast.success("Tuition requirement closed");
       requestAnimationFrame(() => {
         document.getElementById(`req-title-${r.id}`)?.focus();
       });
@@ -1375,9 +1342,9 @@ function RequirementItem({
       const status = (err as { status?: number }).status;
       if (status === 409) {
         onUpdateRequirement({ ...r, status: "CLOSED" });
-        setActionError("It was already closed.");
+        toast.error("It was already closed.");
       } else {
-        setActionError(
+        toast.error(
           err instanceof Error ? err.message : "Couldn't close requirement.",
         );
       }
@@ -1389,13 +1356,12 @@ function RequirementItem({
 
   const handlePublish = async () => {
     setBusy(true);
-    setActionError(null);
     try {
       const updated = await requirementApi.update(r.id, { status: "OPEN" });
       onUpdateRequirement(updated);
       setAnnounce("Requirement posted.");
     } catch (err: unknown) {
-      setActionError(
+      toast.error(
         err instanceof Error ? err.message : "Couldn't post requirement.",
       );
     } finally {
