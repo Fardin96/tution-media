@@ -218,6 +218,12 @@ test.describe("Student tuition requirements flow", () => {
     );
     await page.click("button:has-text('Dhanmondi')");
 
+    // Fill in School or college (required)
+    await page.fill(
+      "input[placeholder='Viqarunnisa Noon School']",
+      "Viqarunnisa Noon School",
+    );
+
     // Fill in Preferred time
     await page.fill("input[type='time']", "16:00");
 
