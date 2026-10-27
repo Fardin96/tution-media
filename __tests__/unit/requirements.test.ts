@@ -68,7 +68,7 @@ describe("requirements helpers", () => {
 
     const payload = toPayload(form, "OPEN");
     expect(payload).toEqual({
-      subjectId: 1,
+      subjectIds: [1, 2],
       classLevel: 9,
       categoryId: 2,
       instituteName: "NDC",
@@ -94,7 +94,7 @@ describe("requirements helpers", () => {
     const payload = toPayload(partialForm, "DRAFT");
     expect(payload).toEqual({
       status: "DRAFT",
-      subjectId: 2,
+      subjectIds: [2],
       tuitionType: "Home Tutoring Solo",
       daysPerWeek: 3,
       hireByDate: partialForm.hireByDate,
@@ -102,6 +102,14 @@ describe("requirements helpers", () => {
       studentCount: 1,
       tutorGenderPref: "ANY",
     });
+  });
+
+  it("sends empty subjectIds on DRAFT so cleared subjects are removed", () => {
+    const payload = toPayload(
+      { ...emptyRequirementForm(), subjectIds: [], classLevel: 9 },
+      "DRAFT",
+    );
+    expect(payload.subjectIds).toEqual([]);
   });
 
   it("detects if form has any input entered", () => {

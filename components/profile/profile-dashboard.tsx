@@ -1353,8 +1353,8 @@ function RequirementItem({
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
 
-  const subjectName = r.subjectId
-    ? optionName(SUBJECTS, r.subjectId)
+  const subjectName = r.subjectIds.length
+    ? r.subjectIds.map((id) => optionName(SUBJECTS, id)).join(", ")
     : "Tuition Requirement";
   const title = `${subjectName} · ${classLabel(r.classLevel)}`;
   const meta = statusMeta(r.status);
