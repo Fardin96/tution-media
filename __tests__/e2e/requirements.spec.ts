@@ -33,7 +33,7 @@ const INITIAL_REQUIREMENTS: Requirement[] = [
     studentId: "student-id-456",
     categoryId: 1, // Bangla Medium
     areaId: 1, // Dhanmondi
-    subjectId: 1, // Bangla
+    subjectIds: [1], // Bangla
     classLevel: 9, // Class 9
     timeOfDay: "18:00",
     daysPerWeek: 3,
@@ -90,7 +90,7 @@ test.describe("Student tuition requirements flow", () => {
           studentId: "student-id-456",
           categoryId: body.categoryId ?? null,
           areaId: body.areaId ?? null,
-          subjectId: body.subjectId ?? null,
+          subjectIds: body.subjectIds ?? [],
           classLevel: body.classLevel ?? null,
           timeOfDay: body.timeOfDay ?? null,
           daysPerWeek: body.daysPerWeek ?? null,

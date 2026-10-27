@@ -10,7 +10,7 @@ export interface Requirement {
   studentId: string;
   categoryId: number | null;
   areaId: number | null;
-  subjectId: number | null;
+  subjectIds: number[];
   classLevel: number | null;
   timeOfDay: string | null;
   daysPerWeek: number | null;
@@ -116,7 +116,7 @@ export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
 
 export function fromRequirement(r: Requirement): RequirementForm {
   return {
-    subjectIds: r.subjectId ? [r.subjectId] : [],
+    subjectIds: r.subjectIds ?? [],
     classLevel: r.classLevel ?? null,
     categoryId: r.categoryId ?? null,
     instituteName: r.instituteName ?? "",
@@ -151,7 +151,7 @@ export function toPayload(
 
   if (status === "DRAFT") {
     const payload: Record<string, unknown> = { status: "DRAFT" };
-    if (form.subjectIds.length > 0) payload.subjectId = form.subjectIds[0];
+    payload.subjectIds = form.subjectIds;
     if (form.classLevel !== null) payload.classLevel = form.classLevel;
     if (form.categoryId !== null) payload.categoryId = form.categoryId;
     if (form.instituteName.trim())
@@ -168,7 +168,7 @@ export function toPayload(
   }
 
   const payload: Record<string, unknown> = {
-    subjectId: form.subjectIds[0],
+    subjectIds: form.subjectIds,
     classLevel: form.classLevel,
     categoryId: form.categoryId,
     instituteName: form.instituteName.trim() || undefined,
