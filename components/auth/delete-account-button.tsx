@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { profileApi } from "@/lib/profile";
 import { cn } from "@/lib/utils";
@@ -14,11 +15,9 @@ export function DeleteAccountButton({ className }: { className?: string }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const execute = async (mode: "soft" | "hard") => {
     setBusy(true);
-    setError(null);
     try {
       if (mode === "soft") {
         await profileApi.deleteMe();
@@ -29,7 +28,7 @@ export function DeleteAccountButton({ className }: { className?: string }) {
       router.replace("/");
     } catch (err) {
       setBusy(false);
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "Couldn't delete your account.",
       );
     }
@@ -99,14 +98,6 @@ export function DeleteAccountButton({ className }: { className?: string }) {
             {busy ? "Deleting…" : "Confirm soft delete"}
           </button>
         </div>
-        {error && (
-          <p
-            role="alert"
-            className="text-sm font-medium text-[var(--color-semantic-error-text)]"
-          >
-            {error}
-          </p>
-        )}
       </div>
     );
   }
@@ -138,14 +129,6 @@ export function DeleteAccountButton({ className }: { className?: string }) {
             {busy ? "Deleting…" : "Yes, hard delete"}
           </button>
         </div>
-        {error && (
-          <p
-            role="alert"
-            className="text-sm font-medium text-[var(--color-semantic-error-text)]"
-          >
-            {error}
-          </p>
-        )}
       </div>
     );
   }

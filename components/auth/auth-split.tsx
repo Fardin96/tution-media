@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
+import { toast } from "sonner";
 import { AnimatedMeshGradientLayer } from "@/components/mesh-gradient/mesh-gradient-animated";
 import { cn } from "@/lib/utils";
 import { GoogleSignInButton, NO_ACCOUNT } from "./google-sign-in-button";
@@ -74,8 +76,23 @@ export function AuthSplit({
   role: fixedRole,
 }: AuthSplitProps) {
   const copy = COPY[mode];
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<PublicRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const onError = useCallback(
+    (message: string) =>
+      toast.error(
+        message,
+        message === NO_ACCOUNT
+          ? {
+              action: {
+                label: "Sign up",
+                onClick: () => router.push("/sign-up"),
+              },
+            }
+          : undefined,
+      ),
+    [router],
+  );
 
   const showRolePicker = mode === "sign-up" && !fixedRole;
   const effectiveRole = fixedRole ?? selectedRole ?? undefined;
@@ -131,30 +148,9 @@ export function AuthSplit({
               mode={mode}
               role={effectiveRole}
               disabled={!canSubmit}
-              onError={setError}
+              onError={onError}
             />
           </div>
-
-          {error && (
-            <p
-              role="alert"
-              className="mt-4 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3 text-sm text-pretty text-[var(--color-semantic-error-text)]"
-            >
-              {error}
-              {error === NO_ACCOUNT && (
-                <>
-                  {" "}
-                  <Link
-                    href="/sign-up"
-                    className="rounded-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)]"
-                  >
-                    Sign up
-                  </Link>{" "}
-                  to create one.
-                </>
-              )}
-            </p>
-          )}
 
           {canSubmit === false && (
             <p className="mt-4 text-sm text-[var(--color-text-secondary)]">

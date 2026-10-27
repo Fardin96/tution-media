@@ -27,6 +27,8 @@ interface AddressAutocompleteProps {
   placeholder?: string;
   hint?: string;
   error?: string;
+  /** false: the message is shown elsewhere; the input still gets aria-invalid. */
+  showError?: boolean;
   optional?: boolean;
   describedBy?: string;
   autoComplete?: string;
@@ -40,6 +42,7 @@ export function AddressAutocomplete({
   placeholder = "Start typing an address",
   hint,
   error,
+  showError = true,
   optional,
   describedBy,
   autoComplete = "street-address",
@@ -51,8 +54,9 @@ export function AddressAutocomplete({
   const errorId = `${id}-error`;
   const listboxId = `${id}-listbox`;
   const inputDescribedBy =
-    [hint && hintId, error && errorId, describedBy].filter(Boolean).join(" ") ||
-    undefined;
+    [hint && hintId, error && showError && errorId, describedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -273,7 +277,7 @@ export function AddressAutocomplete({
           {hint}
         </p>
       )}
-      {error && (
+      {error && showError && (
         <p
           id={errorId}
           className="text-sm font-medium text-[var(--color-semantic-error-text)]"

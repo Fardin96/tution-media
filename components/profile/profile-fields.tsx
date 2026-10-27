@@ -6,7 +6,6 @@ import { Check, Circle, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
 import {
-  SUBJECTS,
   searchAreas,
   searchSubjects,
   type FieldDef,
@@ -30,6 +29,8 @@ interface ProfileFieldsProps {
   form: ProfileForm;
   errors: FormErrors;
   onChange: (patch: Partial<ProfileForm>) => void;
+  /** false: messages are shown elsewhere (e.g. toasts); the field still gets aria-invalid. */
+  inlineErrors?: boolean;
 }
 
 export function ProfileFields({
@@ -37,6 +38,7 @@ export function ProfileFields({
   form,
   errors,
   onChange,
+  inlineErrors = true,
 }: ProfileFieldsProps) {
   return (
     <div className="grid gap-6">
@@ -47,6 +49,7 @@ export function ProfileFields({
           form={form}
           error={errors[field.key]}
           onChange={onChange}
+          inlineErrors={inlineErrors}
         />
       ))}
     </div>
@@ -58,17 +61,20 @@ function Field({
   form,
   error,
   onChange,
+  inlineErrors,
 }: {
   field: FieldDef;
   form: ProfileForm;
   error?: string;
   onChange: ProfileFieldsProps["onChange"];
+  inlineErrors: boolean;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
+  const shownError = inlineErrors ? error : undefined;
   const describedBy =
-    [field.hint && hintId, error && errorId].filter(Boolean).join(" ") ||
+    [field.hint && hintId, shownError && errorId].filter(Boolean).join(" ") ||
     undefined;
 
   const meta = (
@@ -78,7 +84,7 @@ function Field({
           {field.hint}
         </p>
       )}
-      <FieldError id={errorId} message={error} />
+      <FieldError id={errorId} message={shownError} />
     </>
   );
 
@@ -111,11 +117,10 @@ function Field({
             ))}
           </div>
         ) : field.kind === "subjects" ? (
-          <ChipGroup
-            name={id}
-            options={SUBJECTS}
-            value={form.subjectIds}
+          <SubjectPicker
+            invalid={!!error}
             multiple
+            value={form.subjectIds}
             onChange={(subjectIds) => onChange({ subjectIds })}
           />
         ) : (
@@ -146,6 +151,7 @@ function Field({
           placeholder={field.placeholder}
           hint={field.hint}
           error={error}
+          showError={inlineErrors}
           optional={field.optional}
           describedBy={describedBy}
           autoComplete={field.autoComplete}

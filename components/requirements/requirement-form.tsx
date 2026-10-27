@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Minus, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, CLASS_LEVELS, TUITION_TYPES } from "@/lib/profile";
 import {
@@ -61,7 +62,6 @@ export function RequirementForm({
   const [savingAction, setSavingAction] = useState<
     "OPEN" | "DRAFT" | "UPDATE" | null
   >(null);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
   const idPrefix = useId();
@@ -107,6 +107,10 @@ export function RequirementForm({
     const desiredStatus =
       targetStatus ?? (isEdit && !isDraft ? "OPEN" : "OPEN");
     const foundErrors = validateRequirementForm(form, desiredStatus);
+    if (desiredStatus === "DRAFT" && foundErrors.subjectIds) {
+      toast.error(foundErrors.subjectIds, { id: "requirement-draft-empty" });
+      return;
+    }
     if (Object.keys(foundErrors).length > 0) {
       setErrors(foundErrors);
       focusFirstInvalid();
@@ -120,7 +124,6 @@ export function RequirementForm({
       : (targetStatus ?? "OPEN");
 
     setSavingAction(action);
-    setServerError(null);
 
     try {
       const payload = toPayload(
@@ -143,7 +146,7 @@ export function RequirementForm({
       const message = (err as { message?: string }).message;
 
       if (status === 400) {
-        setServerError(
+        toast.error(
           "One of your choices isn't available any more. Pick it again.",
         );
       } else if (status === 401) {
@@ -151,11 +154,11 @@ export function RequirementForm({
       } else if (status === 404 && message?.includes("Student profile")) {
         router.replace("/onboarding");
       } else if (status === 404 && isEdit) {
-        setServerError("This requirement doesn't exist or isn't yours.");
+        toast.error("This requirement doesn't exist or isn't yours.");
       } else if (status === 409 && isEdit) {
-        setServerError("This requirement is closed, so it can't be edited.");
+        toast.error("This requirement is closed, so it can't be edited.");
       } else {
-        setServerError(
+        toast.error(
           message || "Couldn't save requirement. Try again in a moment.",
         );
       }
@@ -587,15 +590,6 @@ export function RequirementForm({
           </div>
         </fieldset>
       </div>
-
-      {serverError && (
-        <div
-          role="alert"
-          className="mt-6 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3"
-        >
-          <FieldError message={serverError} />
-        </div>
-      )}
 
       {/* Action buttons */}
       <div className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none">
