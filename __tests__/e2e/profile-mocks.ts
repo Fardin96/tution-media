@@ -25,6 +25,7 @@ const base = {
     needsReaddress: false,
   },
   emergencyContact: "+8801911111111",
+  phoneNumber: "+8801811111111",
   whatsappNumber: "+8801712345678",
   whatsappVerifiedAt: null,
   studentIdNumber: "NDC-2024-1187",

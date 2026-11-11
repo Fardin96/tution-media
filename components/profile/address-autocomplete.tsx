@@ -64,6 +64,7 @@ export function AddressAutocomplete({
   const listboxId = `${id}-listbox`;
   const districtId = `${id}-district`;
   const districtHintId = `${id}-district-hint`;
+  const districtLineId = `${id}-district-line`;
   const warningId = `${id}-warning`;
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
@@ -79,12 +80,14 @@ export function AddressAutocomplete({
   const district = value.district?.trim() ?? "";
   const showDistrict =
     !!value.placeId && (districtPrompt || value.district === null);
+  const showDistrictLine = !!value.placeId && !!district;
   const showWarning = !!value.placeId && !!district && !isDhaka(district);
   const inputDescribedBy =
     [
       hint && hintId,
       error && showError && errorId,
       describedBy,
+      showDistrictLine && districtLineId,
       showDistrict && districtHintId,
       showWarning && warningId,
     ]
@@ -319,6 +322,15 @@ export function AddressAutocomplete({
           className="text-sm font-medium text-[var(--color-semantic-error-text)]"
         >
           {error}
+        </p>
+      )}
+
+      {showDistrictLine && (
+        <p
+          id={districtLineId}
+          className="text-sm text-[var(--color-text-secondary)]"
+        >
+          District: {district}
         </p>
       )}
 

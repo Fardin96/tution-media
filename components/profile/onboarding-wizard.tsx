@@ -11,6 +11,7 @@ import {
   ApiError,
   SECTIONS,
   clearSession,
+  conflictField,
   emptyForm,
   profileApi,
   profileOf,
@@ -118,6 +119,12 @@ export function OnboardingWizard({
         await clearSession();
         router.replace("/sign-in");
         return;
+      }
+      const field = conflictField(err);
+      if (field) {
+        setStep(steps.findIndex((s) => s.fields.some((f) => f.key === field)));
+        setErrors({ [field]: (err as Error).message });
+        focusFirstInvalid();
       }
       toast.error(
         err instanceof Error ? err.message : "Couldn't save your profile.",

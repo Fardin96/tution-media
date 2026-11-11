@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   AREAS,
   SUBJECTS,
+  conflictField,
   formatBdPhone,
   optionName,
   validate,
@@ -73,6 +74,8 @@ export function EditSection({
       toast.success("Changes saved");
       close();
     } catch (err) {
+      const field = conflictField(err);
+      if (field) setErrors({ [field]: (err as Error).message });
       toast.error(err instanceof Error ? err.message : "Couldn't save.");
     } finally {
       setSaving(false);

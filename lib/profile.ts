@@ -18,7 +18,8 @@ interface BaseProfile {
     needsReaddress: boolean;
   } | null;
   emergencyContact: string;
-  whatsappNumber: string;
+  phoneNumber: string;
+  whatsappNumber: string | null;
   whatsappVerifiedAt: string | null;
   studentIdNumber: string;
   verificationStatus: VerificationStatus;
@@ -168,6 +169,7 @@ export interface ProfileForm {
   name: string;
   studentIdNumber: string;
   gender: Gender | "";
+  phoneNumber: string;
   whatsappNumber: string;
   emergencyContact: string;
   address: string;
@@ -218,13 +220,22 @@ const name: FieldDef = {
   placeholder: "Rahim Uddin",
   maxLength: 200,
 };
+const phone: FieldDef = {
+  key: "phoneNumber",
+  kind: "tel",
+  label: "Phone number",
+  hint: "We'll use this to contact you.",
+  placeholder: "01XXXXXXXXX",
+  autoComplete: "tel",
+};
 const whatsapp: FieldDef = {
   key: "whatsappNumber",
   kind: "tel",
   label: "WhatsApp number",
-  hint: "We send tuition updates here.",
+  hint: "Add it if different from your phone number.",
   placeholder: "01XXXXXXXXX",
   autoComplete: "tel",
+  optional: true,
 };
 const emergency: FieldDef = {
   key: "emergencyContact",
@@ -263,7 +274,7 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
       id: "contact",
       title: "Contact",
       description: "Only shared with a tutor once you confirm them.",
-      fields: [whatsapp, emergency],
+      fields: [phone, whatsapp, emergency],
     },
     {
       id: "location",
@@ -298,6 +309,7 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
       title: "Contact",
       description: "Only shared with a student once you're confirmed.",
       fields: [
+        phone,
         whatsapp,
         emergency,
         { ...address, hint: "Kept private. Used for verification." },
@@ -328,6 +340,7 @@ export const emptyForm = (fullName = ""): ProfileForm => ({
   name: fullName,
   studentIdNumber: "",
   gender: "",
+  phoneNumber: "",
   whatsappNumber: "",
   emergencyContact: "",
   address: "",
@@ -348,7 +361,8 @@ export function formFromProfile(
     name: profile.name,
     studentIdNumber: profile.studentIdNumber,
     gender: "gender" in profile ? profile.gender : "",
-    whatsappNumber: profile.whatsappNumber,
+    phoneNumber: profile.phoneNumber,
+    whatsappNumber: profile.whatsappNumber ?? "",
     emergencyContact: profile.emergencyContact,
     address: profile.address,
     placeId: profile.location?.placeId ?? "",
@@ -394,13 +408,27 @@ export function validate(fields: FieldDef[], form: ProfileForm): FormErrors {
     else if (f.maxLength && text.length > f.maxLength)
       errors[f.key] = `Keep it under ${f.maxLength} characters.`;
   }
+  const phoneE164 = normalizeBdPhone(form.phoneNumber);
+  const whatsappE164 = normalizeBdPhone(form.whatsappNumber);
+  if (
+    fields.some((f) => f.key === "whatsappNumber") &&
+    !errors.whatsappNumber &&
+    whatsappE164 &&
+    whatsappE164 === phoneE164
+  )
+    errors.whatsappNumber =
+      "WhatsApp is the same as your phone number. Leave it empty if they match.";
+  const emergencyE164 = normalizeBdPhone(form.emergencyContact);
   if (
     fields.some((f) => f.key === "emergencyContact") &&
-    !errors.emergencyContact &&
-    normalizeBdPhone(form.emergencyContact) ===
-      normalizeBdPhone(form.whatsappNumber)
-  )
-    errors.emergencyContact = "Use a different number from your WhatsApp.";
+    !errors.emergencyContact
+  ) {
+    if (emergencyE164 && emergencyE164 === phoneE164)
+      errors.emergencyContact =
+        "Use a different number from your phone number.";
+    else if (emergencyE164 && emergencyE164 === whatsappE164)
+      errors.emergencyContact = "Use a different number from your WhatsApp.";
+  }
   return errors;
 }
 
@@ -439,7 +467,11 @@ export function toPayload(
     const value = form[key];
     if (typeof value !== "string") continue;
     const text = value.trim();
-    if (key === "whatsappNumber" || key === "emergencyContact")
+    if (
+      key === "phoneNumber" ||
+      key === "whatsappNumber" ||
+      key === "emergencyContact"
+    )
       body[key] = normalizeBdPhone(text);
     else if (key === "parentsInfo") body[key] = text || undefined;
     else body[key] = text;
@@ -458,15 +490,30 @@ export class ApiError extends Error {
   }
 }
 
+/** The form field a duplicate-number 409 belongs to, so its message can sit next to that field. */
+export function conflictField(err: unknown): FieldKey | null {
+  if (!(err instanceof ApiError) || err.status !== 409) return null;
+  if (/phone number/i.test(err.message)) return "phoneNumber";
+  if (/whatsapp number/i.test(err.message)) return "whatsappNumber";
+  return null;
+}
+
 export async function parseJson<T>(res: Response): Promise<T> {
   if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
-  const body = (await res.json().catch(() => ({}))) as { message?: string };
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    message?: string;
+  };
   const message =
     res.status === 401
       ? "Your session has expired. Sign in again."
       : res.status >= 500
         ? "Something went wrong on our side. If you changed a phone number, it may already be in use. Try again in a moment."
-        : body.message || `Request failed (${res.status}).`;
+        : body.error === "PhoneInUse"
+          ? "Phone number is already in use, please use a different one."
+          : body.error === "WhatsappInUse"
+            ? "WhatsApp number is already in use, please use a different one."
+            : body.message || `Request failed (${res.status}).`;
   throw new ApiError(message, res.status);
 }
 
@@ -507,10 +554,16 @@ export const profileApi = {
   /** Creates the profile, or updates it if a previous attempt already created it. */
   save: async (role: ProfileRole, body: Record<string, unknown>) => {
     const res = await api.post(profilePath(role), body);
-    if (res.status === 409)
-      return parseJson<StudentProfile | TutorProfile>(
-        await api.patch(profilePath(role), body),
-      );
+    if (res.status === 409) {
+      const { message = "" } = (await res
+        .clone()
+        .json()
+        .catch(() => ({}))) as { message?: string };
+      if (/profile already exists/i.test(message))
+        return parseJson<StudentProfile | TutorProfile>(
+          await api.patch(profilePath(role), body),
+        );
+    }
     return parseJson<StudentProfile | TutorProfile>(res);
   },
 

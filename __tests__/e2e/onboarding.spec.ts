@@ -24,6 +24,7 @@ test.describe("Onboarding", () => {
     await page.getByRole("button", { name: "Continue" }).click();
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Contact");
+    await page.getByLabel("Phone number").fill("01811111111");
     await page.getByLabel("WhatsApp number").fill("123");
     await page.getByLabel("Emergency contact number").fill("01911111111");
     await page.getByRole("button", { name: "Continue" }).click();
@@ -76,6 +77,7 @@ test.describe("Onboarding", () => {
       body: {
         name: "Test User",
         studentIdNumber: "NDC-1",
+        phoneNumber: "+8801811111111",
         whatsappNumber: "+8801712345678",
         emergencyContact: "+8801911111111",
         areaId: 1,
@@ -93,6 +95,7 @@ test.describe("Onboarding", () => {
     await page.getByLabel("University student ID").fill("1805123");
     await page.getByRole("button", { name: "Continue" }).click();
 
+    await page.getByLabel("Phone number").fill("01811111111");
     await page.getByLabel("WhatsApp number").fill("01712345678");
     await page.getByLabel("Emergency contact number").fill("01911111111");
     await page.getByLabel("Address").fill("Mirpur 10");
