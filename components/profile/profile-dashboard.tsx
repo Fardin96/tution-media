@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
+  ArrowDown,
+  ArrowUp,
   ArrowUpRight,
   BookOpen,
   Briefcase,
@@ -15,13 +18,16 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  Pencil,
   PlayCircle,
+  Plus,
   RotateCw,
   ShieldCheck,
   Star,
   Trash2,
   Upload,
   Users,
+  XCircle,
 } from "lucide-react";
 import type { UserSession } from "@/lib/auth";
 import { tutors as sampleTutors } from "@/lib/tutors";
@@ -30,6 +36,7 @@ import {
   AREAS,
   ApiError,
   SECTIONS,
+  SUBJECTS,
   clearSession,
   formatBdPhone,
   formFromProfile,
@@ -47,6 +54,16 @@ import {
   type VerificationStatus,
   type Video,
 } from "@/lib/profile";
+import {
+  classLabel,
+  formatTaka,
+  formatTime,
+  requirementApi,
+  statusMeta,
+  type Requirement,
+} from "@/lib/requirements";
+import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
+import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { EditSection } from "./edit-section";
 import {
@@ -102,9 +119,19 @@ interface TutorData {
   verifications: Verification[] | null;
 }
 
+interface StudentData {
+  requirements: Requirement[] | null;
+}
+
 type LoadResult =
   | { kind: "redirect"; to: "/onboarding" | "/sign-in" }
-  | { kind: "ok"; me: Me; form: ProfileForm; tutorData: TutorData };
+  | {
+      kind: "ok";
+      me: Me;
+      form: ProfileForm;
+      tutorData: TutorData;
+      studentData: StudentData;
+    };
 
 async function loadDashboard(): Promise<LoadResult> {
   let account: Me;
@@ -123,6 +150,10 @@ async function loadDashboard(): Promise<LoadResult> {
     videos: null,
     verifications: null,
   };
+  const studentData: StudentData = {
+    requirements: null,
+  };
+
   let extras = {};
   if (account.tutor) {
     const [ext, credentials, videos, verifications] = await Promise.allSettled([
@@ -141,16 +172,27 @@ async function loadDashboard(): Promise<LoadResult> {
     tutorData.credentials = ok(credentials);
     tutorData.videos = ok(videos);
     tutorData.verifications = ok(verifications);
+  } else if (account.student) {
+    const [reqs] = await Promise.allSettled([requirementApi.mine()]);
+    studentData.requirements = reqs.status === "fulfilled" ? reqs.value : null;
   }
+
   return {
     kind: "ok",
     me: account,
     form: formFromProfile(profile, extras),
     tutorData,
+    studentData,
   };
 }
 
-export function ProfileDashboard({ session }: { session: UserSession }) {
+export function ProfileDashboard({
+  session,
+  featureFlags,
+}: {
+  session: UserSession;
+  featureFlags: FeatureFlags;
+}) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
@@ -158,6 +200,9 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
     credentials: null,
     videos: null,
     verifications: null,
+  });
+  const [studentData, setStudentData] = useState<StudentData>({
+    requirements: null,
   });
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -174,6 +219,7 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
           return;
         }
         setTutorData(result.tutorData);
+        setStudentData(result.studentData);
         setMe(result.me);
         setForm(result.form);
       })
@@ -280,6 +326,10 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
               role={role}
               rating={Number(profile.ratingAvg)}
               ratingCount={profile.ratingCount}
+              openRequirementsCount={
+                studentData.requirements?.filter((r) => r.status === "OPEN")
+                  .length ?? null
+              }
             />
 
             <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
@@ -324,7 +374,19 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
                   </>
                 ) : (
                   <>
-                    <RequirementsSection />
+                    <Suspense fallback={null}>
+                      <RequirementsSection
+                        requirements={studentData.requirements}
+                        onUpdateRequirement={(updated) => {
+                          setStudentData((d) => ({
+                            ...d,
+                            requirements: d.requirements?.map((r) =>
+                              r.id === updated.id ? updated : r,
+                            ) ?? [updated],
+                          }));
+                        }}
+                      />
+                    </Suspense>
                     <RecommendedTutors />
                   </>
                 )}
@@ -341,6 +403,7 @@ export function ProfileDashboard({ session }: { session: UserSession }) {
                   since={me.createdAt}
                   whatsapp={profile.whatsappNumber}
                   whatsappVerified={!!profile.whatsappVerifiedAt}
+                  featureFlags={featureFlags}
                 />
                 <HelpCard />
               </aside>
@@ -710,10 +773,12 @@ function Stats({
   role,
   rating,
   ratingCount,
+  openRequirementsCount,
 }: {
   role: ProfileRole;
   rating: number;
   ratingCount: number;
+  openRequirementsCount?: number | null;
 }) {
   const ratingTile = {
     icon: Star,
@@ -750,8 +815,13 @@ function Stats({
           {
             icon: BookOpen,
             label: "Open requirements",
-            value: "2",
+            value:
+              openRequirementsCount !== null &&
+              openRequirementsCount !== undefined
+                ? String(openRequirementsCount)
+                : "0",
             bg: "var(--color-secondary-sky)",
+            live: true,
           },
           {
             icon: Briefcase,
@@ -827,7 +897,6 @@ function RemovableRow({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5">
@@ -841,14 +910,6 @@ function RemovableRow({
         {meta && (
           <span className="block text-sm text-[var(--color-text-secondary)]">
             {meta}
-          </span>
-        )}
-        {error && (
-          <span
-            role="alert"
-            className="block text-sm font-medium text-[var(--color-semantic-error-text)]"
-          >
-            {error}
           </span>
         )}
       </span>
@@ -868,11 +929,10 @@ function RemovableRow({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
-              setError(null);
               try {
                 await onRemove();
               } catch (err) {
-                setError(
+                toast.error(
                   err instanceof Error ? err.message : "Couldn't remove.",
                 );
                 setBusy(false);
@@ -1112,24 +1172,51 @@ function PackagesSection() {
   );
 }
 
-const REQUIREMENTS = [
-  {
-    title: "Class 9 · Physics and Mathematics",
-    chips: ["3 days a week", "Evening, 6–8 PM", "৳8,000 / month"],
-    tone: "success" as Tone,
-    status: "Open",
-    applicants: 5,
-  },
-  {
-    title: "Class 9 · English grammar",
-    chips: ["2 days a week", "Afternoon", "৳5,000 / month"],
-    tone: "neutral" as Tone,
-    status: "Paused",
-    applicants: 2,
-  },
-];
+function formatShortDate(isoOrDate: string | null): string {
+  if (!isoOrDate) return "N/A";
+  try {
+    const d = new Date(isoOrDate);
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return isoOrDate;
+  }
+}
 
-function RequirementsSection() {
+function RequirementsSection({
+  requirements,
+  onUpdateRequirement,
+}: {
+  requirements: Requirement[] | null;
+  onUpdateRequirement: (req: Requirement) => void;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [showAllPast, setShowAllPast] = useState(false);
+  const past =
+    requirements?.filter((r) => r.status !== "OPEN" && r.status !== "DRAFT") ??
+    [];
+
+  useEffect(() => {
+    const posted = searchParams.get("posted");
+    const saved = searchParams.get("saved");
+    const draft = searchParams.get("draft");
+
+    if (posted || saved || draft) {
+      const message = posted
+        ? "Requirement posted"
+        : draft
+          ? "Saved as draft"
+          : "Changes saved";
+
+      toast.success(message, { id: "requirement-status" });
+      router.replace("/dashboard#requirements");
+    }
+  }, [searchParams, router]);
+
   return (
     <section
       id="requirements"
@@ -1140,56 +1227,297 @@ function RequirementsSection() {
         id="requirements-heading"
         title="Tuition requirements"
         description="What you're looking for. Tutors apply to these."
-        sample
+        action={
+          requirements && requirements.length > 0 ? (
+            <Link href="/dashboard/requirements/new" className={primaryButton}>
+              <Plus aria-hidden="true" className="size-4" />
+              Post a requirement
+            </Link>
+          ) : undefined
+        }
       />
-      <ul className="mt-5 grid gap-4">
-        {REQUIREMENTS.map((r) => (
-          <li
-            key={r.title}
-            className={cn(
-              card,
-              "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between",
-            )}
-          >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-[var(--color-neutral-charcoal)]">
-                  {r.title}
-                </h3>
-                <Pill tone={r.tone}>{r.status}</Pill>
-              </div>
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {r.chips.map((c) => (
-                  <li
-                    key={c}
-                    className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]"
-                  >
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <span className="flex shrink-0 items-center gap-3">
-              <span className="flex -space-x-2" aria-hidden="true">
-                {sampleTutors.slice(0, Math.min(3, r.applicants)).map((t) => (
-                  <Image
-                    key={t.id}
-                    src={t.avatar}
-                    alt=""
-                    width={32}
-                    height={32}
-                    className="size-8 rounded-full shadow-[0_0_0_2px_var(--color-neutral-white)]"
+
+      {requirements === null ? (
+        <div className={cn(card, "mt-5")}>{loadFailed}</div>
+      ) : requirements.length === 0 ? (
+        <div className={cn(card, "mt-5 p-6")}>
+          <EmptyState
+            icon={<BookOpen className="size-6" />}
+            title="No requirements yet"
+            body="Post what you need: subject, class, time and budget. Matching tutors will apply."
+          />
+          <div className="mt-4 flex justify-center">
+            <Link href="/dashboard/requirements/new" className={primaryButton}>
+              <Plus aria-hidden="true" className="size-4" />
+              Post your first requirement
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          {requirements.filter(
+            (r) => r.status === "OPEN" || r.status === "DRAFT",
+          ).length > 0 && (
+            <ul className="mt-5 grid gap-4">
+              {requirements
+                .filter((r) => r.status === "OPEN" || r.status === "DRAFT")
+                .map((r) => (
+                  <RequirementItem
+                    key={r.id}
+                    requirement={r}
+                    onUpdateRequirement={onUpdateRequirement}
                   />
                 ))}
-              </span>
-              <span className="text-sm font-medium text-[var(--color-neutral-charcoal)]">
-                {r.applicants} applicants
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+            </ul>
+          )}
+
+          {past.length > 0 && (
+            <>
+              <h3 className="mt-8 text-sm font-semibold text-[var(--color-text-secondary)]">
+                Past requirements
+              </h3>
+              <ul id="past-requirements" className="mt-3 grid gap-4">
+                {past.slice(0, showAllPast ? undefined : 1).map((r) => (
+                  <RequirementItem
+                    key={r.id}
+                    requirement={r}
+                    onUpdateRequirement={onUpdateRequirement}
+                  />
+                ))}
+              </ul>
+              {past.length > 1 && (
+                <button
+                  type="button"
+                  aria-expanded={showAllPast}
+                  aria-controls="past-requirements"
+                  onClick={() => setShowAllPast((v) => !v)}
+                  className={cn(ghostButton, "mt-4 min-h-10")}
+                >
+                  {showAllPast ? "Show less" : "View more"}
+                  {showAllPast ? (
+                    <ArrowUp aria-hidden="true" className="size-4" />
+                  ) : (
+                    <ArrowDown aria-hidden="true" className="size-4" />
+                  )}
+                </button>
+              )}
+            </>
+          )}
+        </>
+      )}
     </section>
+  );
+}
+
+function RequirementItem({
+  requirement: r,
+  onUpdateRequirement,
+}: {
+  requirement: Requirement;
+  onUpdateRequirement: (req: Requirement) => void;
+}) {
+  const [confirmingClose, setConfirmingClose] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [announce, setAnnounce] = useState("");
+
+  const subjectName = r.subjectIds.length
+    ? r.subjectIds.map((id) => optionName(SUBJECTS, id)).join(", ")
+    : "Tuition Requirement";
+  const title = `${subjectName} · ${classLabel(r.classLevel)}`;
+  const meta = statusMeta(r.status);
+  const isPast = r.status !== "OPEN" && r.status !== "DRAFT";
+
+  const handleClose = async () => {
+    setBusy(true);
+    try {
+      const updated = await requirementApi.close(r.id);
+      onUpdateRequirement(updated);
+      setConfirmingClose(false);
+      setAnnounce("Requirement closed.");
+      toast.success("Tuition requirement closed");
+      requestAnimationFrame(() => {
+        document.getElementById(`req-title-${r.id}`)?.focus();
+      });
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status;
+      if (status === 409) {
+        onUpdateRequirement({ ...r, status: "CLOSED" });
+        toast.error("It was already closed.");
+      } else {
+        toast.error(
+          err instanceof Error ? err.message : "Couldn't close requirement.",
+        );
+      }
+      setConfirmingClose(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    setBusy(true);
+    try {
+      const updated = await requirementApi.update(r.id, { status: "OPEN" });
+      onUpdateRequirement(updated);
+      setAnnounce("Requirement posted.");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Couldn't post requirement.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <li
+      className={cn(
+        card,
+        "flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between",
+      )}
+    >
+      <p aria-live="polite" className="sr-only">
+        {announce}
+      </p>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3
+            id={`req-title-${r.id}`}
+            tabIndex={-1}
+            className="font-semibold text-[var(--color-neutral-charcoal)] outline-none"
+          >
+            {title}
+          </h3>
+          <Pill tone={meta.tone}>{meta.label}</Pill>
+        </div>
+
+        <ul
+          className={cn(
+            "mt-3 flex flex-wrap gap-2 transition-opacity duration-150",
+            isPast && "opacity-75",
+          )}
+        >
+          {r.areaId && (
+            <li className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
+              {optionName(AREAS, r.areaId)}
+            </li>
+          )}
+          {r.daysPerWeek && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {r.daysPerWeek} {r.daysPerWeek === 1 ? "day" : "days"} a week
+            </li>
+          )}
+          {r.timeOfDay && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {formatTime(r.timeOfDay)}
+            </li>
+          )}
+          {r.salary && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {formatTaka(r.salary)} / month
+            </li>
+          )}
+          {r.tuitionType && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {r.tuitionType}
+            </li>
+          )}
+
+          {r.studentCount && r.studentCount > 1 && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {r.studentCount} students
+            </li>
+          )}
+          {r.tutorGenderPref === "FEMALE" && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              Female tutor
+            </li>
+          )}
+          {r.tutorGenderPref === "MALE" && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              Male tutor
+            </li>
+          )}
+          {r.instituteName && (
+            <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
+              {r.instituteName}
+            </li>
+          )}
+        </ul>
+
+        <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+          Hire by {formatShortDate(r.hireByDate)} · Posted{" "}
+          {formatShortDate(r.createdAt)}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {confirmingClose ? (
+          <div className="flex flex-col gap-2 sm:items-end">
+            <span className="text-sm font-medium text-[var(--color-neutral-charcoal)]">
+              Close this requirement? Tutors won&apos;t be able to apply.
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmingClose(false)}
+                className={cn(secondaryButton, "min-h-10 px-4")}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleClose}
+                className={cn(
+                  secondaryButton,
+                  "min-h-10 bg-[var(--color-semantic-error-surface)] px-4 text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
+                )}
+              >
+                {busy ? "Closing…" : "Yes, close"}
+              </button>
+            </div>
+          </div>
+        ) : !isPast ? (
+          <>
+            {r.status === "DRAFT" && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handlePublish}
+                className={cn(secondaryButton, "min-h-10 px-4")}
+              >
+                {busy ? "Posting…" : "Post now"}
+              </button>
+            )}
+
+            <Link
+              href={`/dashboard/requirements/${r.id}/edit`}
+              className={cn(ghostButton, "min-h-10 px-3")}
+            >
+              <Pencil aria-hidden="true" className="size-4" />
+              Edit<span className="sr-only"> {title}</span>
+            </Link>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmingClose(true)}
+              className={cn(
+                ghostButton,
+                "min-h-10 px-3 text-[var(--color-text-secondary)] hover:bg-[var(--color-semantic-error-surface)] hover:text-[var(--color-semantic-error-text)]",
+              )}
+            >
+              <XCircle aria-hidden="true" className="size-4" />
+              Close<span className="sr-only"> {title}</span>
+            </button>
+          </>
+        ) : null}
+      </div>
+    </li>
   );
 }
 
@@ -1317,11 +1645,13 @@ function AccountCard({
   since,
   whatsapp,
   whatsappVerified,
+  featureFlags,
 }: {
   email: string;
   since: string;
   whatsapp: string;
   whatsappVerified: boolean;
+  featureFlags: FeatureFlags;
 }) {
   return (
     <section aria-labelledby="account-heading" className={cn(card, "p-5")}>
@@ -1354,6 +1684,11 @@ function AccountCard({
           </dd>
         </div>
       </dl>
+      {isFeatureEnabled("DELETE_ACCOUNT", featureFlags) && (
+        <div className="mt-5 border-t border-[var(--color-neutral-border)] pt-5">
+          <DeleteAccountButton />
+        </div>
+      )}
     </section>
   );
 }

@@ -57,7 +57,7 @@ async function rotateRefreshToken(
 function buildHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  if (!(init.body instanceof FormData)) {
+  if (init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   const tokens = getStoredTokens();

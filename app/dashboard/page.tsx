@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { requireSession } from "@/lib/auth.server";
+import { isFeatureEnabled, getFeatureFlags } from "@/lib/features";
+import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ProfileDashboard } from "@/components/profile/profile-dashboard";
 
@@ -8,9 +10,10 @@ export const metadata: Metadata = { title: "Dashboard · Masters Hub" };
 
 export default async function DashboardPage() {
   const user = await requireSession();
+  const flags = await getFeatureFlags();
 
   if (user.role === "STUDENT" || user.role === "TUTOR")
-    return <ProfileDashboard session={user} />;
+    return <ProfileDashboard session={user} featureFlags={flags} />;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[var(--color-neutral-off-white)] px-6 py-12">
@@ -39,8 +42,11 @@ export default async function DashboardPage() {
           {user.role}
         </p>
 
-        <div className="mt-8">
-          <LogoutButton />
+        <div className="mt-8 grid gap-3">
+          <LogoutButton className="h-10 w-auto px-4 text-sm" />
+          {isFeatureEnabled("DELETE_ACCOUNT", flags) && (
+            <DeleteAccountButton className="h-10" />
+          )}
         </div>
       </div>
     </main>

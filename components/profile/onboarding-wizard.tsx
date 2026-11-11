@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ApiError,
@@ -20,7 +21,7 @@ import {
   type ProfileForm,
   type ProfileRole,
 } from "@/lib/profile";
-import { FieldError, ProfileFields } from "./profile-fields";
+import { ProfileFields } from "./profile-fields";
 import { card, primaryButton, secondaryButton } from "./styles";
 
 const WASH = [
@@ -28,6 +29,19 @@ const WASH = [
   "radial-gradient(50% 40% at 95% 10%, color-mix(in oklab, var(--color-mesh-glow) 45%, transparent), transparent 70%)",
   "radial-gradient(40% 40% at 80% 100%, var(--color-secondary-sky), transparent 70%)",
 ].join(",");
+
+// One error toast at a time: the next opens when the current one closes.
+function showErrorsInSequence([first, ...rest]: [string, string][]) {
+  if (!first) return;
+  const [key, message] = first;
+  let advanced = false;
+  const next = () => {
+    if (advanced) return;
+    advanced = true;
+    showErrorsInSequence(rest);
+  };
+  toast.error(message, { id: key, onDismiss: next, onAutoClose: next });
+}
 
 export function OnboardingWizard({
   role,
@@ -43,7 +57,6 @@ export function OnboardingWizard({
   const [form, setForm] = useState<ProfileForm>(() => emptyForm(defaultName));
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const firstRender = useRef(true);
@@ -95,7 +108,6 @@ export function OnboardingWizard({
 
   const submit = async () => {
     setSaving(true);
-    setSubmitError(null);
     const keys = steps.flatMap((s) => s.fields.map((f) => f.key));
     try {
       await profileApi.save(role, toPayload(role, form, keys));
@@ -107,7 +119,7 @@ export function OnboardingWizard({
         router.replace("/sign-in");
         return;
       }
-      setSubmitError(
+      toast.error(
         err instanceof Error ? err.message : "Couldn't save your profile.",
       );
       setSaving(false);
@@ -118,6 +130,9 @@ export function OnboardingWizard({
     e.preventDefault();
     const found = validate(current.fields, form);
     if (Object.keys(found).length) {
+      showErrorsInSequence(
+        Object.entries(found).filter((e): e is [string, string] => !!e[1]),
+      );
       setErrors(found);
       focusFirstInvalid();
       return;
@@ -256,19 +271,11 @@ export function OnboardingWizard({
                       form={form}
                       errors={errors}
                       onChange={update}
+                      inlineErrors={false}
                     />
                   </div>
                 </motion.div>
               </AnimatePresence>
-            )}
-
-            {submitError && (
-              <div
-                role="alert"
-                className="mt-6 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3"
-              >
-                <FieldError message={submitError} />
-              </div>
             )}
 
             <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

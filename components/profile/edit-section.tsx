@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   AREAS,
@@ -14,7 +15,7 @@ import {
   type ProfileForm,
   type Section,
 } from "@/lib/profile";
-import { FieldError, ProfileFields } from "./profile-fields";
+import { ProfileFields } from "./profile-fields";
 import { card, ghostButton, primaryButton, secondaryButton } from "./styles";
 
 const GENDER_LABEL = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
@@ -32,8 +33,6 @@ export function EditSection({
   const [draft, setDraft] = useState(values);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const editRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const titleId = `section-${section.id}`;
@@ -43,17 +42,9 @@ export function EditSection({
       formRef.current?.querySelector<HTMLElement>("input, textarea")?.focus();
   }, [editing]);
 
-  useEffect(() => {
-    if (!saved) return;
-    const t = setTimeout(() => setSaved(false), 4000);
-    return () => clearTimeout(t);
-  }, [saved]);
-
   const start = () => {
     setDraft(values);
     setErrors({});
-    setSaveError(null);
-    setSaved(false);
     setEditing(true);
   };
 
@@ -77,13 +68,12 @@ export function EditSection({
       return;
     }
     setSaving(true);
-    setSaveError(null);
     try {
       await onSave(draft, section.fields);
-      setSaved(true);
+      toast.success("Changes saved");
       close();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Couldn't save.");
+      toast.error(err instanceof Error ? err.message : "Couldn't save.");
     } finally {
       setSaving(false);
     }
@@ -116,15 +106,6 @@ export function EditSection({
         )}
       </div>
 
-      <p aria-live="polite" className="empty:hidden">
-        {saved && (
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-semantic-success-surface)] px-3 py-1 text-sm font-medium text-[var(--color-semantic-success-text)]">
-            <Check aria-hidden="true" className="size-4" strokeWidth={2.5} />
-            Changes saved
-          </span>
-        )}
-      </p>
-
       {editing ? (
         <form
           ref={formRef}
@@ -148,14 +129,6 @@ export function EditSection({
               });
             }}
           />
-          {saveError && (
-            <div
-              role="alert"
-              className="mt-6 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-4 py-3"
-            >
-              <FieldError message={saveError} />
-            </div>
-          )}
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
