@@ -8,6 +8,7 @@ export interface PlacePrediction {
 export interface PlaceDetails {
   formattedAddress: string;
   location: { latitude: number; longitude: number };
+  district: string | null;
 }
 
 /** Insecure-but-unique enough for a single autocomplete session. */

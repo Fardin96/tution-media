@@ -20,6 +20,14 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Location & address
+
+- Addresses are picked with Google Places autocomplete, restricted to Bangladesh (`includedRegionCodes: ["bd"]`). `app/api/places/details` returns `422 "Pick a location in Bangladesh."` for any other country; the picker shows that message as a toast.
+- The district comes from the `administrative_area_level_2` component of the place. When Google has none, the picker asks for it manually ("District").
+- Profile saves send `address` plus an optional `location: { lat, lng, addressText, district, placeId }`. `location` is only sent when a Places address, its district and coordinates are all present.
+- The backend returns `location: { lat, lng, addressText, districtCode, placeId, needsReaddress } | null` on `GET /api/v1/me`, and the form reads it back from there.
+- We only operate in Dhaka right now. Any other district shows a non-blocking warning; the profile can still be saved.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

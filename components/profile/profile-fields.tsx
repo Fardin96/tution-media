@@ -146,6 +146,7 @@ function Field({
             placeId: form.placeId,
             latitude: form.latitude,
             longitude: form.longitude,
+            district: form.district,
           }}
           label={field.label}
           placeholder={field.placeholder}
@@ -161,6 +162,7 @@ function Field({
               placeId: value.placeId,
               latitude: value.latitude,
               longitude: value.longitude,
+              district: value.district,
             })
           }
         />
@@ -177,6 +179,7 @@ function Field({
     | "placeId"
     | "latitude"
     | "longitude"
+    | "district"
   >;
   const common = {
     id,

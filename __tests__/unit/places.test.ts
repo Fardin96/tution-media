@@ -109,12 +109,13 @@ describe("fetchPlaceDetails", () => {
     );
   });
 
-  it("returns address and coordinates", async () => {
+  it("returns address, coordinates and district", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
           formattedAddress: "Dhaka",
           location: { latitude: 1, longitude: 2 },
+          district: "Dhaka",
         }),
         { status: 200 },
       ),
@@ -123,6 +124,36 @@ describe("fetchPlaceDetails", () => {
     expect(result).toEqual({
       formattedAddress: "Dhaka",
       location: { latitude: 1, longitude: 2 },
+      district: "Dhaka",
     });
+  });
+
+  it("returns a null district when Google has none", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          formattedAddress: "Dhaka",
+          location: { latitude: 1, longitude: 2 },
+          district: null,
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await fetchPlaceDetails("ChIJ123", "token-1");
+    expect(result.district).toBeNull();
+  });
+
+  it("throws the proxy's message for a non-Bangladesh place", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ message: "Pick a location in Bangladesh." }),
+        {
+          status: 422,
+        },
+      ),
+    );
+    await expect(fetchPlaceDetails("ChIJ123", "token-1")).rejects.toThrow(
+      "Pick a location in Bangladesh.",
+    );
   });
 });
