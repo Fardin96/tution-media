@@ -16,7 +16,7 @@ test.describe("Dashboard", () => {
     await expect(page.getByText("+880 1712-345678").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Edit contact" }).click();
-    await expect(page.getByLabel("WhatsApp number")).toBeFocused();
+    await expect(page.getByLabel("Phone number")).toBeFocused();
     await page.getByLabel("WhatsApp number").fill("01812345678");
     await page.getByRole("button", { name: "Save changes" }).click();
 
@@ -29,6 +29,7 @@ test.describe("Dashboard", () => {
         method: "PATCH",
         path: "/students/me",
         body: {
+          phoneNumber: "+8801811111111",
           whatsappNumber: "+8801812345678",
           emergencyContact: "+8801911111111",
         },

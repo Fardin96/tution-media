@@ -401,6 +401,7 @@ export function ProfileDashboard({
                 <AccountCard
                   email={me.email}
                   since={me.createdAt}
+                  phone={profile.phoneNumber}
                   whatsapp={profile.whatsappNumber}
                   whatsappVerified={!!profile.whatsappVerifiedAt}
                   featureFlags={featureFlags}
@@ -577,11 +578,15 @@ function checklist(
   const profile = profileOf(me)!;
   const items: CheckItem[] = [
     { label: "Profile details", done: true },
-    {
-      label: "WhatsApp verified",
-      done: !!profile.whatsappVerifiedAt,
-      note: "Coming soon",
-    },
+    ...(profile.whatsappNumber
+      ? [
+          {
+            label: "WhatsApp verified",
+            done: !!profile.whatsappVerifiedAt,
+            note: "Coming soon",
+          },
+        ]
+      : []),
     {
       label: role === "TUTOR" ? "Identity verified" : "Student ID verified",
       done: profile.verificationStatus === "APPROVED",
@@ -1643,13 +1648,15 @@ function VerificationCard({
 function AccountCard({
   email,
   since,
+  phone,
   whatsapp,
   whatsappVerified,
   featureFlags,
 }: {
   email: string;
   since: string;
-  whatsapp: string;
+  phone: string;
+  whatsapp: string | null;
   whatsappVerified: boolean;
   featureFlags: FeatureFlags;
 }) {
@@ -1669,14 +1676,22 @@ function AccountCard({
           </dd>
         </div>
         <div>
-          <dt className="text-[var(--color-text-secondary)]">WhatsApp</dt>
-          <dd className="mt-1 flex flex-wrap items-center gap-2 font-medium text-[var(--color-neutral-charcoal)]">
-            <span className="tabular-nums">{formatBdPhone(whatsapp)}</span>
-            <Pill tone={whatsappVerified ? "success" : "neutral"}>
-              {whatsappVerified ? "Verified" : "Not verified"}
-            </Pill>
+          <dt className="text-[var(--color-text-secondary)]">Phone number</dt>
+          <dd className="mt-1 font-medium text-[var(--color-neutral-charcoal)] tabular-nums">
+            {formatBdPhone(phone)}
           </dd>
         </div>
+        {whatsapp && (
+          <div>
+            <dt className="text-[var(--color-text-secondary)]">WhatsApp</dt>
+            <dd className="mt-1 flex flex-wrap items-center gap-2 font-medium text-[var(--color-neutral-charcoal)]">
+              <span className="tabular-nums">{formatBdPhone(whatsapp)}</span>
+              <Pill tone={whatsappVerified ? "success" : "neutral"}>
+                {whatsappVerified ? "Verified" : "Not verified"}
+              </Pill>
+            </dd>
+          </div>
+        )}
         <div>
           <dt className="text-[var(--color-text-secondary)]">Member since</dt>
           <dd className="mt-0.5 font-medium text-[var(--color-neutral-charcoal)]">

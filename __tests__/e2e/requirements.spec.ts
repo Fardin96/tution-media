@@ -14,6 +14,7 @@ const MOCK_ME = {
       name: "Tasin Farhan",
       address: "Dhanmondi, Dhaka",
       emergencyContact: "+8801700000000",
+      phoneNumber: "+8801700000001",
       whatsappNumber: "+8801700000000",
       whatsappVerifiedAt: "2026-01-01T00:00:00.000Z",
       studentIdNumber: "STUDENT-123",

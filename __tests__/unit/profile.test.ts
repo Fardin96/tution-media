@@ -1,13 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  ApiError,
   SECTIONS,
+  conflictField,
   emptyForm,
   formFromProfile,
   formatBdPhone,
   normalizeBdPhone,
+  profileApi,
   toPayload,
   validate,
 } from "@/lib/profile";
+import { api } from "@/lib/api";
+
+vi.mock("@/lib/api", () => ({ api: { post: vi.fn(), patch: vi.fn() } }));
 
 describe("normalizeBdPhone", () => {
   it.each([
@@ -35,14 +41,47 @@ describe("validate", () => {
       name: "Enter your full name.",
       studentIdNumber: "Enter your student ID number.",
     });
-    expect(validate(contact, emptyForm()).whatsappNumber).toBe(
-      "Enter your WhatsApp number.",
+    expect(validate(contact, emptyForm()).phoneNumber).toBe(
+      "Enter your phone number.",
+    );
+  });
+
+  it("makes WhatsApp optional", () => {
+    const form = {
+      ...emptyForm(),
+      phoneNumber: "01811111111",
+      emergencyContact: "01911111111",
+    };
+    expect(validate(contact, form)).toEqual({});
+  });
+
+  it("rejects a WhatsApp number that matches the phone number", () => {
+    const form = {
+      ...emptyForm(),
+      phoneNumber: "01811111111",
+      whatsappNumber: "+8801811111111",
+      emergencyContact: "01911111111",
+    };
+    expect(validate(contact, form).whatsappNumber).toMatch(
+      /same as your phone/,
+    );
+  });
+
+  it("rejects an emergency contact that matches the phone number", () => {
+    const form = {
+      ...emptyForm(),
+      phoneNumber: "01811111111",
+      emergencyContact: "+8801811111111",
+    };
+    expect(validate(contact, form).emergencyContact).toBe(
+      "Use a different number from your phone number.",
     );
   });
 
   it("rejects the same number twice", () => {
     const form = {
       ...emptyForm(),
+      phoneNumber: "01811111111",
       whatsappNumber: "01712345678",
       emergencyContact: "+8801712345678",
     };
@@ -78,6 +117,15 @@ describe("toPayload", () => {
       whatsappNumber: "+8801712345678",
       areaId: 3,
     }));
+
+  it("sends phone normalized and WhatsApp as null when empty", () =>
+    expect(
+      toPayload(
+        "STUDENT",
+        { ...form, phoneNumber: "01811 111111", whatsappNumber: "" },
+        ["phoneNumber", "whatsappNumber"],
+      ),
+    ).toEqual({ phoneNumber: "+8801811111111", whatsappNumber: null }));
 
   it("leaves tutor lists out of the profile body", () =>
     expect(
@@ -132,6 +180,7 @@ describe("formFromProfile", () => {
     name: "Rahim",
     address: "House 12, Road 4",
     emergencyContact: "+8801911111111",
+    phoneNumber: "+8801811111111",
     whatsappNumber: "+8801712345678",
     whatsappVerifiedAt: null,
     studentIdNumber: "NDC-1",
@@ -171,4 +220,86 @@ describe("formFromProfile", () => {
       district: null,
     });
   });
+
+  it("reads a null WhatsApp number as empty", () => {
+    const form = formFromProfile({
+      ...base,
+      location: null,
+      whatsappNumber: null,
+    });
+    expect(form).toMatchObject({
+      phoneNumber: "+8801811111111",
+      whatsappNumber: "",
+    });
+  });
+});
+
+describe("profileApi.save", () => {
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status });
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows a duplicate phone number and does not patch", async () => {
+    vi.mocked(api.post).mockResolvedValue(
+      json(409, {
+        error: "PhoneInUse",
+        message: "This phone number is already in use.",
+      }),
+    );
+    const err = await profileApi.save("STUDENT", {}).catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).toMatchObject({
+      message: "Phone number is already in use, please use a different one.",
+      status: 409,
+    });
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it("shows a duplicate WhatsApp number and does not patch", async () => {
+    vi.mocked(api.post).mockResolvedValue(
+      json(409, {
+        error: "WhatsappInUse",
+        message: "This WhatsApp number is already in use.",
+      }),
+    );
+    const err = await profileApi.save("TUTOR", {}).catch((e) => e);
+    expect(err).toMatchObject({
+      message: "WhatsApp number is already in use, please use a different one.",
+    });
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it("patches when the profile already exists", async () => {
+    vi.mocked(api.post).mockResolvedValue(
+      json(409, { error: "Error", message: "Student profile already exists" }),
+    );
+    vi.mocked(api.patch).mockResolvedValue(json(200, { id: "p_1" }));
+    await expect(
+      profileApi.save("STUDENT", { name: "Rahim" }),
+    ).resolves.toEqual({ id: "p_1" });
+    expect(api.patch).toHaveBeenCalledWith("/api/v1/students/me", {
+      name: "Rahim",
+    });
+  });
+});
+
+describe("conflictField", () => {
+  it.each([
+    [
+      "Phone number is already in use, please use a different one.",
+      "phoneNumber",
+    ],
+    [
+      "WhatsApp number is already in use, please use a different one.",
+      "whatsappNumber",
+    ],
+  ])("maps %s to %s", (message, field) =>
+    expect(conflictField(new ApiError(message, 409))).toBe(field),
+  );
+
+  it("ignores other errors", () =>
+    expect(
+      conflictField(new ApiError("Request failed (409).", 409)),
+    ).toBeNull());
 });

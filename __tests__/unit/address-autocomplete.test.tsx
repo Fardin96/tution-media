@@ -212,6 +212,18 @@ describe("AddressAutocomplete", () => {
     expect(screen.queryByLabelText("District")).not.toBeInTheDocument();
   });
 
+  it("shows the detected district read-only under the address", async () => {
+    const user = userEvent.setup();
+    render(<ControlledWrapper onChange={vi.fn()} />);
+    await pickPlace(user, "Dhaka");
+    const line = await screen.findByText("District: Dhaka");
+    expect(screen.getByLabelText("Address")).toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining(line.id),
+    );
+    expect(screen.queryByLabelText("District")).not.toBeInTheDocument();
+  });
+
   it("warns when the district is outside Dhaka", async () => {
     const user = userEvent.setup();
     render(<ControlledWrapper onChange={vi.fn()} />);
