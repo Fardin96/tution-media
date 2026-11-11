@@ -16,6 +16,14 @@ export const sessionCookie = (role: "STUDENT" | "TUTOR") => ({
 const base = {
   id: "p_1",
   address: "House 12, Road 4",
+  location: {
+    lat: 23.7465,
+    lng: 90.376,
+    addressText: "House 12, Road 4",
+    districtCode: "dhaka",
+    placeId: null,
+    needsReaddress: false,
+  },
   emergencyContact: "+8801911111111",
   whatsappNumber: "+8801712345678",
   whatsappVerifiedAt: null,
@@ -59,6 +67,7 @@ export async function mockApi(
     return json(route, {
       formattedAddress: "Mock Address",
       location: { latitude: 23.7465, longitude: 90.376 },
+      district: "Dhaka",
     });
   });
 

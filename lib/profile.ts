@@ -9,9 +9,14 @@ interface BaseProfile {
   id: string;
   name: string;
   address: string;
-  placeId?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  location: {
+    lat: number | null;
+    lng: number | null;
+    addressText: string;
+    districtCode: string;
+    placeId: string | null;
+    needsReaddress: boolean;
+  } | null;
   emergencyContact: string;
   whatsappNumber: string;
   whatsappVerifiedAt: string | null;
@@ -128,6 +133,7 @@ export interface ProfileForm {
   placeId: string;
   latitude: number | null;
   longitude: number | null;
+  district: string | null;
   parentsInfo: string;
   /** Student: exactly one area. Tutor: areas they teach in. */
   areaIds: number[];
@@ -287,6 +293,7 @@ export const emptyForm = (fullName = ""): ProfileForm => ({
   placeId: "",
   latitude: null,
   longitude: null,
+  district: null,
   parentsInfo: "",
   areaIds: [],
   subjectIds: [],
@@ -303,9 +310,10 @@ export function formFromProfile(
     whatsappNumber: profile.whatsappNumber,
     emergencyContact: profile.emergencyContact,
     address: profile.address,
-    placeId: profile.placeId ?? "",
-    latitude: profile.latitude ?? null,
-    longitude: profile.longitude ?? null,
+    placeId: profile.location?.placeId ?? "",
+    latitude: profile.location?.lat ?? null,
+    longitude: profile.location?.lng ?? null,
+    district: profile.location?.districtCode || null,
     parentsInfo: "parentsInfo" in profile ? (profile.parentsInfo ?? "") : "",
     areaIds: "areaId" in profile ? [profile.areaId] : (extras.areaIds ?? []),
     subjectIds: extras.subjectIds ?? [],
@@ -369,12 +377,22 @@ export function toPayload(
       continue;
     }
     if (key === "address") {
-      body.address = form.address.trim();
-      if (form.placeId) {
-        body.placeId = form.placeId;
-        body.latitude = form.latitude;
-        body.longitude = form.longitude;
-      }
+      const address = form.address.trim();
+      body.address = address;
+      const district = form.district?.trim();
+      if (
+        form.placeId &&
+        district &&
+        form.latitude != null &&
+        form.longitude != null
+      )
+        body.location = {
+          lat: form.latitude,
+          lng: form.longitude,
+          addressText: address,
+          district,
+          placeId: form.placeId,
+        };
       continue;
     }
     const value = form[key];

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   SECTIONS,
   emptyForm,
+  formFromProfile,
   formatBdPhone,
   normalizeBdPhone,
   toPayload,
@@ -83,19 +84,91 @@ describe("toPayload", () => {
       toPayload("TUTOR", form, ["areaIds", "subjectIds", "parentsInfo"]),
     ).toEqual({ parentsInfo: undefined }));
 
-  it("includes placeId and coordinates for a Places address", () => {
+  it("sends a location with district for a Places address", () => {
     const withPlace = {
+      ...form,
+      address: " Dhanmondi, Dhaka ",
+      placeId: "ChIJ123",
+      latitude: 23.7465,
+      longitude: 90.376,
+      district: "Dhaka",
+    };
+    expect(toPayload("STUDENT", withPlace, ["address"])).toEqual({
+      address: "Dhanmondi, Dhaka",
+      location: {
+        lat: 23.7465,
+        lng: 90.376,
+        addressText: "Dhanmondi, Dhaka",
+        district: "Dhaka",
+        placeId: "ChIJ123",
+      },
+    });
+  });
+
+  it.each([
+    ["no place", { placeId: "" }],
+    ["no district", { district: null }],
+    ["no coordinates", { latitude: null }],
+  ])("omits location when there is %s", (_, patch) => {
+    const partial = {
       ...form,
       address: "Dhanmondi, Dhaka",
       placeId: "ChIJ123",
       latitude: 23.7465,
       longitude: 90.376,
+      district: "Dhaka",
+      ...patch,
     };
-    expect(toPayload("STUDENT", withPlace, ["address"])).toEqual({
-      address: "Dhanmondi, Dhaka",
+    const body = toPayload("STUDENT", partial, ["address"]);
+    expect(body).toEqual({ address: "Dhanmondi, Dhaka" });
+    expect(body).not.toHaveProperty("placeId");
+    expect(body).not.toHaveProperty("latitude");
+  });
+});
+
+describe("formFromProfile", () => {
+  const base = {
+    id: "p_1",
+    name: "Rahim",
+    address: "House 12, Road 4",
+    emergencyContact: "+8801911111111",
+    whatsappNumber: "+8801712345678",
+    whatsappVerifiedAt: null,
+    studentIdNumber: "NDC-1",
+    verificationStatus: "NOT_SUBMITTED" as const,
+    ratingAvg: 0,
+    ratingCount: 0,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    areaId: 1,
+  };
+
+  it("reads place, coordinates and district from location", () => {
+    const form = formFromProfile({
+      ...base,
+      location: {
+        lat: 23.7465,
+        lng: 90.376,
+        addressText: "House 12, Road 4",
+        districtCode: "dhaka",
+        placeId: "ChIJ123",
+        needsReaddress: false,
+      },
+    });
+    expect(form).toMatchObject({
       placeId: "ChIJ123",
       latitude: 23.7465,
       longitude: 90.376,
+      district: "dhaka",
+    });
+  });
+
+  it("falls back to empty values when location is null", () => {
+    const form = formFromProfile({ ...base, location: null });
+    expect(form).toMatchObject({
+      placeId: "",
+      latitude: null,
+      longitude: null,
+      district: null,
     });
   });
 });

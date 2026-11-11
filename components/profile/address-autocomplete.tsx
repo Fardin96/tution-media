@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Loader2, MapPin, X } from "lucide-react";
+import { Loader2, MapPin, TriangleAlert, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   fetchPlaceDetails,
@@ -18,7 +19,15 @@ export interface AddressValue {
   placeId: string;
   latitude: number | null;
   longitude: number | null;
+  district: string | null;
 }
+
+const isDhaka = (district: string) =>
+  district
+    .trim()
+    .replace(/\s+district$/i, "")
+    .trim()
+    .toLowerCase() === "dhaka";
 
 interface AddressAutocompleteProps {
   id?: string;
@@ -50,18 +59,28 @@ export function AddressAutocomplete({
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const listboxId = `${id}-listbox`;
-  const inputDescribedBy =
-    [hint && hintId, error && errorId, describedBy].filter(Boolean).join(" ") ||
-    undefined;
+  const districtId = `${id}-district`;
+  const districtHintId = `${id}-district-hint`;
+  const warningId = `${id}-warning`;
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [announcement, setAnnouncement] = useState("");
+  const [districtPrompt, setDistrictPrompt] = useState(false);
   const sessionTokenRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const district = value.district?.trim() ?? "";
+  const showDistrict =
+    !!value.placeId && (districtPrompt || value.district === null);
+  const showWarning = !!value.placeId && !!district && !isDhaka(district);
+  const inputDescribedBy =
+    [hint && hintId, error && errorId, showWarning && warningId, describedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   useEffect(() => {
     return () => {
@@ -109,14 +128,17 @@ export function AddressAutocomplete({
           placeId: prediction.placeId,
           latitude: details.location.latitude,
           longitude: details.location.longitude,
+          district: details.district,
         });
+        setDistrictPrompt(details.district === null);
         setAnnouncement(`${details.formattedAddress} selected.`);
       } catch (err) {
-        setAnnouncement(
+        const message =
           err instanceof Error
             ? err.message
-            : "Couldn't fetch address details.",
-        );
+            : "Couldn't fetch address details.";
+        toast.error(message);
+        setAnnouncement(message);
       } finally {
         setLoading(false);
         clearSessionToken();
@@ -131,7 +153,9 @@ export function AddressAutocomplete({
       placeId: "",
       latitude: null,
       longitude: null,
+      district: null,
     });
+    setDistrictPrompt(false);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setActiveIndex(-1);
@@ -167,7 +191,14 @@ export function AddressAutocomplete({
   };
 
   const clear = useCallback(() => {
-    onChange({ address: "", placeId: "", latitude: null, longitude: null });
+    onChange({
+      address: "",
+      placeId: "",
+      latitude: null,
+      longitude: null,
+      district: null,
+    });
+    setDistrictPrompt(false);
     closeList();
     clearSessionToken();
   }, [onChange, closeList, clearSessionToken]);
@@ -313,6 +344,51 @@ export function AddressAutocomplete({
             </li>
           ))}
         </ul>
+      )}
+
+      {showDistrict && (
+        <div className="grid gap-2">
+          <label
+            htmlFor={districtId}
+            className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            District
+          </label>
+          <input
+            id={districtId}
+            type="text"
+            autoComplete="off"
+            aria-required="true"
+            aria-describedby={districtHintId}
+            value={value.district ?? ""}
+            onChange={(e) =>
+              onChange({ ...value, district: e.target.value || null })
+            }
+            className={cn(control, "h-12")}
+          />
+          <p
+            id={districtHintId}
+            className="text-sm text-[var(--color-text-secondary)]"
+          >
+            {"We couldn't detect your district. Enter it manually."}
+          </p>
+        </div>
+      )}
+
+      {showWarning && (
+        <p
+          id={warningId}
+          role="status"
+          className="flex items-start gap-2 rounded-[12px] border border-[var(--color-semantic-warning)] bg-[var(--color-semantic-warning-surface)] px-4 py-3 text-sm text-[var(--color-semantic-warning-text)]"
+        >
+          <TriangleAlert
+            aria-hidden="true"
+            className="mt-0.5 size-4 shrink-0"
+          />
+          {
+            "We only operate in Dhaka right now. You can save, but you won't be matched with tutors or students until we launch in your district."
+          }
+        </p>
       )}
 
       <p aria-live="polite" className="sr-only">

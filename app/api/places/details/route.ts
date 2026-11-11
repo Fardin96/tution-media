@@ -36,13 +36,18 @@ export async function POST(request: NextRequest) {
     const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
-        "X-Goog-FieldMask": "location,formattedAddress",
+        "X-Goog-FieldMask": "location,formattedAddress,addressComponents",
       },
     });
 
     const data = (await res.json()) as {
       formattedAddress?: string;
       location?: { latitude?: number; longitude?: number };
+      addressComponents?: {
+        longText?: string;
+        shortText?: string;
+        types?: string[];
+      }[];
       error?: { message?: string };
     };
 
@@ -62,12 +67,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const components = data.addressComponents ?? [];
+    const country = components.find((c) => c.types?.includes("country"));
+    if (country && country.shortText !== "BD") {
+      return NextResponse.json(
+        { message: "Pick a location in Bangladesh." },
+        { status: 422 },
+      );
+    }
+
+    const district =
+      components.find((c) => c.types?.includes("administrative_area_level_2"))
+        ?.longText ?? null;
+
     return NextResponse.json({
       formattedAddress: data.formattedAddress,
       location: {
         latitude: data.location.latitude ?? 0,
         longitude: data.location.longitude ?? 0,
       },
+      district,
     });
   } catch {
     return NextResponse.json(
