@@ -409,15 +409,15 @@ export function validate(fields: FieldDef[], form: ProfileForm): FormErrors {
       errors[f.key] = `Keep it under ${f.maxLength} characters.`;
   }
   const phoneE164 = normalizeBdPhone(form.phoneNumber);
-  const whatsappE164 = normalizeBdPhone(form.whatsappNumber);
-  if (
-    fields.some((f) => f.key === "whatsappNumber") &&
-    !errors.whatsappNumber &&
-    whatsappE164 &&
-    whatsappE164 === phoneE164
-  )
-    errors.whatsappNumber =
-      "WhatsApp is the same as your phone number. Leave it empty if they match.";
+  // const whatsappE164 = normalizeBdPhone(form.whatsappNumber);
+  // if (
+  //   fields.some((f) => f.key === "whatsappNumber") &&
+  //   !errors.whatsappNumber &&
+  //   whatsappE164 &&
+  //   whatsappE164 === phoneE164
+  // )
+  //   errors.whatsappNumber =
+  //     "WhatsApp is the same as your phone number. Leave it empty if they match.";
   const emergencyE164 = normalizeBdPhone(form.emergencyContact);
   if (
     fields.some((f) => f.key === "emergencyContact") &&
@@ -426,8 +426,8 @@ export function validate(fields: FieldDef[], form: ProfileForm): FormErrors {
     if (emergencyE164 && emergencyE164 === phoneE164)
       errors.emergencyContact =
         "Use a different number from your phone number.";
-    else if (emergencyE164 && emergencyE164 === whatsappE164)
-      errors.emergencyContact = "Use a different number from your WhatsApp.";
+    // else if (emergencyE164 && emergencyE164 === whatsappE164)
+    //   errors.emergencyContact = "Use a different number from your WhatsApp.";
   }
   return errors;
 }
