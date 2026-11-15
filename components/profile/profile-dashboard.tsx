@@ -54,8 +54,8 @@ import {
   type VerificationStatus,
   type Video,
 } from "@/lib/profile";
+import { educationSummary, useEducationLookup } from "@/lib/education";
 import {
-  classLabel,
   formatTaka,
   formatTime,
   requirementApi,
@@ -1328,7 +1328,8 @@ function RequirementItem({
   const subjectName = r.subjectIds.length
     ? r.subjectIds.map((id) => optionName(SUBJECTS, id)).join(", ")
     : "Tuition Requirement";
-  const title = `${subjectName} · ${classLabel(r.classLevel)}`;
+  const { data: lookup } = useEducationLookup();
+  const title = `${subjectName} · ${educationSummary(lookup, r) || "Class not set"}`;
   const meta = statusMeta(r.status);
   const isPast = r.status !== "OPEN" && r.status !== "DRAFT";
 

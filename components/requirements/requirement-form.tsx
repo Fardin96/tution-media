@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, CLASS_LEVELS, TUITION_TYPES } from "@/lib/profile";
+import { TUITION_TYPES } from "@/lib/profile";
+import type { EducationFields } from "@/lib/education";
+import { EducationLevelPicker } from "@/components/requirements/education-level-picker";
 import {
   emptyRequirementForm,
   fromRequirement,
@@ -22,7 +25,6 @@ import {
 import {
   AreaPicker,
   Chip,
-  ChipGroup,
   control,
   FieldError,
   SubjectPicker,
@@ -72,6 +74,32 @@ export function RequirementForm({
     // Focus page h1 title on mount
     document.getElementById("requirement-form-title")?.focus();
   }, []);
+
+  // Prefill class and curriculum from the newest requirement, create only.
+  const mineQuery = useQuery({
+    queryKey: ["requirements", "mine"],
+    queryFn: requirementApi.mine,
+    enabled: !isEdit,
+  });
+  // Runs once, during render, when the first data arrives (no effect needed).
+  const [prefillChecked, setPrefillChecked] = useState(false);
+  if (!prefillChecked && mineQuery.data) {
+    setPrefillChecked(true);
+    const newest = [...mineQuery.data].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    )[0];
+    const curriculum = newest?.curriculum ?? null;
+    const levelCode = newest?.levelCode ?? null;
+    // Only fill when the user has not picked a level yet.
+    if (curriculum !== null && levelCode !== null && form.levelCode === null) {
+      setForm((f) => ({
+        ...f,
+        curriculum,
+        levelCode,
+        academicGroup: newest?.academicGroup ?? null,
+      }));
+    }
+  }
 
   const updateForm = (patch: Partial<FormState>) => {
     setForm((f) => ({ ...f, ...patch }));
@@ -168,6 +196,23 @@ export function RequirementForm({
     }
   };
 
+  const educationValue: EducationFields = {
+    curriculum: form.curriculum,
+    levelCode: form.levelCode,
+    academicGroup: form.academicGroup,
+    admissionTargets: form.admissionTargets,
+    isRetaker: form.isRetaker,
+    levelNote: form.levelNote,
+  };
+  const educationErrors: Partial<Record<keyof EducationFields, string>> = {
+    curriculum: errors.curriculum,
+    levelCode: errors.levelCode,
+    academicGroup: errors.academicGroup,
+    admissionTargets: errors.admissionTargets,
+    isRetaker: errors.isRetaker,
+    levelNote: errors.levelNote,
+  };
+
   return (
     <form
       ref={formRef}
@@ -211,61 +256,13 @@ export function RequirementForm({
             />
           </div>
 
-          {/* Class / level */}
-          <div className="grid gap-2">
-            <label
-              htmlFor={`${idPrefix}-classLevel`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Class / level
-            </label>
-            <select
-              id={`${idPrefix}-classLevel`}
-              value={form.classLevel ?? ""}
-              aria-invalid={errors.classLevel ? true : undefined}
-              aria-describedby={
-                errors.classLevel ? `${idPrefix}-classLevel-error` : undefined
-              }
-              onChange={(e) =>
-                updateForm({
-                  classLevel: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-              className={cn(control, "h-12 bg-[var(--color-neutral-white)]")}
-            >
-              <option value="">Choose a class</option>
-              {CLASS_LEVELS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <FieldError
-              id={`${idPrefix}-classLevel-error`}
-              message={errors.classLevel}
-            />
-          </div>
-
-          {/* Curriculum (Category) */}
-          <div className="grid gap-2">
-            <span
-              id={`${idPrefix}-category-label`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Curriculum (category)
-            </span>
-            <ChipGroup
-              name={`${idPrefix}-category`}
-              options={CATEGORIES}
-              value={form.categoryId ? [form.categoryId] : []}
-              multiple={false}
-              onChange={(ids) => updateForm({ categoryId: ids[0] ?? null })}
-            />
-            <FieldError
-              id={`${idPrefix}-category-error`}
-              message={errors.categoryId}
-            />
-          </div>
+          {/* Class, curriculum and extras */}
+          <EducationLevelPicker
+            idPrefix={idPrefix}
+            value={educationValue}
+            onChange={(next) => updateForm(next)}
+            errors={educationErrors}
+          />
 
           {/* School or college */}
           <div className="grid gap-2">

@@ -81,33 +81,6 @@ export const AREAS: Option[] = [
   "Jatrabari",
 ].map((name, i) => ({ id: i + 1, name }));
 
-// shortcut: static list until GET /api/v1/categories exists; ids match tuition-api/src/seed/index.ts.
-export const CATEGORIES: Option[] = [
-  "Bangla Medium",
-  "English Version",
-  "English Medium",
-  "Madrasa",
-  "Admission Test",
-  "University",
-].map((name, i) => ({ id: i + 1, name }));
-
-export const CLASS_LEVELS: { value: number; label: string }[] = [
-  ...Array.from({ length: 10 }, (_, i) => ({
-    value: i + 1,
-    label: `Class ${i + 1}`,
-  })),
-  { value: 11, label: "HSC 1st year" },
-  { value: 12, label: "HSC 2nd year" },
-  { value: 13, label: "Admission prep" },
-  { value: 14, label: "University year 1" },
-  { value: 15, label: "University year 2" },
-  { value: 16, label: "University year 3" },
-  { value: 17, label: "University year 4" },
-  { value: 18, label: "O Level" },
-  { value: 19, label: "A Level" },
-  { value: 20, label: "Other" },
-];
-
 export const TUITION_TYPES = [
   "Home Tutoring Solo",
   "Home Tutoring Group",
@@ -481,12 +454,30 @@ export function toPayload(
 
 /* ───────── API ───────── */
 
+/** One zod issue from a 400 VALIDATION_ERROR; array indexes in `path` are numbers. */
+export interface ApiIssue {
+  path: (string | number)[];
+  message: string;
+}
+
 export class ApiError extends Error {
+  readonly code?: string;
+  readonly details?: Record<string, unknown>;
+  readonly issues?: ApiIssue[];
+
   constructor(
     message: string,
     readonly status: number,
+    extra: {
+      code?: string;
+      details?: Record<string, unknown>;
+      issues?: ApiIssue[];
+    } = {},
   ) {
     super(message);
+    this.code = extra.code;
+    this.details = extra.details;
+    this.issues = extra.issues;
   }
 }
 
@@ -502,7 +493,10 @@ export async function parseJson<T>(res: Response): Promise<T> {
   if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
   const body = (await res.json().catch(() => ({}))) as {
     error?: string;
+    code?: string;
     message?: string;
+    details?: Record<string, unknown>;
+    issues?: ApiIssue[];
   };
   const message =
     res.status === 401
@@ -514,7 +508,11 @@ export async function parseJson<T>(res: Response): Promise<T> {
           : body.error === "WhatsappInUse"
             ? "WhatsApp number is already in use, please use a different one."
             : body.message || `Request failed (${res.status}).`;
-  throw new ApiError(message, res.status);
+  throw new ApiError(message, res.status, {
+    code: body.code,
+    details: body.details,
+    issues: body.issues,
+  });
 }
 
 const profilePath = (role: ProfileRole) =>

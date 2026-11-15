@@ -4,6 +4,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "./providers";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       )}
     >
       <body className="flex min-h-full flex-col">
-        {children}
+        <Providers>{children}</Providers>
         <Toaster />
         <Analytics />
       </body>
