@@ -481,12 +481,30 @@ export function toPayload(
 
 /* ───────── API ───────── */
 
+/** One zod issue from a 400 VALIDATION_ERROR; array indexes in `path` are numbers. */
+export interface ApiIssue {
+  path: (string | number)[];
+  message: string;
+}
+
 export class ApiError extends Error {
+  readonly code?: string;
+  readonly details?: Record<string, unknown>;
+  readonly issues?: ApiIssue[];
+
   constructor(
     message: string,
     readonly status: number,
+    extra: {
+      code?: string;
+      details?: Record<string, unknown>;
+      issues?: ApiIssue[];
+    } = {},
   ) {
     super(message);
+    this.code = extra.code;
+    this.details = extra.details;
+    this.issues = extra.issues;
   }
 }
 
@@ -502,7 +520,10 @@ export async function parseJson<T>(res: Response): Promise<T> {
   if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
   const body = (await res.json().catch(() => ({}))) as {
     error?: string;
+    code?: string;
     message?: string;
+    details?: Record<string, unknown>;
+    issues?: ApiIssue[];
   };
   const message =
     res.status === 401
@@ -514,7 +535,11 @@ export async function parseJson<T>(res: Response): Promise<T> {
           : body.error === "WhatsappInUse"
             ? "WhatsApp number is already in use, please use a different one."
             : body.message || `Request failed (${res.status}).`;
-  throw new ApiError(message, res.status);
+  throw new ApiError(message, res.status, {
+    code: body.code,
+    details: body.details,
+    issues: body.issues,
+  });
 }
 
 const profilePath = (role: ProfileRole) =>
