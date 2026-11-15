@@ -14,6 +14,7 @@ export const queryKeys = {
     },
     zones: ["tutor", "zones"] as const,
     zoneRequests: ["tutor", "zone-requests"] as const,
+    profileSubjects: ["tutor", "profile-subjects"] as const,
   },
   packages: { mine: ["packages", "mine"] as const },
   lookups: { education: ["lookups", "education"] as const },

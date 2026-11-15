@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowDown,
@@ -32,6 +33,19 @@ import {
 import type { UserSession } from "@/lib/auth";
 import { tutors as sampleTutors } from "@/lib/tutors";
 import { cn } from "@/lib/utils";
+import { queryKeys, invalidateTutorRequirements } from "@/lib/query-keys";
+import {
+  blockedFromServerError,
+  describeRemoval,
+  removedSubjectIds,
+  type BlockedSet,
+} from "@/lib/subject-removal";
+import {
+  subjectRemovalImpact,
+  tutorRequirementApi,
+  type TutorRequirement,
+} from "@/lib/tutor-requirements";
+import { toastError } from "@/lib/toast";
 import {
   AREAS,
   ApiError,
@@ -65,7 +79,12 @@ import {
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { EditSection } from "./edit-section";
+import {
+  ConfirmDialog,
+  type ConfirmAction,
+} from "@/components/ui/confirm-dialog";
+import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
+import { EditSection, SaveCancelled } from "./edit-section";
 import {
   card,
   focusRing,
@@ -208,6 +227,16 @@ export function ProfileDashboard({
 
   const [attempt, setAttempt] = useState(0);
 
+  const queryClient = useQueryClient();
+  const [dialog, setDialog] = useState<{
+    title: string;
+    body: string[];
+    actions: ConfirmAction[];
+  } | null>(null);
+  const dialogResolver = useRef<((ok: boolean) => void) | null>(null);
+  // Content stays set after close so the exit fade doesn't flash an empty dialog.
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   useEffect(() => {
     let live = true;
     loadDashboard()
@@ -237,21 +266,134 @@ export function ProfileDashboard({
   const role = session.role as ProfileRole;
   const profile = me && profileOf(me);
 
+  const closeDialog = (ok: boolean) => {
+    const resolve = dialogResolver.current;
+    dialogResolver.current = null;
+    setDialogOpen(false);
+    resolve?.(ok);
+  };
+
+  const askConfirm = (title: string, body: string[]) =>
+    new Promise<boolean>((resolve) => {
+      dialogResolver.current = resolve;
+      setDialogOpen(true);
+      setDialog({
+        title,
+        body,
+        actions: [
+          {
+            label: "Remove",
+            variant: "primary",
+            onSelect: () => closeDialog(true),
+          },
+          {
+            label: "Cancel",
+            variant: "secondary",
+            onSelect: () => closeDialog(false),
+          },
+        ],
+      });
+    });
+
+  const archiveBlockedSet = async (id: string) => {
+    try {
+      await tutorRequirementApi.archive(id);
+      await invalidateTutorRequirements(queryClient);
+      toast.success("Set archived. Save again to remove the subject.");
+      closeDialog(false);
+    } catch (err) {
+      toastError("Couldn't archive that set.", err);
+    }
+  };
+
+  const openBlocked = (blocked: {
+    title: string;
+    body: string[];
+    sets: BlockedSet[];
+  }) => {
+    const actions: ConfirmAction[] = blocked.sets.map((s) => ({
+      label: `Edit '${s.name}'`,
+      href: `/dashboard/tutor/requirements/${s.id}/edit`,
+      variant: "secondary",
+      onSelect: () => closeDialog(false),
+    }));
+    if (blocked.sets.length === 1 && !blocked.sets[0].isDefault) {
+      const id = blocked.sets[0].id;
+      actions.push({
+        label: "Archive set",
+        variant: "secondary",
+        onSelect: () => void archiveBlockedSet(id),
+      });
+    }
+    actions.push({
+      label: "Cancel",
+      variant: "ghost",
+      onSelect: () => closeDialog(false),
+    });
+    setDialogOpen(true);
+    setDialog({ title: blocked.title, body: blocked.body, actions });
+  };
+
   const saveSection = async (next: ProfileForm, fields: FieldDef[]) => {
     if (!me) return;
     const keys = fields.map((f) => f.key);
-    const body = toPayload(role, next, keys);
-    if (Object.keys(body).length) {
-      const updated = await profileApi.update(role, body);
-      setMe(
-        (m) =>
-          m &&
-          (role === "STUDENT"
-            ? { ...m, student: { ...m.student!, ...updated } }
-            : { ...m, tutor: { ...m.tutor!, ...updated } }),
+    const touchesSubjects = role === "TUTOR" && keys.includes("subjectIds");
+
+    let sets: TutorRequirement[] | undefined;
+    if (touchesSubjects) {
+      const removed = removedSubjectIds(
+        form?.subjectIds ?? [],
+        next.subjectIds,
       );
+      if (removed.length) {
+        const all = await queryClient.fetchQuery({
+          queryKey: queryKeys.tutor.requirements.list("all"),
+          queryFn: () => tutorRequirementApi.list("all"),
+          // Never trust a cached list here: a set created a moment ago must be checked.
+          staleTime: 0,
+        });
+        sets = all;
+        const d = describeRemoval(
+          subjectRemovalImpact(all, removed),
+          removed,
+          (id) => optionName(SUBJECTS, id),
+        );
+        if (d.kind === "blocked") {
+          openBlocked(d);
+          throw new SaveCancelled();
+        }
+        if (d.kind === "confirm" && !(await askConfirm(d.title, d.body))) {
+          throw new SaveCancelled();
+        }
+      }
     }
-    if (role === "TUTOR") await saveTutorLists(next, keys);
+
+    try {
+      const body = toPayload(role, next, keys);
+      if (Object.keys(body).length) {
+        const updated = await profileApi.update(role, body);
+        setMe(
+          (m) =>
+            m &&
+            (role === "STUDENT"
+              ? { ...m, student: { ...m.student!, ...updated } }
+              : { ...m, tutor: { ...m.tutor!, ...updated } }),
+        );
+      }
+      if (role === "TUTOR") await saveTutorLists(next, keys);
+    } catch (err) {
+      const blocked = blockedFromServerError(err, sets ?? []);
+      if (!blocked) throw err;
+      openBlocked(blocked);
+      throw new SaveCancelled();
+    }
+
+    if (touchesSubjects) {
+      await invalidateTutorRequirements(queryClient);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tutor.profileSubjects,
+      });
+    }
     setForm(
       (f) =>
         f && { ...f, ...Object.fromEntries(keys.map((k) => [k, next[k]])) },
@@ -371,6 +513,7 @@ export function ProfileDashboard({
                       onRemove={removeVideo}
                     />
                     <PackagesSection />
+                    <TutorRequirementsSection />
                   </>
                 ) : (
                   <>
@@ -412,6 +555,19 @@ export function ProfileDashboard({
           </main>
         </>
       )}
+
+      <ConfirmDialog
+        open={dialogOpen}
+        title={dialog?.title ?? ""}
+        actions={dialog?.actions ?? []}
+        onOpenChange={(open) => {
+          if (!open) closeDialog(false);
+        }}
+      >
+        {dialog?.body.map((line, i) => (
+          <p key={i}>{line}</p>
+        ))}
+      </ConfirmDialog>
     </div>
   );
 }

@@ -31,6 +31,14 @@ describe("tutor requirement keys", () => {
   });
 });
 
+describe("profile subjects key", () => {
+  it("is a tutor-scoped key", () =>
+    expect(queryKeys.tutor.profileSubjects).toEqual([
+      "tutor",
+      "profile-subjects",
+    ]));
+});
+
 describe("lookup keys", () => {
   it("education lookup key", () =>
     expect(queryKeys.lookups.education).toEqual(["lookups", "education"]));

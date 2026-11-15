@@ -21,6 +21,9 @@ import { card, ghostButton, primaryButton, secondaryButton } from "./styles";
 
 const GENDER_LABEL = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
 
+/** Thrown by onSave when the user backs out of a save (e.g. a cancelled confirm). Keeps the section open without a toast. */
+export class SaveCancelled extends Error {}
+
 export function EditSection({
   section,
   values,
@@ -74,6 +77,7 @@ export function EditSection({
       toast.success("Changes saved");
       close();
     } catch (err) {
+      if (err instanceof SaveCancelled) return;
       const field = conflictField(err);
       if (field) setErrors({ [field]: (err as Error).message });
       toast.error(err instanceof Error ? err.message : "Couldn't save.");
