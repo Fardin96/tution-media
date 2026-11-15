@@ -16,8 +16,9 @@
 
 ## Key conventions
 
-- **Auth**: P = public, S = student, T = tutor, A = admin, SA = super admin. See `endpoints.md` for the 120-tracked schema v5 endpoints.
+- **Auth**: P = public, S = student, T = tutor, A = admin, SA = super admin. See `endpoints.md` for the 137-tracked schema v6 endpoints.
 - **Markdown**: `endpoints.md` is gitignored — keep it updated but do not commit.
+- **Education levels**: Labels come from `GET /api/v1/lookups/education` through `useEducationLookup()` in `lib/education.ts`, and are never hardcoded. `EducationLevelPicker` (`components/requirements/education-level-picker.tsx`) is the only picker. Level 0 and negative levels are valid, so check `levelCode === null`, never truthiness.
 - **Tables**: All endpoint tables use `# | Method | Path | Who | deferred | Purpose` format. The `deferred` column uses `[ ]` / `[x]` checkboxes in VS Code preview.
 - **Branch/PR**: Default branch is `main`. Feature branches off `main`. PRs require at least one maintainer approval and all CI to pass.
 - **Env**: Variables in `.env.local` are for local dev only. Do not commit `.env*` files.

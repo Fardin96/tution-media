@@ -31,6 +31,11 @@ describe("tutor requirement keys", () => {
   });
 });
 
+describe("lookup keys", () => {
+  it("education lookup key", () =>
+    expect(queryKeys.lookups.education).toEqual(["lookups", "education"]));
+});
+
 describe("invalidateTutorRequirements", () => {
   it("invalidates requirements, me and match", async () => {
     const client = new QueryClient();

@@ -16,6 +16,7 @@ export const queryKeys = {
     zoneRequests: ["tutor", "zone-requests"] as const,
   },
   packages: { mine: ["packages", "mine"] as const },
+  lookups: { education: ["lookups", "education"] as const },
 };
 
 /** Every tutor-requirement mutation invalidates the same keys; the prefix covers all status lists and details. */

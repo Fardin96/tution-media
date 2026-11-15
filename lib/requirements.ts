@@ -1,5 +1,12 @@
 import { api } from "./api";
-import { CLASS_LEVELS, parseJson } from "./profile";
+import {
+  emptyEducation,
+  type AcademicGroup,
+  type AdmissionTarget,
+  type Curriculum,
+  type EducationFields,
+} from "./education";
+import { parseJson } from "./profile";
 
 export type ListingStatus = "DRAFT" | "OPEN" | "FILLED" | "CLOSED" | "EXPIRED";
 export type TutorGenderPref = "ANY" | "MALE" | "FEMALE";
@@ -8,10 +15,14 @@ export type Tone = "success" | "warning" | "error" | "neutral" | "info";
 export interface Requirement {
   id: string;
   studentId: string;
-  categoryId: number | null;
   areaId: number | null;
   subjectIds: number[];
-  classLevel: number | null;
+  curriculum: Curriculum | null;
+  levelCode: number | null;
+  academicGroup: AcademicGroup | null;
+  admissionTargets: AdmissionTarget[];
+  isRetaker: boolean;
+  levelNote: string | null;
   timeOfDay: string | null;
   daysPerWeek: number | null;
   salary: number | null;
@@ -25,10 +36,8 @@ export interface Requirement {
   updatedAt: string;
 }
 
-export interface RequirementForm {
+export type RequirementForm = EducationFields & {
   subjectIds: number[];
-  classLevel: number | null;
-  categoryId: number | null;
   instituteName: string;
   areaId: number | null;
   tuitionType: string;
@@ -38,7 +47,7 @@ export interface RequirementForm {
   salary: string;
   studentCount: number;
   tutorGenderPref: TutorGenderPref;
-}
+};
 
 export type RequirementFormErrors = Partial<
   Record<keyof RequirementForm, string>
@@ -69,11 +78,6 @@ export function formatTaka(amount: number | null): string {
   return `৳${formatted}`;
 }
 
-export function classLabel(level: number | null): string {
-  if (!level) return "All Classes";
-  return CLASS_LEVELS.find((c) => c.value === level)?.label ?? `Class ${level}`;
-}
-
 export function statusMeta(status: ListingStatus): {
   tone: Tone;
   label: string;
@@ -94,14 +98,19 @@ export function statusMeta(status: ListingStatus): {
   }
 }
 
+// A new requirement starts on Bangla Medium; a saved one keeps whatever it has (null on old drafts).
+export const DEFAULT_CURRICULUM: Curriculum = "BANGLA_MEDIUM";
+
 export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
   const in14Days = new Date();
   in14Days.setDate(in14Days.getDate() + 14);
 
   return {
+    ...emptyEducation,
+    curriculum: DEFAULT_CURRICULUM,
+    // Fresh array so the shared emptyEducation object is never mutated.
+    admissionTargets: [],
     subjectIds: [],
-    classLevel: null,
-    categoryId: null,
     instituteName: "",
     areaId: defaultAreaId ?? null,
     tuitionType: "Home Tutoring Solo",
@@ -117,8 +126,12 @@ export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
 export function fromRequirement(r: Requirement): RequirementForm {
   return {
     subjectIds: r.subjectIds ?? [],
-    classLevel: r.classLevel ?? null,
-    categoryId: r.categoryId ?? null,
+    curriculum: r.curriculum ?? null,
+    levelCode: r.levelCode ?? null,
+    academicGroup: r.academicGroup ?? null,
+    admissionTargets: r.admissionTargets ?? [],
+    isRetaker: r.isRetaker ?? false,
+    levelNote: r.levelNote ?? "",
     instituteName: r.instituteName ?? "",
     areaId: r.areaId ?? null,
     tuitionType: r.tuitionType ?? "Home Tutoring Solo",
@@ -134,8 +147,9 @@ export function fromRequirement(r: Requirement): RequirementForm {
 export function hasAnyInput(form: RequirementForm): boolean {
   return (
     form.subjectIds.length > 0 ||
-    form.classLevel !== null ||
-    form.categoryId !== null ||
+    (form.curriculum !== null && form.curriculum !== DEFAULT_CURRICULUM) ||
+    form.levelCode !== null ||
+    form.levelNote.trim().length > 0 ||
     form.instituteName.trim().length > 0 ||
     form.areaId !== null ||
     form.salary.trim().length > 0 ||
@@ -148,12 +162,17 @@ export function toPayload(
   status?: "DRAFT" | "OPEN",
 ): Record<string, unknown> {
   const salaryNum = parseInt(form.salary.replace(/\D/g, ""), 10);
+  const levelNote = form.levelNote.trim() || null;
 
   if (status === "DRAFT") {
     const payload: Record<string, unknown> = { status: "DRAFT" };
     payload.subjectIds = form.subjectIds;
-    if (form.classLevel !== null) payload.classLevel = form.classLevel;
-    if (form.categoryId !== null) payload.categoryId = form.categoryId;
+    if (form.curriculum !== null) payload.curriculum = form.curriculum;
+    if (form.levelCode !== null) payload.levelCode = form.levelCode;
+    payload.academicGroup = form.academicGroup;
+    payload.admissionTargets = form.admissionTargets;
+    payload.isRetaker = form.isRetaker;
+    payload.levelNote = levelNote;
     if (form.instituteName.trim())
       payload.instituteName = form.instituteName.trim();
     if (form.areaId !== null) payload.areaId = form.areaId;
@@ -169,8 +188,12 @@ export function toPayload(
 
   const payload: Record<string, unknown> = {
     subjectIds: form.subjectIds,
-    classLevel: form.classLevel,
-    categoryId: form.categoryId,
+    curriculum: form.curriculum,
+    levelCode: form.levelCode,
+    academicGroup: form.academicGroup,
+    admissionTargets: form.admissionTargets,
+    isRetaker: form.isRetaker,
+    levelNote,
     instituteName: form.instituteName.trim() || undefined,
     areaId: form.areaId,
     tuitionType: form.tuitionType,
@@ -205,11 +228,14 @@ export function validateRequirementForm(
   if (form.subjectIds.length === 0) {
     errors.subjectIds = "Choose at least one subject.";
   }
-  if (!form.classLevel) {
-    errors.classLevel = "Choose a class.";
+  if (form.curriculum === null) {
+    errors.curriculum = "Choose a curriculum.";
   }
-  if (!form.categoryId) {
-    errors.categoryId = "Choose a category.";
+  if (form.levelCode === null) {
+    errors.levelCode = "Choose a level.";
+  }
+  if (form.levelNote.trim().length > 40) {
+    errors.levelNote = "Keep the note to 40 characters.";
   }
   if (!form.instituteName) {
     errors.instituteName = "Please add the name of your institution.";

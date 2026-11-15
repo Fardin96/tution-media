@@ -81,33 +81,6 @@ export const AREAS: Option[] = [
   "Jatrabari",
 ].map((name, i) => ({ id: i + 1, name }));
 
-// shortcut: static list until GET /api/v1/categories exists; ids match tuition-api/src/seed/index.ts.
-export const CATEGORIES: Option[] = [
-  "Bangla Medium",
-  "English Version",
-  "English Medium",
-  "Madrasa",
-  "Admission Test",
-  "University",
-].map((name, i) => ({ id: i + 1, name }));
-
-export const CLASS_LEVELS: { value: number; label: string }[] = [
-  ...Array.from({ length: 10 }, (_, i) => ({
-    value: i + 1,
-    label: `Class ${i + 1}`,
-  })),
-  { value: 11, label: "HSC 1st year" },
-  { value: 12, label: "HSC 2nd year" },
-  { value: 13, label: "Admission prep" },
-  { value: 14, label: "University year 1" },
-  { value: 15, label: "University year 2" },
-  { value: 16, label: "University year 3" },
-  { value: 17, label: "University year 4" },
-  { value: 18, label: "O Level" },
-  { value: 19, label: "A Level" },
-  { value: 20, label: "Other" },
-];
-
 export const TUITION_TYPES = [
   "Home Tutoring Solo",
   "Home Tutoring Group",

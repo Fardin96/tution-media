@@ -71,7 +71,7 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     }
     return `Removing this subject would leave ${n} requirement sets with no subjects.`;
   },
-  INVALID_REQUIREMENT: "Check the class range and time range.",
+  INVALID_REQUIREMENT: "Check the level, group and time range.",
   INVALID_SUBJECT_OR_ZONE: "Pick only subjects and zones from your profile.",
   AREA_OUTSIDE_CITY:
     "Some areas aren't in your saved city. Pick areas in your city.",

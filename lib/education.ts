@@ -1,0 +1,189 @@
+import { useQuery } from "@tanstack/react-query";
+import { api } from "./api";
+import { parseJson } from "./profile";
+import { queryKeys } from "./query-keys";
+
+export type Curriculum =
+  | "BANGLA_MEDIUM"
+  | "ENGLISH_VERSION"
+  | "EM_CAMBRIDGE"
+  | "EM_EDEXCEL"
+  | "EM_IB"
+  | "EM_AMERICAN"
+  | "MADRASAH";
+
+export type AcademicGroup = "SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID";
+
+export type AdmissionTarget =
+  | "ENGINEERING"
+  | "MEDICAL"
+  | "VARSITY_SCIENCE"
+  | "VARSITY_HUMANITIES"
+  | "VARSITY_BUSINESS"
+  | "AGRICULTURE"
+  | "IBA_BUP"
+  | "PRIVATE_UNI"
+  | "ABROAD_TESTS"
+  | "ISSB";
+
+export interface EducationLookup {
+  version: number;
+  levelRange: { min: number; max: number };
+  groupLevels: { min: number; max: number };
+  admissionLevel: number;
+  levelNoteMaxLength: number;
+  curricula: {
+    code: Curriculum;
+    label: string;
+    levels: { code: number; label: string }[];
+    groups: { code: AcademicGroup; label: string }[];
+  }[];
+  admissionTargets: { code: AdmissionTarget; label: string; covers: string }[];
+  retakerLabels: { level: number; label: string }[];
+}
+
+export interface EducationFields {
+  curriculum: Curriculum | null;
+  levelCode: number | null;
+  academicGroup: AcademicGroup | null;
+  admissionTargets: AdmissionTarget[];
+  isRetaker: boolean;
+  levelNote: string;
+}
+
+export const emptyEducation: EducationFields = {
+  curriculum: null,
+  levelCode: null,
+  academicGroup: null,
+  admissionTargets: [],
+  isRetaker: false,
+  levelNote: "",
+};
+
+export async function fetchEducationLookup(): Promise<EducationLookup> {
+  return parseJson<EducationLookup>(await api.get("/api/v1/lookups/education"));
+}
+
+export const educationLookupQuery = {
+  queryKey: queryKeys.lookups.education,
+  queryFn: fetchEducationLookup,
+  staleTime: 60 * 60 * 1000,
+} as const;
+
+export function useEducationLookup() {
+  return useQuery(educationLookupQuery);
+}
+
+type CurriculumEntry = EducationLookup["curricula"][number];
+
+export function curriculumOf(
+  lookup: EducationLookup | undefined,
+  curriculum: Curriculum | null,
+): CurriculumEntry | undefined {
+  if (!lookup || curriculum === null) return undefined;
+  return lookup.curricula.find((c) => c.code === curriculum);
+}
+
+export function levelLabel(
+  lookup: EducationLookup | undefined,
+  curriculum: Curriculum | null,
+  level: number | null,
+): string | undefined {
+  if (level === null) return undefined;
+  return curriculumOf(lookup, curriculum)?.levels.find((l) => l.code === level)
+    ?.label;
+}
+
+export function groupsFor(
+  lookup: EducationLookup | undefined,
+  curriculum: Curriculum | null,
+  level: number | null,
+): { code: AcademicGroup; label: string }[] {
+  if (!lookup || level === null) return [];
+  if (level < lookup.groupLevels.min || level > lookup.groupLevels.max) {
+    return [];
+  }
+  return curriculumOf(lookup, curriculum)?.groups ?? [];
+}
+
+export function retakerLabel(
+  lookup: EducationLookup | undefined,
+  level: number | null,
+): string | undefined {
+  if (!lookup || level === null) return undefined;
+  return lookup.retakerLabels.find((r) => r.level === level)?.label;
+}
+
+export function showsTargets(
+  lookup: EducationLookup | undefined,
+  level: number | null,
+): boolean {
+  return !!lookup && level === lookup.admissionLevel;
+}
+
+/** Resets dependent fields after a curriculum or level change. */
+export function reconcileEducation(
+  lookup: EducationLookup | undefined,
+  next: EducationFields,
+): EducationFields {
+  if (!lookup) return next;
+
+  const levelCode =
+    levelLabel(lookup, next.curriculum, next.levelCode) !== undefined
+      ? next.levelCode
+      : null;
+  const groups = groupsFor(lookup, next.curriculum, levelCode);
+  const academicGroup =
+    next.academicGroup !== null &&
+    groups.some((g) => g.code === next.academicGroup)
+      ? next.academicGroup
+      : null;
+
+  return {
+    ...next,
+    levelCode,
+    academicGroup,
+    admissionTargets: showsTargets(lookup, levelCode)
+      ? next.admissionTargets
+      : [],
+    isRetaker:
+      retakerLabel(lookup, levelCode) !== undefined ? next.isRetaker : false,
+  };
+}
+
+export function educationSummary(
+  lookup: EducationLookup | undefined,
+  e: Pick<
+    EducationFields,
+    "curriculum" | "levelCode" | "academicGroup" | "isRetaker"
+  >,
+): string {
+  if (!lookup || e.levelCode === null) return "";
+
+  const parts = [
+    levelLabel(lookup, e.curriculum, e.levelCode) ?? `Level ${e.levelCode}`,
+  ];
+  const group = groupsFor(lookup, e.curriculum, e.levelCode).find(
+    (g) => g.code === e.academicGroup,
+  );
+  if (group) parts.push(group.label);
+  if (e.isRetaker) {
+    const retaker = retakerLabel(lookup, e.levelCode);
+    if (retaker) parts.push(retaker);
+  }
+  return parts.join(" · ");
+}
+
+/** Level label across several curricula, de-duplicated and joined with " · ". */
+export function combinedLevelLabel(
+  lookup: EducationLookup | undefined,
+  curricula: Curriculum[],
+  level: number,
+): string {
+  const labels: string[] = [];
+  for (const c of curricula) {
+    const label = levelLabel(lookup, c, level);
+    if (label && !labels.includes(label)) labels.push(label);
+  }
+  return labels.join(" · ");
+}

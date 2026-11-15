@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  classLabel,
   emptyRequirementForm,
   formatTaka,
   formatTime,
@@ -11,6 +10,25 @@ import {
   validateRequirementForm,
   type RequirementForm,
 } from "@/lib/requirements";
+
+const filledForm: RequirementForm = {
+  ...emptyRequirementForm(),
+  subjectIds: [1, 2],
+  curriculum: "BANGLA_MEDIUM",
+  levelCode: 9,
+  academicGroup: "SCIENCE",
+  admissionTargets: [],
+  isRetaker: false,
+  levelNote: "",
+  instituteName: "  NDC  ",
+  areaId: 3,
+  daysPerWeek: 3,
+  timeOfDay: "18:00",
+  hireByDate: "2026-11-15",
+  salary: "8,000",
+  studentCount: 1,
+  tutorGenderPref: "ANY",
+};
 
 describe("requirements helpers", () => {
   it("formats time correctly", () => {
@@ -25,15 +43,6 @@ describe("requirements helpers", () => {
     expect(formatTaka(8000)).toBe("৳8,000");
     expect(formatTaka(12500)).toBe("৳12,500");
     expect(formatTaka(null)).toBe("");
-  });
-
-  it("returns class labels", () => {
-    expect(classLabel(1)).toBe("Class 1");
-    expect(classLabel(10)).toBe("Class 10");
-    expect(classLabel(11)).toBe("HSC 1st year");
-    expect(classLabel(13)).toBe("Admission prep");
-    expect(classLabel(99)).toBe("Class 99");
-    expect(classLabel(null)).toBe("All Classes");
   });
 
   it("returns status metadata", () => {
@@ -51,26 +60,15 @@ describe("requirements helpers", () => {
   });
 
   it("converts full form to payload correctly for OPEN status", () => {
-    const form: RequirementForm = {
-      subjectIds: [1, 2],
-      classLevel: 9,
-      categoryId: 2,
-      instituteName: "  NDC  ",
-      areaId: 3,
-      tuitionType: "Home Tutoring Solo",
-      daysPerWeek: 3,
-      timeOfDay: "18:00",
-      hireByDate: "2026-11-15",
-      salary: "8,000",
-      studentCount: 1,
-      tutorGenderPref: "ANY",
-    };
-
-    const payload = toPayload(form, "OPEN");
+    const payload = toPayload(filledForm, "OPEN");
     expect(payload).toEqual({
       subjectIds: [1, 2],
-      classLevel: 9,
-      categoryId: 2,
+      curriculum: "BANGLA_MEDIUM",
+      levelCode: 9,
+      academicGroup: "SCIENCE",
+      admissionTargets: [],
+      isRetaker: false,
+      levelNote: null,
       instituteName: "NDC",
       areaId: 3,
       tuitionType: "Home Tutoring Solo",
@@ -95,6 +93,11 @@ describe("requirements helpers", () => {
     expect(payload).toEqual({
       status: "DRAFT",
       subjectIds: [2],
+      curriculum: "BANGLA_MEDIUM",
+      academicGroup: null,
+      admissionTargets: [],
+      isRetaker: false,
+      levelNote: null,
       tuitionType: "Home Tutoring Solo",
       daysPerWeek: 3,
       hireByDate: partialForm.hireByDate,
@@ -104,12 +107,36 @@ describe("requirements helpers", () => {
     });
   });
 
+  it("keeps level 0 in the DRAFT payload", () => {
+    const payload = toPayload(
+      { ...emptyRequirementForm(), curriculum: "MADRASAH", levelCode: 0 },
+      "DRAFT",
+    );
+    expect(payload.levelCode).toBe(0);
+    expect(payload.curriculum).toBe("MADRASAH");
+  });
+
   it("sends empty subjectIds on DRAFT so cleared subjects are removed", () => {
     const payload = toPayload(
-      { ...emptyRequirementForm(), subjectIds: [], classLevel: 9 },
+      {
+        ...emptyRequirementForm(),
+        subjectIds: [],
+        curriculum: "BANGLA_MEDIUM",
+        levelCode: 9,
+      },
       "DRAFT",
     );
     expect(payload.subjectIds).toEqual([]);
+  });
+
+  it("trims levelNote and sends null when it is empty", () => {
+    expect(
+      toPayload({ ...filledForm, levelNote: "  Board exam  " }, "OPEN")
+        .levelNote,
+    ).toBe("Board exam");
+    expect(
+      toPayload({ ...filledForm, levelNote: "   " }, "OPEN").levelNote,
+    ).toBe(null);
   });
 
   it("detects if form has any input entered", () => {
@@ -117,8 +144,13 @@ describe("requirements helpers", () => {
     expect(hasAnyInput(empty)).toBe(false);
 
     expect(hasAnyInput({ ...empty, subjectIds: [1] })).toBe(true);
-    expect(hasAnyInput({ ...empty, classLevel: 5 })).toBe(true);
-    expect(hasAnyInput({ ...empty, categoryId: 2 })).toBe(true);
+    expect(hasAnyInput({ ...empty, curriculum: "EM_IB" })).toBe(true);
+    // The default curriculum alone is not input.
+    expect(empty.curriculum).toBe("BANGLA_MEDIUM");
+    expect(hasAnyInput({ ...empty, levelCode: 5 })).toBe(true);
+    expect(hasAnyInput({ ...empty, levelCode: 0 })).toBe(true);
+    expect(hasAnyInput({ ...empty, levelNote: "Retake" })).toBe(true);
+    expect(hasAnyInput({ ...empty, levelNote: "   " })).toBe(false);
     expect(hasAnyInput({ ...empty, instituteName: "Scholastica" })).toBe(true);
     expect(hasAnyInput({ ...empty, areaId: 4 })).toBe(true);
     expect(hasAnyInput({ ...empty, salary: "5000" })).toBe(true);
@@ -144,25 +176,27 @@ describe("requirements helpers", () => {
     const errors = validateRequirementForm(emptyForm, "OPEN");
 
     expect(errors.subjectIds).toBe("Choose at least one subject.");
-    expect(errors.classLevel).toBe("Choose a class.");
-    expect(errors.categoryId).toBe("Choose a category.");
+    // Curriculum starts on the default, so only an explicit clear is an error.
+    expect(errors.curriculum).toBeUndefined();
+    expect(
+      validateRequirementForm({ ...emptyForm, curriculum: null }, "OPEN")
+        .curriculum,
+    ).toBe("Choose a curriculum.");
+    expect(errors.levelCode).toBe("Choose a level.");
     expect(errors.areaId).toBe("Choose your area.");
     expect(errors.timeOfDay).toBe("Pick a time.");
     expect(errors.salary).toBe("Enter a monthly amount in taka.");
 
     const validForm: RequirementForm = {
-      subjectIds: [1, 2],
-      classLevel: 5,
-      categoryId: 1,
+      ...filledForm,
+      hireByDate: getLocalIsoDate(),
+      tutorGenderPref: "FEMALE",
       instituteName: "Scholastica",
-      areaId: 2,
       tuitionType: "Online",
       daysPerWeek: 4,
       timeOfDay: "16:00",
-      hireByDate: getLocalIsoDate(),
       salary: "10,500",
       studentCount: 2,
-      tutorGenderPref: "FEMALE",
     };
     expect(validateRequirementForm(validForm, "OPEN")).toEqual({});
 
@@ -183,5 +217,34 @@ describe("requirements helpers", () => {
     expect(
       validateRequirementForm(longInstituteForm, "OPEN").instituteName,
     ).toBe("Keep it under 200 characters.");
+  });
+
+  it("reports 'Choose a level.' only when levelCode is null", () => {
+    const noLevel = validateRequirementForm(
+      { ...filledForm, levelCode: null },
+      "OPEN",
+    );
+    expect(noLevel.levelCode).toBe("Choose a level.");
+
+    const levelZero = validateRequirementForm(
+      { ...filledForm, levelCode: 0 },
+      "OPEN",
+    );
+    expect(levelZero.levelCode).toBeUndefined();
+  });
+
+  it("rejects a levelNote longer than 40 characters after trimming", () => {
+    expect(
+      validateRequirementForm(
+        { ...filledForm, levelNote: "a".repeat(41) },
+        "OPEN",
+      ).levelNote,
+    ).toBe("Keep the note to 40 characters.");
+    expect(
+      validateRequirementForm(
+        { ...filledForm, levelNote: `  ${"a".repeat(40)}  ` },
+        "OPEN",
+      ).levelNote,
+    ).toBeUndefined();
   });
 });

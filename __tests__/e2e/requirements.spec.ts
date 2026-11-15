@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { sessionCookie } from "./profile-mocks";
+import type { EducationLookup } from "@/lib/education";
 import type { Requirement } from "@/lib/requirements";
 
 const MOCK_ME = {
@@ -28,14 +29,87 @@ const MOCK_ME = {
   },
 };
 
+// Mirrors the body of GET /lookups/education (tuition-api/src/lib/education.ts, educationLookup()).
+const EDUCATION_LOOKUP: EducationLookup = {
+  version: 1,
+  levelRange: { min: -4, max: 13 },
+  groupLevels: { min: 9, max: 12 },
+  admissionLevel: 13,
+  levelNoteMaxLength: 40,
+  curricula: [
+    {
+      code: "BANGLA_MEDIUM",
+      label: "Bangla Medium",
+      levels: [
+        { code: -2, label: "Playgroup" },
+        { code: -1, label: "Nursery" },
+        { code: 0, label: "KG" },
+        { code: 1, label: "Class 1" },
+        { code: 2, label: "Class 2" },
+        { code: 3, label: "Class 3" },
+        { code: 4, label: "Class 4" },
+        { code: 5, label: "Class 5" },
+        { code: 6, label: "Class 6" },
+        { code: 7, label: "Class 7" },
+        { code: 8, label: "Class 8" },
+        { code: 9, label: "Class 9" },
+        { code: 10, label: "Class 10 (SSC)" },
+        { code: 11, label: "HSC 1st year" },
+        { code: 12, label: "HSC 2nd year" },
+        { code: 13, label: "Admission & test prep" },
+      ],
+      groups: [
+        { code: "SCIENCE", label: "Science" },
+        { code: "BUSINESS", label: "Business Studies" },
+        { code: "HUMANITIES", label: "Humanities" },
+      ],
+    },
+    {
+      code: "EM_CAMBRIDGE",
+      label: "English Medium (Cambridge)",
+      levels: [
+        { code: 0, label: "KG 2 (Year 1)" },
+        { code: 9, label: "Grade 9 (Year 10, O Level)" },
+        { code: 10, label: "Grade 10 (Year 11, O Level)" },
+        { code: 11, label: "Grade 11 (Year 12, AS Level)" },
+        { code: 12, label: "Grade 12 (Year 13, A2 Level)" },
+        { code: 13, label: "Admission & test prep" },
+      ],
+      groups: [],
+    },
+  ],
+  admissionTargets: [
+    {
+      code: "ENGINEERING",
+      label: "Engineering",
+      covers: "BUET, CKRUET, IUT, MIST, BUTEX",
+    },
+    { code: "MEDICAL", label: "Medical", covers: "MBBS/BDS, AFMC" },
+    {
+      code: "ABROAD_TESTS",
+      label: "Study abroad tests",
+      covers: "SAT, IELTS, TOEFL, Duolingo, GED",
+    },
+  ],
+  retakerLabels: [
+    { level: 10, label: "Retake / improvement" },
+    { level: 12, label: "Retake / improvement" },
+    { level: 13, label: "2nd timer" },
+  ],
+};
+
 const INITIAL_REQUIREMENTS: Requirement[] = [
   {
     id: "req-1",
     studentId: "student-id-456",
-    categoryId: 1, // Bangla Medium
     areaId: 1, // Dhanmondi
     subjectIds: [1], // Bangla
-    classLevel: 9, // Class 9
+    curriculum: "BANGLA_MEDIUM",
+    levelCode: 9, // Class 9
+    academicGroup: null,
+    admissionTargets: [],
+    isRetaker: false,
+    levelNote: null,
     timeOfDay: "18:00",
     daysPerWeek: 3,
     salary: 8000,
@@ -76,6 +150,14 @@ test.describe("Student tuition requirements flow", () => {
         });
       }
 
+      if (path === "/lookups/education" && method === "GET") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(EDUCATION_LOOKUP),
+        });
+      }
+
       if (path === "/requirements/mine" && method === "GET") {
         return route.fulfill({
           status: 200,
@@ -89,10 +171,14 @@ test.describe("Student tuition requirements flow", () => {
         const newReq: Requirement = {
           id: `req-new-${Date.now()}`,
           studentId: "student-id-456",
-          categoryId: body.categoryId ?? null,
           areaId: body.areaId ?? null,
           subjectIds: body.subjectIds ?? [],
-          classLevel: body.classLevel ?? null,
+          curriculum: body.curriculum ?? null,
+          levelCode: body.levelCode ?? null,
+          academicGroup: body.academicGroup ?? null,
+          admissionTargets: body.admissionTargets ?? [],
+          isRetaker: body.isRetaker ?? false,
+          levelNote: body.levelNote ?? null,
           timeOfDay: body.timeOfDay ?? null,
           daysPerWeek: body.daysPerWeek ?? null,
           salary: body.salary ?? null,
@@ -174,6 +260,11 @@ test.describe("Student tuition requirements flow", () => {
       "Bangla · Class 9",
     );
 
+    // Drop the seeded requirement before the create flow. Prefill would copy its
+    // curriculum and level into the new form, and the empty-draft check would
+    // never fire.
+    mockReqs.length = 0;
+
     // 2. Test saving empty draft shows prompt
     await page.goto("/dashboard/requirements/new");
     await page.click("button:has-text('Save as draft')");
@@ -193,7 +284,7 @@ test.describe("Student tuition requirements flow", () => {
     await page.waitForURL((url) => url.pathname === "/dashboard");
     await expect(page.locator("text=Saved as draft")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Physics · All Classes" }),
+      page.getByRole("heading", { name: "Physics · Class not set" }),
     ).toBeVisible();
 
     // 4. Fill in full fields and post requirement
@@ -206,11 +297,21 @@ test.describe("Student tuition requirements flow", () => {
     );
     await page.click("button:has-text('English')");
 
-    // Select Class/Level (Class 10)
-    await page.selectOption("select", { label: "Class 10" });
+    // Select Curriculum (Bangla Medium). The lookup loads async; the click auto-waits.
+    // Chips hide the native input (sr-only) under their label, so click the label text.
+    await page.getByText("Bangla Medium", { exact: true }).click();
+    await expect(
+      page.getByRole("radio", { name: "Bangla Medium" }),
+    ).toBeChecked();
 
-    // Select Curriculum (English Version)
-    await page.click("label:has-text('English Version')");
+    // Select Class/Level (Class 9)
+    await page
+      .getByRole("combobox", { name: "Class", exact: true })
+      .selectOption({ label: "Class 9" });
+
+    // Class 9 is in the group range, so the optional group step appears
+    await expect(page.getByText("Group (optional)")).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Science" })).toBeVisible();
 
     // Select Area (Dhanmondi)
     await page.fill(
@@ -246,7 +347,7 @@ test.describe("Student tuition requirements flow", () => {
 
     // Verify new requirement is displayed
     await expect(
-      page.getByRole("heading", { name: "English · Class 10" }),
+      page.getByRole("heading", { name: "English · Class 9" }),
     ).toBeVisible();
 
     // 5. Edit Requirement
