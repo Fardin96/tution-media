@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/tutor-requirements";
 import { useEducationLookup, type EducationLookup } from "@/lib/education";
 import { searchSubjects, type Option } from "@/lib/profile";
+import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
 
 const push = vi.fn();
 
@@ -51,6 +52,31 @@ vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   searchSubjects: vi.fn(),
 }));
+
+vi.mock("@/lib/tutor-zones", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/tutor-zones")>()),
+  useTutorZones: vi.fn(),
+}));
+
+function zone(id: string, label: string, radiusM = 2000): TutorZone {
+  return {
+    id,
+    label,
+    lat: 23.8,
+    lng: 90.4,
+    radiusM,
+    placeId: null,
+    addressText: null,
+    requirementIds: [],
+    createdAt: "2026-11-01T00:00:00Z",
+    updatedAt: "2026-11-01T00:00:00Z",
+  };
+}
+
+const ZONES: TutorZone[] = [
+  zone("z1", "Dhanmondi"),
+  zone("z2", "Mirpur", 3000),
+];
 
 const PROFILE_SUBJECTS: Option[] = [{ id: 1, name: "Math" }];
 const ALL_SUBJECTS: Option[] = [
@@ -137,6 +163,13 @@ beforeEach(() => {
       : ALL_SUBJECTS;
   });
 
+  vi.mocked(useTutorZones).mockReturnValue({
+    data: { zones: ZONES, limit: 5, used: 2, pendingRequest: null },
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useTutorZones>);
+
   vi.mocked(tutorRequirementApi.create).mockResolvedValue(SET);
   vi.mocked(tutorRequirementApi.update).mockResolvedValue(SET);
 });
@@ -199,13 +232,83 @@ describe("TutorRequirementForm", () => {
     expect(push).toHaveBeenCalledWith("/dashboard/tutor/requirements");
   });
 
-  it("shows the zones coming-soon text and no zone inputs", () => {
+  it("lists the tutor's zones as checkboxes in the Zones group", () => {
     renderForm();
 
+    const group = screen.getByRole("group", { name: "Teaching zones" });
     expect(
-      screen.getByText(
-        "Teaching zones are coming soon. Until then, students in your areas can find you.",
+      within(group).getByRole("checkbox", { name: "Dhanmondi · 2 km" }),
+    ).not.toBeChecked();
+    expect(
+      within(group).getByRole("checkbox", { name: "Mirpur · 3 km" }),
+    ).not.toBeChecked();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+  });
+
+  it("sends the chosen zoneIds when creating a set", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText("Set name"), "Evening Math");
+    await user.click(screen.getByRole("checkbox", { name: "Math" }));
+    await user.selectOptions(screen.getByLabelText("From"), "1");
+    await user.selectOptions(screen.getByLabelText("To"), "8");
+    await user.click(screen.getByRole("checkbox", { name: "Mirpur · 3 km" }));
+    await user.click(screen.getByRole("button", { name: "Create set" }));
+
+    await waitFor(() =>
+      expect(tutorRequirementApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ zoneIds: ["z2"] }),
       ),
-    ).toBeInTheDocument();
+    );
+  });
+
+  it("sends only the changed zoneIds when editing", async () => {
+    const user = userEvent.setup();
+    renderForm(SET);
+
+    await user.click(
+      screen.getByRole("checkbox", { name: "Dhanmondi · 2 km" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(tutorRequirementApi.update).toHaveBeenCalledWith("req-1", {
+        zoneIds: ["z1"],
+      }),
+    );
+  });
+
+  it("drops a zone that no longer exists before saving", async () => {
+    const user = userEvent.setup();
+    renderForm({ ...SET, zoneIds: ["z1", "deleted"] });
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(tutorRequirementApi.update).toHaveBeenCalledWith("req-1", {
+        zoneIds: ["z1"],
+      }),
+    );
+  });
+
+  it("shows the default-set hint until a zone or online teaching is chosen", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    const hint =
+      "To make this your default for applying, pick at least one zone or turn on online teaching.";
+    expect(screen.getByText(hint)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Mirpur · 3 km" }));
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Mirpur · 3 km" }));
+    expect(screen.getByText(hint)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("checkbox", { name: "I also teach online" }),
+    );
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
   });
 });

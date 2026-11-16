@@ -21,6 +21,9 @@ export const ERROR_CODES = {
   InvalidRequirement: "INVALID_REQUIREMENT",
   InvalidSubjectOrZone: "INVALID_SUBJECT_OR_ZONE",
   AreaOutsideCity: "AREA_OUTSIDE_CITY",
+  ZoneLimitReached: "ZONE_LIMIT_REACHED",
+  ZoneRequestPending: "ZONE_REQUEST_PENDING",
+  ZoneRequestDecided: "ZONE_REQUEST_DECIDED",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -75,6 +78,10 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   INVALID_SUBJECT_OR_ZONE: "Pick only subjects and zones from your profile.",
   AREA_OUTSIDE_CITY:
     "Some areas aren't in your saved city. Pick areas in your city.",
+  ZONE_LIMIT_REACHED: "You've used all your zones. Delete one or ask for more.",
+  ZONE_REQUEST_PENDING:
+    "You already have a request waiting. We'll let you know when it's decided.",
+  ZONE_REQUEST_DECIDED: "This request was already decided.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

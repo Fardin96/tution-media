@@ -513,6 +513,7 @@ export function ProfileDashboard({
                       onRemove={removeVideo}
                     />
                     <PackagesSection />
+                    <TeachingZonesCard />
                     <TutorRequirementsSection />
                   </>
                 ) : (
@@ -1329,6 +1330,36 @@ function PackagesSection() {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function TeachingZonesCard() {
+  return (
+    <section
+      id="teaching-zones"
+      aria-labelledby="teaching-zones-heading"
+      className="scroll-mt-24"
+    >
+      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+        <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
+          <MapPin aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            id="teaching-zones-heading"
+            className="font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            Teaching zones
+          </h2>
+          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            Areas where you teach in person. Requirement sets pick from these.
+          </p>
+        </div>
+        <Link href="/dashboard/tutor/zones" className={secondaryButton}>
+          Manage zones
+        </Link>
+      </div>
     </section>
   );
 }
