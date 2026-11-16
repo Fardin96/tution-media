@@ -33,6 +33,11 @@ export const queryKeys = {
       ["applications", "requirement", id] as const,
     forPackage: (id: string) => ["applications", "package", id] as const,
   },
+  notifications: {
+    all: ["notifications"] as const,
+    list: ["notifications", "list"] as const,
+    unreadCount: ["notifications", "unread-count"] as const,
+  },
   browse: {
     all: ["browse"] as const,
     requirements: <F extends object>(filters: F) =>
@@ -53,7 +58,15 @@ export function invalidateApplications(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+    invalidateNotifications(queryClient),
   ]);
+}
+
+/** Alerts are written by application changes, so the bell's list and unread count refresh with them. */
+export function invalidateNotifications(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({
+    queryKey: queryKeys.notifications.all,
+  });
 }
 
 /** Every tutor-requirement mutation invalidates the same keys; the prefix covers all status lists and details. */

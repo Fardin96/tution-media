@@ -87,7 +87,69 @@ describe("requirement filters <-> search params", () => {
   });
 });
 
+describe("requirement set mode <-> search params", () => {
+  it("writes only the scope and set in set mode", () => {
+    const params = requirementFiltersToSearchParams({
+      scope: "set",
+      setId: "set-1",
+      curriculum: "EM_IB",
+      levelCode: 9,
+      subjectId: 3,
+      areaId: 7,
+    });
+    expect(Object.fromEntries(params)).toEqual({ scope: "set", set: "set-1" });
+  });
+
+  it("reads back set mode without the manual filters", () => {
+    const parsed = requirementFiltersFromSearchParams(
+      new URLSearchParams(
+        "scope=set&set=set-1&curriculum=EM_IB&levelCode=9&subjectId=3&areaId=7",
+      ),
+    );
+    expect(parsed).toEqual({ scope: "set", setId: "set-1" });
+    expect(parsed).not.toHaveProperty("curriculum");
+    expect(parsed).not.toHaveProperty("levelCode");
+    expect(parsed).not.toHaveProperty("subjectId");
+    expect(parsed).not.toHaveProperty("areaId");
+  });
+
+  it("leaves setId unset when set mode has no set in the URL", () => {
+    const parsed = requirementFiltersFromSearchParams(
+      new URLSearchParams("scope=set&set=%20%20"),
+    );
+    expect(parsed).toEqual({ scope: "set" });
+    expect(parsed.setId).toBeUndefined();
+  });
+
+  it("drops set outside set mode", () => {
+    const parsed = requirementFiltersFromSearchParams(
+      new URLSearchParams("scope=all&set=set-1&subjectId=3"),
+    );
+    expect(parsed).not.toHaveProperty("setId");
+    expect(parsed.subjectId).toBe(3);
+
+    const params = requirementFiltersToSearchParams({
+      scope: "nearby",
+      setId: "set-1",
+    });
+    expect(params.has("set")).toBe(false);
+    expect([...params.keys()]).toEqual(["scope"]);
+  });
+
+  it("keeps set-mode and manual filter keys apart in the query key", () => {
+    expect(
+      queryKeys.browse.requirements({ scope: "set", setId: "a" }),
+    ).not.toEqual(queryKeys.browse.requirements({ scope: "set", setId: "b" }));
+  });
+});
+
 describe("package filters <-> search params", () => {
+  it("has no set mode, so scope=set falls back to nearby", () => {
+    expect(
+      packageFiltersFromSearchParams(new URLSearchParams("scope=set")).scope,
+    ).toBe("nearby");
+  });
+
   it("round-trips a full filter set", () => {
     const filters: PackageBrowseFilters = {
       scope: "nearby",

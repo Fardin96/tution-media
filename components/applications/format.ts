@@ -1,4 +1,11 @@
-import { groupsFor, levelLabel, type EducationLookup } from "@/lib/education";
+import {
+  combinedLevelLabel,
+  curriculumOf,
+  groupsFor,
+  levelLabel,
+  type Curriculum,
+  type EducationLookup,
+} from "@/lib/education";
 import { AREAS, SUBJECTS, optionName } from "@/lib/profile";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import type { Application } from "@/lib/applications";
@@ -106,4 +113,44 @@ export function showsClosedNote(application: Application): boolean {
     application.status !== "CONFIRMED" &&
     application.status !== "COMPLETED"
   );
+}
+
+/** Level range across the set's curricula, e.g. "Pre-school to Class 9". Level 0 and negatives are valid. */
+export function educationRangeText(
+  lookup: EducationLookup | undefined,
+  curricula: Curriculum[],
+  levelMin: number,
+  levelMax: number,
+): string {
+  const label = (level: number) =>
+    combinedLevelLabel(lookup, curricula, level) || `Level ${level}`;
+  return levelMin === levelMax
+    ? label(levelMin)
+    : `${label(levelMin)} to ${label(levelMax)}`;
+}
+
+/** "Bangla medium · English version", or "All curricula" when the set covers every one. */
+export function curriculaText(
+  lookup: EducationLookup | undefined,
+  curricula: Curriculum[],
+): string {
+  if (
+    lookup &&
+    curricula.length > 0 &&
+    curricula.length === lookup.curricula.length
+  ) {
+    return "All curricula";
+  }
+  return curricula
+    .map((c) => curriculumOf(lookup, c)?.label)
+    .filter((label): label is string => Boolean(label))
+    .join(" · ");
+}
+
+export function minSalaryText(salary: number | null): string {
+  return salary === null ? "Any" : `${formatTaka(salary)} a month`;
+}
+
+export function studentsText(count: number): string {
+  return count === 1 ? "1 student" : `${count} students`;
 }

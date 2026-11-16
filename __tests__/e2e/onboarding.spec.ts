@@ -92,6 +92,7 @@ test.describe("Onboarding", () => {
     await page.goto("/onboarding");
 
     await page.getByText("Female", { exact: true }).click();
+    await page.getByLabel("University or college").fill("University of Dhaka");
     await page.getByLabel("University student ID").fill("1805123");
     await page.getByRole("button", { name: "Continue" }).click();
 
@@ -123,6 +124,9 @@ test.describe("Onboarding", () => {
       "PUT /tutors/me/areas",
       "PUT /tutors/me/subjects",
     ]);
+    expect(writes.find((w) => w.path === "/tutors/me")?.body).toMatchObject({
+      instituteName: "University of Dhaka",
+    });
     expect(writes.find((w) => w.path === "/tutors/me/subjects")?.body).toEqual({
       subjectIds: [5],
     });

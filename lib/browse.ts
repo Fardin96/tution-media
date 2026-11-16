@@ -18,9 +18,13 @@ export type PackagePage = Schemas["PackagePage"];
 export type BrowseCurriculum = NonNullable<RequirementQuery["curriculum"]>;
 export type TutorGender = NonNullable<TutorQuery["gender"]>;
 export type BrowseScope = "nearby" | "all";
+/** Requirements add set mode, which packages do not have. */
+export type RequirementBrowseScope = BrowseScope | "set";
 
 export interface RequirementBrowseFilters {
-  scope: BrowseScope;
+  scope: RequirementBrowseScope;
+  /** Only sent in set mode. */
+  setId?: string;
   curriculum?: BrowseCurriculum;
   levelCode?: number;
   subjectId?: number;
@@ -73,12 +77,21 @@ export const browseApi = {
   requirements: (
     filters: RequirementBrowseFilters,
     cursor?: string,
-  ): Promise<BrowseRequirementPage> =>
-    unwrap(
-      client.GET("/api/v1/requirements", {
-        params: { query: { ...filters, cursor } },
-      }),
-    ),
+  ): Promise<BrowseRequirementPage> => {
+    // Set mode sends only the set; the manual filters are ignored by the API.
+    const query: RequirementQuery =
+      filters.scope === "set"
+        ? { scope: "set", setId: filters.setId, cursor }
+        : {
+            scope: filters.scope,
+            curriculum: filters.curriculum,
+            levelCode: filters.levelCode,
+            subjectId: filters.subjectId,
+            areaId: filters.areaId,
+            cursor,
+          };
+    return unwrap(client.GET("/api/v1/requirements", { params: { query } }));
+  },
   packages: (
     filters: PackageBrowseFilters,
     cursor?: string,
@@ -107,6 +120,8 @@ export function useBrowseRequirements(filters: RequirementBrowseFilters) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 30_000,
+    // Set mode waits until a set is chosen; the API rejects scope=set without setId.
+    enabled: filters.scope !== "set" || Boolean(filters.setId),
   });
 }
 
@@ -170,6 +185,15 @@ function readScope(raw: string | null): BrowseScope {
   return raw === "all" ? "all" : DEFAULT_BROWSE_SCOPE;
 }
 
+function readRequirementScope(raw: string | null): RequirementBrowseScope {
+  return raw === "set" || raw === "all" ? raw : DEFAULT_BROWSE_SCOPE;
+}
+
+function readSetId(raw: string | null): string | undefined {
+  const id = raw?.trim();
+  return id ? id : undefined;
+}
+
 function readCurriculum(raw: string | null): BrowseCurriculum | undefined {
   return (BROWSE_CURRICULA as readonly string[]).includes(raw ?? "")
     ? (raw as BrowseCurriculum)
@@ -196,8 +220,13 @@ function toParams(
 export function requirementFiltersFromSearchParams(
   params: ParamReader,
 ): RequirementBrowseFilters {
+  const scope = readRequirementScope(params.get("scope"));
+  // Set mode reads only the set; manual filters do not apply.
+  if (scope === "set") {
+    return { scope, setId: readSetId(params.get("set")) };
+  }
   return {
-    scope: readScope(params.get("scope")),
+    scope,
     curriculum: readCurriculum(params.get("curriculum")),
     levelCode: readInt(params.get("levelCode")),
     subjectId: readInt(params.get("subjectId"), 1),
@@ -208,6 +237,9 @@ export function requirementFiltersFromSearchParams(
 export function requirementFiltersToSearchParams(
   filters: RequirementBrowseFilters,
 ): URLSearchParams {
+  if (filters.scope === "set") {
+    return toParams({ scope: "set", set: filters.setId });
+  }
   return toParams({
     scope: filters.scope,
     curriculum: filters.curriculum,

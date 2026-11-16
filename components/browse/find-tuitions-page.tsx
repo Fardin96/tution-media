@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -29,8 +29,8 @@ import {
   requirementFiltersFromSearchParams,
   requirementFiltersToSearchParams,
   useBrowseRequirements,
-  type BrowseScope,
   type RequirementBrowseFilters,
+  type RequirementBrowseScope,
 } from "@/lib/browse";
 import {
   curriculumOf,
@@ -41,10 +41,12 @@ import {
 import { queryKeys } from "@/lib/query-keys";
 import { AREAS, SUBJECTS, optionName, profileApi } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { useTutorRequirements } from "@/lib/tutor-requirements";
 
-const SCOPES: { value: BrowseScope; label: string }[] = [
+const SCOPES: { value: RequirementBrowseScope; label: string }[] = [
   { value: "nearby", label: "Near me" },
   { value: "all", label: "All open" },
+  { value: "set", label: "My sets" },
 ];
 
 /** Readiness fixes, each on the page that owns it. */
@@ -88,12 +90,46 @@ export function FindTuitionsPage() {
   const blockedReason =
     readiness && !readiness.ready ? "Finish your profile to apply." : null;
 
-  const browse = useBrowseRequirements(filters);
+  const isSetMode = filters.scope === "set";
+  const sets = useTutorRequirements("active", isSetMode);
+  const activeSets = sets.data ?? [];
+  // A set id from the URL that is not an active set falls back to the default.
+  const selectedSetId = isSetMode
+    ? (activeSets.find((s) => s.id === filters.setId)?.id ??
+      activeSets.find((s) => s.isDefault)?.id)
+    : undefined;
+
+  const browseFilters = useMemo<RequirementBrowseFilters>(
+    () => (isSetMode ? { scope: "set", setId: selectedSetId } : filters),
+    [isSetMode, selectedSetId, filters],
+  );
+  const browse = useBrowseRequirements(browseFilters);
   const apply = useApplyToRequirement();
 
   const rows = browse.data?.pages.flatMap((page) => page.requirements) ?? [];
   const noServiceArea = browse.data?.pages[0]?.noServiceArea ?? false;
   const missing = readiness && !readiness.ready ? readiness.missing : [];
+
+  // Puts the resolved set in the URL so the page can be shared as shown.
+  useEffect(() => {
+    if (!isSetMode || !sets.isSuccess || filters.setId === selectedSetId) {
+      return;
+    }
+    const query = requirementFiltersToSearchParams({
+      scope: "set",
+      setId: selectedSetId,
+    }).toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    isSetMode,
+    sets.isSuccess,
+    filters.setId,
+    selectedSetId,
+    pathname,
+    router,
+  ]);
 
   function setFilters(next: RequirementBrowseFilters) {
     const query = requirementFiltersToSearchParams(next).toString();
@@ -175,7 +211,9 @@ export function FindTuitionsPage() {
         Find tuitions
       </h1>
       <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
-        Open requirements from students near your teaching zones and areas.
+        {isSetMode
+          ? "Open requirements that match one of your sets."
+          : "Open requirements from students near your teaching zones and areas."}
       </p>
 
       {readiness && !readiness.ready && (
@@ -224,82 +262,107 @@ export function FindTuitionsPage() {
         aria-label="Filters"
         className={cn(card, "mt-6 grid gap-5 p-5 sm:p-6")}
       >
-        <Segmented<BrowseScope>
+        <Segmented<RequirementBrowseScope>
           label="Scope"
           options={SCOPES}
           value={filters.scope}
           onChange={(scope) => patch({ scope })}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <FilterSelect
-            id="filter-curriculum"
-            label="Curriculum"
-            value={filters.curriculum ?? ""}
-            onChange={onCurriculumChange}
-          >
-            <option value="">All curricula</option>
-            {lookup?.curricula.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </FilterSelect>
+        {isSetMode ? (
+          sets.isSuccess &&
+          activeSets.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <FilterSelect
+                id="filter-set"
+                label="Requirement set"
+                value={selectedSetId ?? ""}
+                onChange={(value) =>
+                  setFilters({ scope: "set", setId: value || undefined })
+                }
+              >
+                {selectedSetId === undefined && (
+                  <option value="">Choose a set</option>
+                )}
+                {activeSets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.isDefault ? `${s.name} (default)` : s.name}
+                  </option>
+                ))}
+              </FilterSelect>
+            </div>
+          )
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FilterSelect
+              id="filter-curriculum"
+              label="Curriculum"
+              value={filters.curriculum ?? ""}
+              onChange={onCurriculumChange}
+            >
+              <option value="">All curricula</option>
+              {lookup?.curricula.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </FilterSelect>
 
-          <FilterSelect
-            id="filter-level"
-            label="Class"
-            value={
-              filters.levelCode === undefined ? "" : String(filters.levelCode)
-            }
-            onChange={(value) =>
-              patch({ levelCode: value === "" ? undefined : Number(value) })
-            }
-          >
-            <option value="">All classes</option>
-            {levelOptions.map((l) => (
-              <option key={l.code} value={String(l.code)}>
-                {l.label}
-              </option>
-            ))}
-          </FilterSelect>
+            <FilterSelect
+              id="filter-level"
+              label="Class"
+              value={
+                filters.levelCode === undefined ? "" : String(filters.levelCode)
+              }
+              onChange={(value) =>
+                patch({ levelCode: value === "" ? undefined : Number(value) })
+              }
+            >
+              <option value="">All classes</option>
+              {levelOptions.map((l) => (
+                <option key={l.code} value={String(l.code)}>
+                  {l.label}
+                </option>
+              ))}
+            </FilterSelect>
 
-          <FilterSelect
-            id="filter-subject"
-            label="Subject"
-            value={
-              filters.subjectId === undefined ? "" : String(filters.subjectId)
-            }
-            onChange={(value) =>
-              patch({ subjectId: value === "" ? undefined : Number(value) })
-            }
-          >
-            <option value="">All subjects</option>
-            {SUBJECTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </FilterSelect>
+            <FilterSelect
+              id="filter-subject"
+              label="Subject"
+              value={
+                filters.subjectId === undefined ? "" : String(filters.subjectId)
+              }
+              onChange={(value) =>
+                patch({ subjectId: value === "" ? undefined : Number(value) })
+              }
+            >
+              <option value="">All subjects</option>
+              {SUBJECTS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </FilterSelect>
 
-          <FilterSelect
-            id="filter-area"
-            label="Area"
-            value={filters.areaId === undefined ? "" : String(filters.areaId)}
-            onChange={(value) =>
-              patch({ areaId: value === "" ? undefined : Number(value) })
-            }
-          >
-            <option value="">All areas</option>
-            {AREAS.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </FilterSelect>
-        </div>
+            <FilterSelect
+              id="filter-area"
+              label="Area"
+              value={filters.areaId === undefined ? "" : String(filters.areaId)}
+              onChange={(value) =>
+                patch({ areaId: value === "" ? undefined : Number(value) })
+              }
+            >
+              <option value="">All areas</option>
+              {AREAS.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </div>
+        )}
 
-        {hasFilters && (
+        {!isSetMode && hasFilters && (
           <div>
             <button
               type="button"
@@ -333,7 +396,25 @@ export function FindTuitionsPage() {
           </div>
         )}
 
-        {browse.isPending ? (
+        {isSetMode && sets.isPending ? (
+          <SkeletonCards label="Loading your sets" />
+        ) : isSetMode && sets.isError ? (
+          <ErrorBlock
+            message="Couldn't load your sets."
+            onRetry={() => void sets.refetch()}
+          />
+        ) : isSetMode && activeSets.length === 0 ? (
+          <EmptyCard title="You have no requirement sets yet.">
+            <Link
+              href="/dashboard/tutor/requirements/new"
+              className={secondaryButton}
+            >
+              Create a set
+            </Link>
+          </EmptyCard>
+        ) : isSetMode && selectedSetId === undefined ? (
+          <EmptyCard title="Choose a set to see matching tuitions." />
+        ) : browse.isPending ? (
           <SkeletonCards label="Loading tuitions" />
         ) : rows.length > 0 ? (
           <>
@@ -387,6 +468,8 @@ export function FindTuitionsPage() {
               Clear filters
             </button>
           </EmptyCard>
+        ) : isSetMode ? (
+          <EmptyCard title="No open tuitions match this set." />
         ) : (
           <EmptyCard title="No open tuitions right now." />
         )}

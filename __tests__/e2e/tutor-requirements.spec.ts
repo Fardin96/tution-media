@@ -431,7 +431,10 @@ test.describe("Tutor requirement sets", () => {
 
       // Biology is not on the profile, so it is added through the subject search.
       await page.getByLabel("Search subjects to add").fill("Biology");
-      await page.getByRole("button", { name: "Biology", exact: true }).click();
+      await page.getByRole("option", { name: "Biology", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Remove Biology" }),
+      ).toBeVisible();
       await expect(
         page.getByText("Also adds Biology to your profile subjects.", {
           exact: true,

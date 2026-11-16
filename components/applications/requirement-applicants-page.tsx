@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
@@ -24,6 +24,12 @@ function ApplicantCard({ application }: { application: Application }) {
           <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
             {tutor.name}
           </h2>
+          {tutor.instituteName && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+              <GraduationCap aria-hidden="true" className="size-4 shrink-0" />
+              {tutor.instituteName}
+            </p>
+          )}
           <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
             {[
               tutor.ratingCount > 0
@@ -35,9 +41,17 @@ function ApplicantCard({ application }: { application: Application }) {
         </div>
         <StatusPill status={application.status} />
       </div>
-      <p className="text-sm text-[var(--color-text-secondary)] tabular-nums">
-        {`Applied ${formatDay(application.appliedAt)}`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <p className="text-sm text-[var(--color-text-secondary)] tabular-nums">
+          {`Applied ${formatDay(application.appliedAt)}`}
+        </p>
+        <Link
+          href={`/dashboard/applications/${application.id}`}
+          className={cn(secondaryButton, "min-h-10 px-4")}
+        >
+          View tutor
+        </Link>
+      </div>
       <ApplicationActions
         applicationId={application.id}
         allowedActions={application.allowedActions}

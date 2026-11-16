@@ -16,6 +16,8 @@ export type ApplicationPage = Schemas["ApplicationPage"];
 export type ApplicationTarget = Schemas["ApplicationTarget"];
 export type ApplicationFee = Schemas["ApplicationFee"];
 export type ApplicationContact = Schemas["ApplicationContact"];
+export type ApplicationTutorProfile = Schemas["ApplicationTutorProfile"];
+export type ApplicationTutorSet = Schemas["ApplicationTutorSet"];
 export type ApplicationStatus = Application["status"];
 export type ApplicationAction = Application["allowedActions"][number];
 

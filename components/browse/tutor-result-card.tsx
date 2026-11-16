@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { GraduationCap, MapPin } from "lucide-react";
 import { card } from "@/components/profile/styles";
 import { formatDistanceKm } from "@/lib/browse";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { RatingInline, TutorInitial } from "./browse-ui";
 export interface TutorResult {
   id: string;
   name: string;
+  instituteName?: string | null;
   ratingAvg: number;
   ratingCount: number;
   areas?: { id: number; name: string }[];
@@ -17,48 +18,66 @@ export interface TutorResult {
 
 /** Renders an `<li>`; the parent list is a `<ul>`. There is no tutor profile page yet, so no link. */
 export function TutorResultCard({ tutor }: { tutor: TutorResult }) {
+  const institute = tutor.instituteName?.trim();
+  const areaNames = (tutor.areas ?? []).map((a) => a.name).join(", ");
   const distance =
     tutor.distanceMeters !== undefined
       ? formatDistanceKm(tutor.distanceMeters / 1000)
       : "";
-  const chips = [
-    ...(tutor.areas ?? []).map((a) => ({ key: `area-${a.id}`, label: a.name })),
-    ...(tutor.subjects ?? []).map((s) => ({
-      key: `subject-${s.id}`,
-      label: s.name,
-    })),
-  ];
+  const subjects = tutor.subjects ?? [];
 
   return (
     <li className={cn(card, "flex flex-col gap-4 p-5")}>
-      <div className="flex items-center gap-3">
-        <TutorInitial name={tutor.name} />
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
-            {tutor.name}
-          </h3>
-          <RatingInline
-            ratingAvg={tutor.ratingAvg}
-            ratingCount={tutor.ratingCount}
-          />
+      <div className="grid gap-2">
+        <div className="flex items-center gap-3">
+          <TutorInitial name={tutor.name} />
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+            <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
+              {tutor.name}
+            </h3>
+            <div className="shrink-0">
+              <RatingInline
+                ratingAvg={tutor.ratingAvg}
+                ratingCount={tutor.ratingCount}
+              />
+            </div>
+          </div>
         </div>
+
+        {institute && (
+          <p className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]">
+            <GraduationCap
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0"
+            />
+            <span className="min-w-0">{institute}</span>
+          </p>
+        )}
+
+        {(areaNames || distance) && (
+          <p className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]">
+            <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span className="min-w-0">
+              {areaNames}
+              {areaNames && distance && " · "}
+              {distance && (
+                <>
+                  <span className="tabular-nums">{distance}</span> away
+                </>
+              )}
+            </span>
+          </p>
+        )}
       </div>
 
-      {distance && (
-        <p className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)]">
-          <MapPin aria-hidden="true" className="size-4" />
-          <span className="tabular-nums">{distance}</span> away
-        </p>
-      )}
-
-      {chips.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label="Areas and subjects">
-          {chips.map((chip) => (
+      {subjects.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label="Subjects">
+          {subjects.map((subject) => (
             <li
-              key={chip.key}
+              key={subject.id}
               className="rounded-full bg-[var(--color-surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]"
             >
-              {chip.label}
+              {subject.name}
             </li>
           ))}
         </ul>

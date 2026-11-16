@@ -197,7 +197,7 @@ describe("TutorRequirementForm", () => {
       screen.getByPlaceholderText("Add a subject, like Physics"),
       "Phy",
     );
-    await user.click(await screen.findByRole("button", { name: "Physics" }));
+    await user.click(await screen.findByRole("option", { name: "Physics" }));
 
     expect(
       screen.getByText("Also adds Physics to your profile subjects."),
@@ -250,7 +250,7 @@ describe("TutorRequirementForm", () => {
     renderForm();
 
     await user.type(screen.getByLabelText("Set name"), "Evening Math");
-    await user.click(screen.getByRole("checkbox", { name: "Math" }));
+    await user.click(screen.getByRole("button", { name: "Math" }));
     await user.selectOptions(screen.getByLabelText("From"), "1");
     await user.selectOptions(screen.getByLabelText("To"), "8");
     await user.click(screen.getByRole("checkbox", { name: "Mirpur · 3 km" }));

@@ -14,11 +14,15 @@ import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
   formatDay,
-  ratingText,
   showsClosedNote,
   targetRows,
   whatsappHref,
 } from "@/components/applications/format";
+import { Rows, Section } from "@/components/applications/detail-sections";
+import {
+  TutorProfileSection,
+  TutorSetSection,
+} from "@/components/applications/tutor-details";
 import { useEducationLookup } from "@/lib/education";
 import { ApiError, formatBdPhone } from "@/lib/profile";
 import { formatTaka } from "@/lib/requirements";
@@ -33,43 +37,6 @@ const FEE_STATUS_LABEL: Record<FeeStatus, string> = {
   WAIVED: "Waived",
   VOID: "Void",
 };
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section
-      aria-labelledby={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}
-      className={cn(card, "p-5")}
-    >
-      <h2
-        id={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}
-        className="text-base font-semibold text-[var(--color-neutral-charcoal)]"
-      >
-        {title}
-      </h2>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function Rows({ rows }: { rows: { label: string; value: string }[] }) {
-  return (
-    <dl className="grid gap-3 sm:grid-cols-2">
-      {rows.map((row) => (
-        <div
-          key={row.label}
-          className="rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
-        >
-          <dt className="text-xs font-medium text-[var(--color-text-secondary)]">
-            {row.label}
-          </dt>
-          <dd className="mt-1 text-sm font-medium text-pretty text-[var(--color-neutral-charcoal)] tabular-nums">
-            {row.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 function DetailSkeleton() {
   return (
@@ -102,7 +69,10 @@ function NotFound() {
       <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
         It may have been removed. Check your list of applications.
       </p>
-      <Link href="/dashboard/applications" className={primaryButton}>
+      <Link
+        href="/dashboard/applications"
+        className={cn(secondaryButton, "min-h-10 px-4")}
+      >
         Back to applications
       </Link>
     </div>
@@ -171,11 +141,6 @@ export function ApplicationDetailPage({
               <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
                 {counterpart}
               </h1>
-              {!isTutor && app.tutor.ratingCount > 0 && (
-                <p className="mt-1 text-sm text-[var(--color-text-secondary)] tabular-nums">
-                  {`Rated ${ratingText(app.tutor.ratingAvg, app.tutor.ratingCount)}`}
-                </p>
-              )}
             </div>
             <StatusPill status={app.status} />
           </div>
@@ -195,6 +160,14 @@ export function ApplicationDetailPage({
         <Section title="Tuition">
           <Rows rows={targetRows(lookup.data, app.target)} />
         </Section>
+
+        {!isTutor && app.tutorProfile && (
+          <TutorProfileSection profile={app.tutorProfile} />
+        )}
+
+        {!isTutor && app.tutorSet && (
+          <TutorSetSection tutorSet={app.tutorSet} lookup={lookup.data} />
+        )}
 
         <Section title="Timeline">
           <dl className="grid gap-3 text-sm sm:grid-cols-3">
