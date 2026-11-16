@@ -96,11 +96,14 @@ describe("TutorRequirementsSection", () => {
       screen.getByRole("link", { name: "See all requirements" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "View more" })).toBeNull();
+    expect(screen.getByRole("link", { name: "New set" })).toBeInTheDocument();
   });
 
   it("shows the empty state when there are no sets", () => {
     mockSets([]);
     render(<TutorRequirementsSection />);
+
+    expect(screen.queryByRole("link", { name: "New set" })).toBeNull();
 
     expect(
       screen.getByText(
