@@ -34,6 +34,15 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - The backend returns `location: { lat, lng, addressText, districtCode, placeId, needsReaddress } | null` on `GET /api/v1/me`, and the form reads it back from there.
 - We only operate in Dhaka right now. Any other district shows a non-blocking warning; the profile can still be saved.
 
+## Generated API types
+
+The frontend uses typed API clients generated from the backend's OpenAPI document.
+
+- Run `yarn gen:api` to generate `lib/api-types.ts` from `../tuition-api/openapi.json`.
+- Run `yarn gen:api:check` to verify the file is up to date (runs in CI).
+- Set `OPENAPI_SPEC` (path or URL) to use a different source.
+- Uses openapi-typescript with `defaultNonNullable: false`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

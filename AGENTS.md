@@ -2,17 +2,19 @@
 
 ## Quickstart
 
-| Command             | Action                                      |
-| ------------------- | ------------------------------------------- |
-| `yarn dev`          | Start dev server at http://localhost:3000   |
-| `yarn build`        | Production build (output to `.next/`)       |
-| `yarn start`        | Serve production build                      |
-| `yarn lint`         | Run ESLint                                  |
-| `yarn typecheck`    | Run `next typegen && tsc --noEmit`          |
-| `yarn format:check` | Check Prettier formatting                   |
-| `yarn test:unit`    | Run vitest unit tests (`__tests__/unit/`)   |
-| `yarn test:e2e`     | Run playwright e2e tests (`__tests__/e2e/`) |
-| `yarn test`         | Run unit + e2e                              |
+| Command              | Action                                                         |
+| -------------------- | -------------------------------------------------------------- |
+| `yarn dev`           | Start dev server at http://localhost:3000                      |
+| `yarn build`         | Production build (output to `.next/`)                          |
+| `yarn start`         | Serve production build                                         |
+| `yarn lint`          | Run ESLint                                                     |
+| `yarn typecheck`     | Run `next typegen && tsc --noEmit`                             |
+| `yarn format:check`  | Check Prettier formatting                                      |
+| `yarn gen:api`       | Generate `lib/api-types.ts` from `../tuition-api/openapi.json` |
+| `yarn gen:api:check` | Fail when `lib/api-types.ts` is stale                          |
+| `yarn test:unit`     | Run vitest unit tests (`__tests__/unit/`)                      |
+| `yarn test:e2e`      | Run playwright e2e tests (`__tests__/e2e/`)                    |
+| `yarn test`          | Run unit + e2e                                                 |
 
 ## Key conventions
 
@@ -27,6 +29,7 @@
 - **Tutor requirement sets**: live in `lib/tutor-requirements.ts` and `components/tutor-requirements/`, and use TanStack Query keys from `lib/query-keys.ts`. Every set mutation calls `invalidateTutorRequirements`. Profile-subject removal goes through `lib/subject-removal.ts` and the `SaveCancelled` error in `components/profile/edit-section.tsx`.
 - **Tutor zones**: live in `lib/tutor-zones.ts` and `components/tutor-zones/` (map with a "Drop pin" toggle under it: while on, one click or tap on the map places the zone centre, saved circles stop taking clicks, Esc turns it off, and Add zone turns it on automatically; the pin stays draggable; list, editor with place search, radius slider and a "Pinned at lat, lng" line for map-placed pins, delete confirmation listing affected sets and warning when a default in-person set loses its only zone, zone-limit request dialog with history). TanStack Query keys: `queryKeys.tutor.zones`, `queryKeys.tutor.zoneRequests`, `queryKeys.admin.zoneRequests(filters)` (prefix `['admin','zone-requests']`). Every zone write calls `invalidateTutorZones` (invalidates zones + requirement sets + me + match). ZonePicker (`components/tutor-requirements/zone-picker.tsx`) sends zoneIds in requirement-set form; set cards show zone counts; tutor dashboard has a Teaching zones card.
 - **Maps**: `@vis.gl/react-google-maps` 1.10.2. Browser env vars: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (HTTP-referrer restricted, Maps JavaScript API only) and `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` (falls back to DEMO_MAP_ID). Without the key the page shows a fallback and stays usable through place search. The existing server-only `GOOGLE_MAPS_API_KEY` still powers `/api/places/*` and must never be exposed.
+- **API client and types**: `yarn gen:api` generates `lib/api-types.ts` (committed, never hand-edited, ESLint-ignored) from `../tuition-api/openapi.json` or `OPENAPI_SPEC` (path or URL); `yarn gen:api:check` fails when stale. CI job `api-types` clones tuition-api at the same-named branch (fallback main) and runs the check. Uses openapi-typescript with `defaultNonNullable: false`. All backend calls use `client` + `unwrap` from `lib/api-client.ts` (openapi-fetch routed through `apiFetch`, so bearer token + 401 refresh still work); `unwrap` throws the same `ApiError` as `parseJson`. Domain types are aliases of `Schemas["..."]`. `ERROR_CODES`/`MESSAGES` in `lib/api-errors.ts` are checked against the generated `ErrorCode` so a new backend code without a message fails typecheck. e2e mocks in `__tests__/e2e/profile-mocks.ts` use `satisfies Schemas[...]`.
 
 ## Directory ownership
 
@@ -50,6 +53,7 @@
 ## Codegen / migrations
 
 - **Type gen**: `next typegen` generates TypeScript types from `next.config.ts` and route handlers. Run as part of `typecheck`.
+- **API types**: see "API client and types" above. After a backend change: `yarn openapi:export` in tuition-api, then `yarn gen:api` here, fix type errors, commit both.
 - **No manual migrations** — data seeding lives in `lib/` (e.g., `places.ts`, `features.ts`).
 
 ## Gotchas
@@ -59,6 +63,8 @@
 - **Typegen + tsc**: `yarn typecheck` runs both `next typegen` and `tsc --noEmit` in that order. Run `lint -> typecheck -> test` sequentially.
 - **Husky pre-commit**: Runs `yarn lint-staged` which does `eslint --fix && prettier --write`. Commit will fail if lint/format issues are auto-fixable.
 - **Tailwind CSS v4**: Config moved to `postcss.config.mjs`. Do not edit `tailwind.config.*` if it exists — it may not be used.
+- **Unit test mocking**: Unit tests that need the network mock `apiFetch` with `vi.mock("@/lib/api", async (orig) => ({ ...(await orig()), apiFetch: vi.fn() }))`; a full `@/lib/api` mock must spread the original because `api-client` reads `API_URL`.
+- **Node version**: Local Node must match `.nvmrc` (24) in the frontend. CI uses Node 24.
 
 ## Useful scripts (package.json)
 
@@ -70,6 +76,8 @@
   "lint": "eslint .",
   "typecheck": "next typegen && tsc --noEmit",
   "format:check": "prettier --check .",
+  "gen:api": "node scripts/gen-api.mjs",
+  "gen:api:check": "node scripts/gen-api.mjs --check",
   "prepare": "husky",
   "test:unit": "vitest run",
   "test:e2e": "playwright test",
