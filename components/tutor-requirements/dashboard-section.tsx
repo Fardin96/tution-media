@@ -97,7 +97,8 @@ export function TutorRequirementsSection() {
         title="Requirement sets"
         description="Packages use your default set unless they pick another."
         action={
-          atLimit ? (
+          // With no sets, the empty card carries the only create button.
+          list.length === 0 ? undefined : atLimit ? (
             <button
               type="button"
               aria-disabled="true"

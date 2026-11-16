@@ -64,6 +64,8 @@ import {
   type Me,
   type ProfileForm,
   type ProfileRole,
+  type StudentProfile,
+  type TutorProfile,
   type Verification,
   type VerificationStatus,
   type Video,
@@ -376,8 +378,14 @@ export function ProfileDashboard({
           (m) =>
             m &&
             (role === "STUDENT"
-              ? { ...m, student: { ...m.student!, ...updated } }
-              : { ...m, tutor: { ...m.tutor!, ...updated } }),
+              ? {
+                  ...m,
+                  student: { ...m.student!, ...(updated as StudentProfile) },
+                }
+              : {
+                  ...m,
+                  tutor: { ...m.tutor!, ...(updated as TutorProfile) },
+                }),
         );
       }
       if (role === "TUTOR") await saveTutorLists(next, keys);

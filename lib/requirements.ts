@@ -1,46 +1,27 @@
-import { api } from "./api";
+import { client, unwrap, type Schemas } from "./api-client";
 import {
   emptyEducation,
-  type AcademicGroup,
-  type AdmissionTarget,
   type Curriculum,
   type EducationFields,
 } from "./education";
-import { parseJson } from "./profile";
+import type { TUITION_TYPES } from "./profile";
+
+export type TuitionType = (typeof TUITION_TYPES)[number];
 
 export type ListingStatus = "DRAFT" | "OPEN" | "FILLED" | "CLOSED" | "EXPIRED";
 export type TutorGenderPref = "ANY" | "MALE" | "FEMALE";
 export type Tone = "success" | "warning" | "error" | "neutral" | "info";
 
-export interface Requirement {
-  id: string;
-  studentId: string;
-  areaId: number | null;
-  subjectIds: number[];
-  curriculum: Curriculum | null;
-  levelCode: number | null;
-  academicGroup: AcademicGroup | null;
-  admissionTargets: AdmissionTarget[];
-  isRetaker: boolean;
-  levelNote: string | null;
-  timeOfDay: string | null;
-  daysPerWeek: number | null;
-  salary: number | null;
-  studentCount: number | null;
-  hireByDate: string | null;
-  tutorGenderPref: TutorGenderPref;
-  instituteName: string | null;
-  tuitionType: string | null;
-  status: ListingStatus;
-  createdAt: string;
-  updatedAt: string;
-}
+// Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
+export type Requirement = Schemas["Requirement"];
+export type CreateRequirementBody = Schemas["CreateRequirementInput"];
+export type UpdateRequirementBody = Schemas["UpdateRequirementInput"];
 
 export type RequirementForm = EducationFields & {
   subjectIds: number[];
   instituteName: string;
   areaId: number | null;
-  tuitionType: string;
+  tuitionType: TuitionType;
   daysPerWeek: number;
   timeOfDay: string;
   hireByDate: string;
@@ -78,7 +59,8 @@ export function formatTaka(amount: number | null): string {
   return `৳${formatted}`;
 }
 
-export function statusMeta(status: ListingStatus): {
+// Takes the generated string status; unknown values fall through to the default label.
+export function statusMeta(status: ListingStatus | string): {
   tone: Tone;
   label: string;
 } {
@@ -157,15 +139,20 @@ export function hasAnyInput(form: RequirementForm): boolean {
   );
 }
 
+/**
+ * Body for POST /api/v1/requirements (DRAFT or OPEN) and PATCH /api/v1/requirements/{id}.
+ * A DRAFT body is partial by design. An OPEN body is only sent after
+ * validateRequirementForm passes, which is why the nullable form fields are cast.
+ */
 export function toPayload(
   form: RequirementForm,
   status?: "DRAFT" | "OPEN",
-): Record<string, unknown> {
+): UpdateRequirementBody {
   const salaryNum = parseInt(form.salary.replace(/\D/g, ""), 10);
   const levelNote = form.levelNote.trim() || null;
 
   if (status === "DRAFT") {
-    const payload: Record<string, unknown> = { status: "DRAFT" };
+    const payload: UpdateRequirementBody = { status: "DRAFT" };
     payload.subjectIds = form.subjectIds;
     if (form.curriculum !== null) payload.curriculum = form.curriculum;
     if (form.levelCode !== null) payload.levelCode = form.levelCode;
@@ -186,16 +173,16 @@ export function toPayload(
     return payload;
   }
 
-  const payload: Record<string, unknown> = {
+  const payload: UpdateRequirementBody = {
     subjectIds: form.subjectIds,
-    curriculum: form.curriculum,
-    levelCode: form.levelCode,
+    curriculum: form.curriculum as UpdateRequirementBody["curriculum"],
+    levelCode: form.levelCode as number,
     academicGroup: form.academicGroup,
     admissionTargets: form.admissionTargets,
     isRetaker: form.isRetaker,
     levelNote,
     instituteName: form.instituteName.trim() || undefined,
-    areaId: form.areaId,
+    areaId: form.areaId as number,
     tuitionType: form.tuitionType,
     daysPerWeek: form.daysPerWeek,
     timeOfDay: form.timeOfDay,
@@ -277,21 +264,28 @@ export function validateRequirementForm(
 
 export const requirementApi = {
   mine: async () =>
-    (
-      await parseJson<{ requirements: Requirement[] }>(
-        await api.get("/api/v1/requirements/mine"),
-      )
-    ).requirements,
+    (await unwrap(client.GET("/api/v1/requirements/mine"))).requirements,
 
-  get: async (id: string) =>
-    parseJson<Requirement>(await api.get(`/api/v1/requirements/${id}`)),
+  get: (id: string) =>
+    unwrap(
+      client.GET("/api/v1/requirements/{id}", { params: { path: { id } } }),
+    ),
 
-  create: async (body: Record<string, unknown>) =>
-    parseJson<Requirement>(await api.post("/api/v1/requirements", body)),
+  create: (body: CreateRequirementBody) =>
+    unwrap(client.POST("/api/v1/requirements", { body })),
 
-  update: async (id: string, body: Record<string, unknown>) =>
-    parseJson<Requirement>(await api.patch(`/api/v1/requirements/${id}`, body)),
+  update: (id: string, body: UpdateRequirementBody) =>
+    unwrap(
+      client.PATCH("/api/v1/requirements/{id}", {
+        params: { path: { id } },
+        body,
+      }),
+    ),
 
-  close: async (id: string) =>
-    parseJson<Requirement>(await api.post(`/api/v1/requirements/${id}/close`)),
+  close: (id: string) =>
+    unwrap(
+      client.POST("/api/v1/requirements/{id}/close", {
+        params: { path: { id } },
+      }),
+    ),
 };

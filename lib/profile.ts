@@ -1,53 +1,32 @@
 import { api } from "./api";
+import { client, unwrap, type Schemas } from "./api-client";
 
 export type ProfileRole = "STUDENT" | "TUTOR";
-export type Gender = "MALE" | "FEMALE" | "OTHER";
-export type VerificationStatus =
-  "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+export type Gender = NonNullable<Schemas["CreateTutorProfileInput"]["gender"]>;
+export type VerificationStatus = Schemas["MeStudent"]["verificationStatus"];
 
-interface BaseProfile {
-  id: string;
-  name: string;
-  address: string;
-  location: {
-    lat: number | null;
-    lng: number | null;
-    addressText: string;
-    districtCode: string;
-    placeId: string | null;
-    needsReaddress: boolean;
-  } | null;
-  emergencyContact: string;
-  phoneNumber: string;
-  whatsappNumber: string | null;
-  whatsappVerifiedAt: string | null;
-  studentIdNumber: string;
-  verificationStatus: VerificationStatus;
-  // Prisma Decimal arrives as a string from GET /me.
+/**
+ * Me responses send ratingAvg as a Decimal string; profile responses send a number. Profile
+ * updates are merged into the Me record, and formFromProfile takes Me records too, so the
+ * field accepts both.
+ */
+export type WithRating<T> = Omit<T, "ratingAvg"> & {
   ratingAvg: number | string;
-  ratingCount: number;
-  createdAt: string;
-}
+};
 
-export interface StudentProfile extends BaseProfile {
-  areaId: number;
-}
+export type StudentProfile = WithRating<Schemas["StudentProfile"]>;
+export type TutorProfile = WithRating<Schemas["Tutor"]>;
+export type MeStudent = WithRating<Schemas["MeStudent"]>;
+export type MeTutor = WithRating<Schemas["MeTutor"]>;
+export type Me = Omit<Schemas["MeAccount"], "student" | "tutor"> & {
+  student?: MeStudent;
+  tutor?: MeTutor;
+};
 
-export interface TutorProfile extends BaseProfile {
-  gender: Gender;
-  parentsInfo: string | null;
-  isListed: boolean;
-}
-
-export interface Me {
-  id: string;
-  role: ProfileRole | "ADMIN";
-  email: string;
-  status: string;
-  createdAt: string;
-  student: StudentProfile | null;
-  tutor: TutorProfile | null;
-}
+/** Fields a profile create or update may send. The server decides which are required. */
+export type ProfileBody = Partial<
+  Schemas["UpdateStudentProfileInput"] & Schemas["UpdateTutorProfileInput"]
+>;
 
 export interface Option {
   id: number;
@@ -86,7 +65,7 @@ export const TUITION_TYPES = [
   "Home Tutoring Group",
   "Online",
   "Group Coaching",
-];
+] as const;
 
 // shortcut: static list until GET /api/v1/subjects exists; ids match tuition-api/src/seed/index.ts.
 export const SUBJECTS: Option[] = [
@@ -332,11 +311,11 @@ export function formFromProfile(
 ): ProfileForm {
   return {
     name: profile.name,
-    studentIdNumber: profile.studentIdNumber,
+    studentIdNumber: profile.studentIdNumber ?? "",
     gender: "gender" in profile ? profile.gender : "",
     phoneNumber: profile.phoneNumber,
     whatsappNumber: profile.whatsappNumber ?? "",
-    emergencyContact: profile.emergencyContact,
+    emergencyContact: profile.emergencyContact ?? "",
     address: profile.address,
     placeId: profile.location?.placeId ?? "",
     latitude: profile.location?.lat ?? null,
@@ -410,7 +389,8 @@ export function toPayload(
   role: ProfileRole,
   form: ProfileForm,
   keys: FieldKey[],
-): Record<string, unknown> {
+): ProfileBody {
+  // Built key by key, so the dynamic writes stay loose and the result is cast once below.
   const body: Record<string, unknown> = {};
   for (const key of keys) {
     if (key === "subjectIds") continue;
@@ -449,7 +429,7 @@ export function toPayload(
     else if (key === "parentsInfo") body[key] = text || undefined;
     else body[key] = text;
   }
-  return body;
+  return body as ProfileBody;
 }
 
 /* ───────── API ───────── */
@@ -491,127 +471,128 @@ export function conflictField(err: unknown): FieldKey | null {
 
 export async function parseJson<T>(res: Response): Promise<T> {
   if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
-  const body = (await res.json().catch(() => ({}))) as {
-    error?: string;
-    code?: string;
-    message?: string;
-    details?: Record<string, unknown>;
-    issues?: ApiIssue[];
-  };
+  throw toApiError(res.status, await res.json().catch(() => ({})));
+}
+
+export interface ApiErrorBody {
+  error?: string;
+  code?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+  issues?: ApiIssue[];
+}
+
+/** Builds the ApiError for a failed response from its status and parsed body. */
+export function toApiError(status: number, raw: unknown): ApiError {
+  const body = (raw && typeof raw === "object" ? raw : {}) as ApiErrorBody;
   const message =
-    res.status === 401
+    status === 401
       ? "Your session has expired. Sign in again."
-      : res.status >= 500
+      : status >= 500
         ? "Something went wrong on our side. If you changed a phone number, it may already be in use. Try again in a moment."
         : body.error === "PhoneInUse"
           ? "Phone number is already in use, please use a different one."
           : body.error === "WhatsappInUse"
             ? "WhatsApp number is already in use, please use a different one."
-            : body.message || `Request failed (${res.status}).`;
-  throw new ApiError(message, res.status, {
+            : body.message || `Request failed (${status}).`;
+  return new ApiError(message, status, {
     code: body.code,
     details: body.details,
     issues: body.issues,
   });
 }
 
-const profilePath = (role: ProfileRole) =>
-  role === "STUDENT" ? "/api/v1/students/me" : "/api/v1/tutors/me";
+export type TutorExtras = Pick<
+  Schemas["TutorPublicProfile"],
+  "areas" | "subjects"
+>;
+export type Credential = Schemas["TutorCredential"];
+export type Video = Schemas["TutorVideo"];
+export type Verification = Schemas["TutorVerification"];
 
-export interface TutorExtras {
-  areas: Option[];
-  subjects: Option[];
-}
+type ProfileResponse = StudentProfile | TutorProfile;
 
-export interface Credential {
-  id: string;
-  examLabel: string;
-  result: string;
-  file: { id: string; status: string };
-}
+// The client needs literal paths, so each role gets its own call. ProfileBody is a partial
+// union of the update inputs, so the create bodies (which require fields) are cast here.
+const postProfile = (role: ProfileRole, body: ProfileBody) =>
+  role === "STUDENT"
+    ? client.POST("/api/v1/students/me", {
+        body: body as Schemas["CreateStudentProfileInput"],
+      })
+    : client.POST("/api/v1/tutors/me", {
+        body: body as Schemas["CreateTutorProfileInput"],
+      });
 
-export interface Video {
-  id: string;
-  title: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  createdAt: string;
-}
-
-export interface Verification {
-  id: string;
-  status: VerificationStatus;
-  submittedAt: string;
-  decidedAt: string | null;
-  note: string | null;
-}
+const patchProfile = (role: ProfileRole, body: ProfileBody) =>
+  role === "STUDENT"
+    ? client.PATCH("/api/v1/students/me", {
+        body: body as Schemas["UpdateStudentProfileInput"],
+      })
+    : client.PATCH("/api/v1/tutors/me", {
+        body: body as Schemas["UpdateTutorProfileInput"],
+      });
 
 export const profileApi = {
-  me: async () =>
-    (await parseJson<{ account: Me }>(await api.get("/api/v1/me"))).account,
+  me: async (): Promise<Me> => (await unwrap(client.GET("/api/v1/me"))).account,
 
   /** Creates the profile, or updates it if a previous attempt already created it. */
-  save: async (role: ProfileRole, body: Record<string, unknown>) => {
-    const res = await api.post(profilePath(role), body);
-    if (res.status === 409) {
-      const { message = "" } = (await res
-        .clone()
-        .json()
-        .catch(() => ({}))) as { message?: string };
-      if (/profile already exists/i.test(message))
-        return parseJson<StudentProfile | TutorProfile>(
-          await api.patch(profilePath(role), body),
-        );
-    }
-    return parseJson<StudentProfile | TutorProfile>(res);
+  save: async (
+    role: ProfileRole,
+    body: ProfileBody,
+  ): Promise<ProfileResponse> => {
+    const result = await postProfile(role, body);
+    const { message = "" } = (result.error ?? {}) as { message?: string };
+    if (
+      result.response.status === 409 &&
+      /profile already exists/i.test(message)
+    )
+      return unwrap<ProfileResponse>(patchProfile(role, body));
+    return unwrap<ProfileResponse>(Promise.resolve(result));
   },
 
-  update: async (role: ProfileRole, body: Record<string, unknown>) =>
-    parseJson<StudentProfile | TutorProfile>(
-      await api.patch(profilePath(role), body),
-    ),
+  update: async (role: ProfileRole, body: ProfileBody) =>
+    unwrap<ProfileResponse>(patchProfile(role, body)),
 
   setTutorAreas: async (areaIds: number[]) =>
-    parseJson(await api.put("/api/v1/tutors/me/areas", { areaIds })),
+    unwrap(client.PUT("/api/v1/tutors/me/areas", { body: { areaIds } })),
 
   setTutorSubjects: async (subjectIds: number[]) =>
-    parseJson(await api.put("/api/v1/tutors/me/subjects", { subjectIds })),
+    unwrap(client.PUT("/api/v1/tutors/me/subjects", { body: { subjectIds } })),
 
   /** Areas and subjects aren't on GET /me; the public profile has them. */
-  tutorExtras: async (tutorId: string) =>
+  tutorExtras: async (tutorId: string): Promise<TutorExtras> =>
     (
-      await parseJson<{ tutor: TutorExtras }>(
-        await api.get(`/api/v1/tutors/${tutorId}`),
+      await unwrap(
+        client.GET("/api/v1/tutors/{id}", {
+          params: { path: { id: tutorId } },
+        }),
       )
     ).tutor,
 
   credentials: async () =>
-    (
-      await parseJson<{ credentials: Credential[] }>(
-        await api.get("/api/v1/tutors/me/credentials"),
-      )
-    ).credentials,
+    (await unwrap(client.GET("/api/v1/tutors/me/credentials"))).credentials,
 
   deleteCredential: async (id: string) =>
-    parseJson(await api.delete(`/api/v1/tutors/me/credentials/${id}`)),
+    unwrap(
+      client.DELETE("/api/v1/tutors/me/credentials/{id}", {
+        params: { path: { id } },
+      }),
+    ),
 
   videos: async () =>
-    (
-      await parseJson<{ videos: Video[] }>(
-        await api.get("/api/v1/tutors/me/videos"),
-      )
-    ).videos,
+    (await unwrap(client.GET("/api/v1/tutors/me/videos"))).videos,
 
   deleteVideo: async (id: string) =>
-    parseJson(await api.delete(`/api/v1/tutors/me/videos/${id}`)),
+    unwrap(
+      client.DELETE("/api/v1/tutors/me/videos/{id}", {
+        params: { path: { id } },
+      }),
+    ),
 
   verifications: async () =>
-    (
-      await parseJson<{ verifications: Verification[] }>(
-        await api.get("/api/v1/tutors/me/verifications"),
-      )
-    ).verifications,
+    (await unwrap(client.GET("/api/v1/tutors/me/verifications"))).verifications,
 
-  deleteMe: async () => parseJson(await api.delete("/api/v1/me")),
+  deleteMe: async () => unwrap(client.DELETE("/api/v1/me")),
 
   hardDeleteMe: async () => {
     const tokens = api.getTokens();

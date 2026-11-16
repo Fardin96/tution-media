@@ -100,26 +100,28 @@ export function TutorRequirementsPage() {
     );
   };
 
-  const newSetButton = atLimit ? (
-    <button
-      type="button"
-      aria-disabled="true"
-      aria-describedby={LIMIT_HINT_ID}
-      onClick={(e) => e.preventDefault()}
-      className={cn(
-        primaryButton,
-        "aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:shadow-none aria-disabled:hover:bg-[var(--color-primary-core)] aria-disabled:active:scale-100",
-      )}
-    >
-      <Plus aria-hidden="true" className="size-4" />
-      New set
-    </button>
-  ) : (
-    <Link href={NEW_SET_HREF} className={primaryButton}>
-      <Plus aria-hidden="true" className="size-4" />
-      New set
-    </Link>
-  );
+  // With no active sets, the empty card carries the only create button.
+  const newSetButton =
+    active.length === 0 ? null : atLimit ? (
+      <button
+        type="button"
+        aria-disabled="true"
+        aria-describedby={LIMIT_HINT_ID}
+        onClick={(e) => e.preventDefault()}
+        className={cn(
+          primaryButton,
+          "aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:shadow-none aria-disabled:hover:bg-[var(--color-primary-core)] aria-disabled:active:scale-100",
+        )}
+      >
+        <Plus aria-hidden="true" className="size-4" />
+        New set
+      </button>
+    ) : (
+      <Link href={NEW_SET_HREF} className={primaryButton}>
+        <Plus aria-hidden="true" className="size-4" />
+        New set
+      </Link>
+    );
 
   const activeBody = !loaded ? (
     <SkeletonCards count={2} />
@@ -243,7 +245,7 @@ export function TutorRequirementsPage() {
       description="Each set says which classes, subjects and times you take. Packages use your default set unless they pick another."
     >
       <div className="mt-8 flex flex-col gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[var(--color-text-secondary)]">
             {loaded ? `${active.length} of ${MAX_ACTIVE_SETS} active` : ""}
           </p>

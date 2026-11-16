@@ -1,6 +1,10 @@
 import { ApiError, type ApiIssue } from "./profile";
+import type { components } from "./api-types";
 
-// Copy of ERROR_CODES in tuition-api/src/lib/errors.ts. Keep the two in sync.
+// The code list comes from tuition-api's OpenAPI document. ERROR_CODES mirrors the backend's
+// constant (tuition-api/src/lib/errors.ts); the checks below fail typecheck when they drift.
+export type ErrorCode = components["schemas"]["ErrorCode"];
+
 export const ERROR_CODES = {
   ValidationError: "VALIDATION_ERROR",
   Unauthorized: "UNAUTHORIZED",
@@ -24,9 +28,16 @@ export const ERROR_CODES = {
   ZoneLimitReached: "ZONE_LIMIT_REACHED",
   ZoneRequestPending: "ZONE_REQUEST_PENDING",
   ZoneRequestDecided: "ZONE_REQUEST_DECIDED",
-} as const;
+} as const satisfies Record<string, ErrorCode>;
 
-export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+// Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
+type UnlistedCode = Exclude<
+  ErrorCode,
+  (typeof ERROR_CODES)[keyof typeof ERROR_CODES]
+>;
+const _allCodesListed: [UnlistedCode] extends [never] ? true : UnlistedCode =
+  true;
+void _allCodesListed;
 
 const KNOWN_CODES: readonly string[] = Object.values(ERROR_CODES);
 
@@ -35,6 +46,7 @@ function countOf(details: ApiError["details"], key: string): number | null {
   return Array.isArray(value) ? value.length : null;
 }
 
+// Keyed by the generated ErrorCode union: a new backend code needs a message or typecheck fails.
 const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   VALIDATION_ERROR: "Some fields need fixing. Check the form and try again.",
   UNAUTHORIZED: "Your session has expired. Sign in again.",

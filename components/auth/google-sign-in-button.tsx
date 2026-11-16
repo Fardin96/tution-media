@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, type UserRole } from "@/lib/api";
+import { client, type Schemas } from "@/lib/api-client";
 import { profileApi, profileOf } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { GoogleIcon } from "./google-icon";
-import type { UserRole } from "@/lib/api";
 
 type AuthRole = Extract<UserRole, "STUDENT" | "TUTOR" | "ADMIN">;
 
@@ -70,30 +70,26 @@ export function GoogleSignInButton({
 
     window.google.accounts.id.initialize({
       client_id: clientId,
-      callback: async (response) => {
+      callback: async (result) => {
         try {
           // No role on sign-in: the API then refuses to create a new account.
-          const res = await api.post("/api/v1/auth/google", {
-            idToken: response.credential,
-            role,
+          const {
+            data,
+            error,
+            response: res,
+          } = await client.POST("/api/v1/auth/google", {
+            body: { idToken: result.credential, role },
           });
 
           if (res.status === 404) {
             onError?.(NO_ACCOUNT);
             return;
           }
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ message: "" }));
-            throw new Error(
-              err.message || `Authentication failed (${res.status})`,
-            );
+          if (!res.ok || !data) {
+            const message = (error as Schemas["ErrorResponse"] | undefined)
+              ?.message;
+            throw new Error(message || `Authentication failed (${res.status})`);
           }
-
-          const data = (await res.json()) as {
-            accessToken: string;
-            refreshToken: string;
-            account: Record<string, unknown>;
-          };
 
           api.setTokens({
             accessToken: data.accessToken,
@@ -101,7 +97,7 @@ export function GoogleSignInButton({
           });
 
           // The API account has no name/photo; Google's (already verified) ID token does.
-          const google = decodeJwtPayload(response.credential);
+          const google = decodeJwtPayload(result.credential);
           await fetch("/api/auth/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

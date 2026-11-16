@@ -147,6 +147,18 @@ describe("TutorRequirementsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows New set in the header only when there is an active set", () => {
+    mockRequirements([]);
+    const { unmount } = renderPage();
+    // Only the empty card's button.
+    expect(screen.getAllByRole("link", { name: "New set" })).toHaveLength(1);
+    unmount();
+
+    mockRequirements(activeSets(1));
+    renderPage();
+    expect(screen.getAllByRole("link", { name: "New set" })).toHaveLength(1);
+  });
+
   it("lists archived sets with Restore on the Archived tab", () => {
     nav.search = "tab=archived";
     mockRequirements([
