@@ -187,3 +187,62 @@ export function combinedLevelLabel(
   }
   return labels.join(" · ");
 }
+
+/** Levels offered by any of the chosen curricula, ascending, labelled across them. */
+export function levelOptionsFor(
+  lookup: EducationLookup | undefined,
+  curricula: Curriculum[],
+): { code: number; label: string }[] {
+  if (!lookup || curricula.length === 0) return [];
+
+  const codes = new Set<number>();
+  for (const c of curricula) {
+    for (const l of curriculumOf(lookup, c)?.levels ?? []) codes.add(l.code);
+  }
+
+  return [...codes]
+    .sort((a, b) => a - b)
+    .map((code) => ({
+      code,
+      label: combinedLevelLabel(lookup, curricula, code),
+    }));
+}
+
+type CoverageFields = {
+  levelMin: number | null;
+  levelMax: number | null;
+  curricula: Curriculum[];
+  academicGroups: AcademicGroup[];
+  admissionTargets: AdmissionTarget[];
+};
+
+/** Mirrors the server rules for groups and admission targets. Never touches the levels. */
+export function reconcileCoverage<T extends CoverageFields>(
+  lookup: EducationLookup | undefined,
+  c: T,
+): T {
+  if (!lookup) return c;
+
+  const offered = new Set<AcademicGroup>();
+  for (const cur of c.curricula) {
+    for (const g of curriculumOf(lookup, cur)?.groups ?? []) {
+      offered.add(g.code);
+    }
+  }
+
+  const { levelMin, levelMax } = c;
+  const overlapsGroups =
+    levelMin !== null &&
+    levelMax !== null &&
+    levelMin <= lookup.groupLevels.max &&
+    levelMax >= lookup.groupLevels.min;
+
+  return {
+    ...c,
+    academicGroups: overlapsGroups
+      ? c.academicGroups.filter((g) => offered.has(g))
+      : [],
+    admissionTargets:
+      levelMax === lookup.admissionLevel ? c.admissionTargets : [],
+  };
+}

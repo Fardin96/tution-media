@@ -24,6 +24,7 @@
 - **Env**: Variables in `.env.local` are for local dev only. Do not commit `.env*` files.
 - **Tailwind**: Config in `postcss.config.mjs`. Use `cn()` utility (from `@/lib/utils` or `class-variance-authority`) for class merging.
 - **Notifications**: Show action outcomes (saved, deleted, failed) with `toast` from `sonner`. `<Toaster />` (`components/ui/sonner.tsx`) is mounted once in `app/layout.tsx`. Field validation stays inline next to its field. Do not use `alert()` or inline status banners for outcomes.
+- **Tutor requirement sets**: live in `lib/tutor-requirements.ts` and `components/tutor-requirements/`, and use TanStack Query keys from `lib/query-keys.ts`. Every set mutation calls `invalidateTutorRequirements`. Profile-subject removal goes through `lib/subject-removal.ts` and the `SaveCancelled` error in `components/profile/edit-section.tsx`.
 
 ## Directory ownership
 

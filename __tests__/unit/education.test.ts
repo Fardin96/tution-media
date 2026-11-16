@@ -4,6 +4,8 @@ import {
   educationSummary,
   groupsFor,
   levelLabel,
+  levelOptionsFor,
+  reconcileCoverage,
   reconcileEducation,
   retakerLabel,
   showsTargets,
@@ -280,5 +282,107 @@ describe("combinedLevelLabel", () => {
 
   it("returns an empty string with no lookup", () => {
     expect(combinedLevelLabel(undefined, ["BANGLA_MEDIUM"], 10)).toBe("");
+  });
+});
+
+describe("levelOptionsFor", () => {
+  it("returns the union of the curricula's levels, sorted, with combined labels", () => {
+    expect(levelOptionsFor(lookup, ["EM_CAMBRIDGE", "BANGLA_MEDIUM"])).toEqual([
+      { code: 0, label: "Class 0" },
+      { code: 8, label: "Class 8" },
+      { code: 9, label: "Class 9" },
+      { code: 10, label: "Grade 10 (IGCSE) · Class 10 (SSC)" },
+      { code: 12, label: "Class 12 (HSC)" },
+      { code: 13, label: "Admission prep" },
+    ]);
+  });
+
+  it("keeps level 0 and a level only one curriculum offers", () => {
+    expect(levelOptionsFor(lookup, ["MADRASAH", "EM_IB"])).toEqual([
+      { code: 0, label: "Dakhil 0" },
+      { code: 10, label: "Dakhil 10 · Grade 10 (IB)" },
+    ]);
+  });
+
+  it("returns nothing without a lookup or without curricula", () => {
+    expect(levelOptionsFor(undefined, ["BANGLA_MEDIUM"])).toEqual([]);
+    expect(levelOptionsFor(lookup, [])).toEqual([]);
+  });
+});
+
+describe("reconcileCoverage", () => {
+  const coverage = {
+    levelMin: 9,
+    levelMax: 10,
+    curricula: ["BANGLA_MEDIUM" as const],
+    academicGroups: ["SCIENCE" as const, "MUJABBID" as const],
+    admissionTargets: ["ENGINEERING" as const],
+  };
+
+  it("returns the same object when there is no lookup", () => {
+    expect(reconcileCoverage(undefined, coverage)).toBe(coverage);
+  });
+
+  it("keeps only groups offered by a chosen curriculum", () => {
+    expect(
+      reconcileCoverage(lookup, { ...coverage, curricula: ["MADRASAH"] })
+        .academicGroups,
+    ).toEqual(["MUJABBID"]);
+    expect(
+      reconcileCoverage(lookup, {
+        ...coverage,
+        curricula: ["MADRASAH", "BANGLA_MEDIUM"],
+      }).academicGroups,
+    ).toEqual(["SCIENCE", "MUJABBID"]);
+  });
+
+  it("clears groups when the range does not overlap groupLevels", () => {
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMin: 0, levelMax: 8 })
+        .academicGroups,
+    ).toEqual([]);
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMin: 13, levelMax: 13 })
+        .academicGroups,
+    ).toEqual([]);
+  });
+
+  it("keeps groups when the range overlaps groupLevels at an edge", () => {
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMin: 4, levelMax: 9 })
+        .academicGroups,
+    ).toEqual(["SCIENCE"]);
+  });
+
+  it("clears groups when a level is null", () => {
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMin: null }).academicGroups,
+    ).toEqual([]);
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMax: null }).academicGroups,
+    ).toEqual([]);
+  });
+
+  it("keeps admission targets only when levelMax is the admission level", () => {
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMin: 12, levelMax: 13 })
+        .admissionTargets,
+    ).toEqual(["ENGINEERING"]);
+    expect(reconcileCoverage(lookup, coverage).admissionTargets).toEqual([]);
+    expect(
+      reconcileCoverage(lookup, { ...coverage, levelMax: null })
+        .admissionTargets,
+    ).toEqual([]);
+  });
+
+  it("never changes the levels", () => {
+    const result = reconcileCoverage(lookup, {
+      ...coverage,
+      levelMin: -4,
+      levelMax: 0,
+      curricula: ["MADRASAH"],
+    });
+    expect(result.levelMin).toBe(-4);
+    expect(result.levelMax).toBe(0);
   });
 });
