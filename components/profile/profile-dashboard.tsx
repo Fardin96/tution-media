@@ -522,6 +522,7 @@ export function ProfileDashboard({
                     />
                     <PackagesSection />
                     <TeachingZonesCard />
+                    <FindWorkCard />
                     <TutorRequirementsSection />
                   </>
                 ) : (
@@ -539,6 +540,7 @@ export function ProfileDashboard({
                         }}
                       />
                     </Suspense>
+                    <ApplicationsCard />
                     <RecommendedTutors />
                   </>
                 )}
@@ -1372,6 +1374,71 @@ function TeachingZonesCard() {
   );
 }
 
+function FindWorkCard() {
+  return (
+    <section
+      id="find-work"
+      aria-labelledby="find-work-heading"
+      className="scroll-mt-24"
+    >
+      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+        <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
+          <Briefcase aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            id="find-work-heading"
+            className="font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            Find tuitions
+          </h2>
+          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            Open requirements near your zones.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/find-tuitions" className={primaryButton}>
+            Find tuitions
+          </Link>
+          <Link href="/dashboard/applications" className={secondaryButton}>
+            My applications
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ApplicationsCard() {
+  return (
+    <section
+      id="applications"
+      aria-labelledby="applications-heading"
+      className="scroll-mt-24"
+    >
+      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+        <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
+          <FileText aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            id="applications-heading"
+            className="font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            Your applications
+          </h2>
+          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            Track the tutors who applied and the packages you requested.
+          </p>
+        </div>
+        <Link href="/dashboard/applications" className={secondaryButton}>
+          View applications
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function formatShortDate(isoOrDate: string | null): string {
   if (!isoOrDate) return "N/A";
   try {
@@ -1703,6 +1770,16 @@ function RequirementItem({
               Edit<span className="sr-only"> {title}</span>
             </Link>
 
+            {r.status !== "DRAFT" && (
+              <Link
+                href={`/dashboard/requirements/${r.id}/applicants`}
+                className={cn(ghostButton, "min-h-10 px-3")}
+              >
+                <Users aria-hidden="true" className="size-4" />
+                Applicants<span className="sr-only"> {title}</span>
+              </Link>
+            )}
+
             <button
               type="button"
               disabled={busy}
@@ -1742,8 +1819,11 @@ function RecommendedTutors() {
         description="Matched to your area and subjects."
         sample
         action={
-          <Link href="/#tutors" className={cn(ghostButton, "min-h-10")}>
-            Browse all
+          <Link
+            href="/dashboard/find-tutors"
+            className={cn(ghostButton, "min-h-10")}
+          >
+            Find tutors
             <ArrowUpRight aria-hidden="true" className="size-4" />
           </Link>
         }
