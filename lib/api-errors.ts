@@ -28,6 +28,11 @@ export const ERROR_CODES = {
   ZoneLimitReached: "ZONE_LIMIT_REACHED",
   ZoneRequestPending: "ZONE_REQUEST_PENDING",
   ZoneRequestDecided: "ZONE_REQUEST_DECIDED",
+  ProfileIncomplete: "PROFILE_INCOMPLETE",
+  AlreadyApplied: "ALREADY_APPLIED",
+  ApplicationClosed: "APPLICATION_CLOSED",
+  ListingNotOpen: "LISTING_NOT_OPEN",
+  InvalidApplicationState: "INVALID_APPLICATION_STATE",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -40,6 +45,34 @@ const _allCodesListed: [UnlistedCode] extends [never] ? true : UnlistedCode =
 void _allCodesListed;
 
 const KNOWN_CODES: readonly string[] = Object.values(ERROR_CODES);
+
+// Keys the API's tutor_missing_requirements() returns, in readable form.
+const MISSING_REQUIREMENT_LABELS: Record<string, string> = {
+  name: "name",
+  address: "address",
+  location_pin: "location pin",
+  area: "teaching area",
+  phone_number: "phone number",
+  phone_verification: "phone verification",
+  default_requirement: "default requirement set",
+  verification: "verification",
+};
+
+/** Readable name for a missing-profile key from PROFILE_INCOMPLETE details. Unknown keys fall back to their words. */
+export function missingRequirementLabel(code: string): string {
+  if (!code) return "";
+  return MISSING_REQUIREMENT_LABELS[code] ?? code.replace(/_/g, " ");
+}
+
+function missingRequirements(details: ApiError["details"]): string[] {
+  const value = details?.missing;
+  if (!Array.isArray(value)) return [];
+  const labels = value
+    .filter((code): code is string => typeof code === "string")
+    .map(missingRequirementLabel)
+    .filter((label) => label !== "");
+  return [...new Set(labels)];
+}
 
 function countOf(details: ApiError["details"], key: string): number | null {
   const value = details?.[key];
@@ -94,6 +127,16 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   ZONE_REQUEST_PENDING:
     "You already have a request waiting. We'll let you know when it's decided.",
   ZONE_REQUEST_DECIDED: "This request was already decided.",
+  PROFILE_INCOMPLETE: (err) => {
+    const missing = missingRequirements(err.details);
+    if (missing.length === 0) return "Complete your profile before applying.";
+    return `Finish your profile before applying: ${missing.join(", ")}.`;
+  },
+  ALREADY_APPLIED: "You've already applied.",
+  APPLICATION_CLOSED: "This tuition is no longer taking applications.",
+  LISTING_NOT_OPEN: "This listing isn't open anymore.",
+  INVALID_APPLICATION_STATE:
+    "This application changed. Refresh to see its current status.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

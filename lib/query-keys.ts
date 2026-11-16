@@ -24,7 +24,37 @@ export const queryKeys = {
   },
   packages: { mine: ["packages", "mine"] as const },
   lookups: { education: ["lookups", "education"] as const },
+  applications: {
+    all: ["applications"] as const,
+    list: (status?: string) =>
+      ["applications", "list", { status: status ?? "ALL" }] as const,
+    detail: (id: string) => ["applications", "detail", id] as const,
+    forRequirement: (id: string) =>
+      ["applications", "requirement", id] as const,
+    forPackage: (id: string) => ["applications", "package", id] as const,
+  },
+  browse: {
+    all: ["browse"] as const,
+    requirements: <F extends object>(filters: F) =>
+      ["browse", "requirements", filters] as const,
+    packages: <F extends object>(filters: F) =>
+      ["browse", "packages", filters] as const,
+    package: (id: string) => ["browse", "package", id] as const,
+    tutors: <F extends object>(filters: F) =>
+      ["browse", "tutors", filters] as const,
+    nearbyTutors: (radiusMeters: number) =>
+      ["browse", "tutors", "nearby", radiusMeters] as const,
+  },
 };
+
+/** Any application change (apply, act, reopen) moves the lists, the detail, browse rows that show myApplication, and me. */
+export function invalidateApplications(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+  ]);
+}
 
 /** Every tutor-requirement mutation invalidates the same keys; the prefix covers all status lists and details. */
 export function invalidateTutorRequirements(queryClient: QueryClient) {
