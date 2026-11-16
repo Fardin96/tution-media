@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Third-party UI components are vendored; lint them later.
     "components/ui/**",
+    // Generated from tuition-api's openapi.json by `yarn gen:api`.
+    "lib/api-types.ts",
   ]),
 ]);
 

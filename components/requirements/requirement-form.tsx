@@ -17,6 +17,7 @@ import {
   requirementApi,
   toPayload,
   validateRequirementForm,
+  type CreateRequirementBody,
   type Requirement,
   type RequirementForm as FormState,
   type RequirementFormErrors,
@@ -167,7 +168,8 @@ export function RequirementForm({
         const queryParam = targetStatus === "OPEN" ? "posted=1" : "saved=1";
         router.push(`/dashboard?${queryParam}#requirements`);
       } else {
-        await requirementApi.create(payload);
+        // Validated above; a DRAFT or OPEN payload is a create body.
+        await requirementApi.create(payload as CreateRequirementBody);
         const queryParam = targetStatus === "DRAFT" ? "draft=1" : "posted=1";
         router.push(`/dashboard?${queryParam}#requirements`);
       }

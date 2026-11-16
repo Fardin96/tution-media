@@ -1,4 +1,7 @@
 import type { BrowserContext, Page, Route } from "@playwright/test";
+import type { components } from "@/lib/api-types";
+
+type Schemas = components["schemas"];
 
 export const sessionCookie = (role: "STUDENT" | "TUTOR") => ({
   name: "session",
@@ -13,8 +16,10 @@ export const sessionCookie = (role: "STUDENT" | "TUTOR") => ({
   httpOnly: true,
 });
 
+// Shared by both roles. Matches the MeStudent / MeTutor fields the API returns from GET /me.
 const base = {
   id: "p_1",
+  accountId: "acc_1",
   address: "House 12, Road 4",
   location: {
     lat: 23.7465,
@@ -26,23 +31,35 @@ const base = {
   },
   emergencyContact: "+8801911111111",
   phoneNumber: "+8801811111111",
+  phoneVerifiedAt: null,
   whatsappNumber: "+8801712345678",
   whatsappVerifiedAt: null,
   studentIdNumber: "NDC-2024-1187",
-  verificationStatus: "NOT_SUBMITTED",
+  verificationStatus: "NOT_SUBMITTED" as const,
   ratingAvg: "0",
   ratingCount: 0,
   createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+  needsReaddress: false,
 };
 
-export const studentProfile = { ...base, name: "Rahim Uddin", areaId: 1 };
+export const studentProfile = {
+  ...base,
+  role: "STUDENT",
+  name: "Rahim Uddin",
+  areaId: 1,
+  verificationFileId: null,
+} satisfies Schemas["MeStudent"];
+
 export const tutorProfile = {
   ...base,
+  role: "TUTOR",
   name: "Nusrat Jahan",
   gender: "FEMALE",
   parentsInfo: null,
+  zoneLimit: 5,
   isListed: false,
-};
+} satisfies Schemas["MeTutor"];
 
 /** Fakes the backend API and local Places proxy in the browser. Returns the recorded write requests. */
 export async function mockApi(
@@ -50,7 +67,8 @@ export async function mockApi(
   role: "STUDENT" | "TUTOR",
   opts: { onboarded: boolean },
 ) {
-  let profile: Record<string, unknown> | null = opts.onboarded
+  // Whichever profile the role has: seeded from the fixtures, then merged with each write.
+  let profile: Schemas["MeStudent"] | Schemas["MeTutor"] | null = opts.onboarded
     ? { ...(role === "STUDENT" ? studentProfile : tutorProfile) }
     : null;
   const writes: { method: string; path: string; body: unknown }[] = [];
@@ -86,30 +104,68 @@ export async function mockApi(
           role,
           email: "test@example.com",
           status: "ACTIVE",
+          consentVersion: null,
+          consentAcceptedAt: null,
           createdAt: base.createdAt,
-          student: role === "STUDENT" ? profile : null,
-          tutor: role === "TUTOR" ? profile : null,
-        },
-      });
+          lastLoginAt: null,
+          deletedAt: null,
+          adminUser: null,
+          // The API omits the profile that does not apply, rather than sending null.
+          student:
+            (role === "STUDENT" && (profile as Schemas["MeStudent"] | null)) ||
+            undefined,
+          tutor:
+            (role === "TUTOR" && (profile as Schemas["MeTutor"] | null)) ||
+            undefined,
+        } satisfies Schemas["MeAccount"],
+      } satisfies Schemas["Me"]);
     if (path === "/students/me" || path === "/tutors/me") {
       profile = { ...base, ...(profile ?? {}), ...req.postDataJSON() };
       return json(route, profile, method === "POST" ? 201 : 200);
     }
-    if (path === "/tutors/me/areas") return json(route, { areas: [] });
-    if (path === "/tutors/me/subjects") return json(route, { subjects: [] });
+    if (path === "/tutors/me/areas")
+      return json(route, { areas: [] } satisfies Schemas["TutorAreas"]);
+    if (path === "/tutors/me/subjects")
+      return json(route, { subjects: [] } satisfies Schemas["TutorSubjects"]);
     if (path === "/tutors/me/credentials")
-      return json(route, { credentials: [] });
-    if (path === "/tutors/me/videos") return json(route, { videos: [] });
+      return json(route, {
+        credentials: [],
+      } satisfies Schemas["TutorCredentialList"]);
+    if (path === "/tutors/me/videos")
+      return json(route, { videos: [] } satisfies Schemas["TutorVideoList"]);
     if (path === "/tutors/me/verifications")
-      return json(route, { verifications: [] });
+      return json(route, {
+        verifications: [],
+      } satisfies Schemas["TutorVerificationList"]);
     if (path.startsWith("/tutors/"))
+      // Also answers other /tutors/... subpaths, so the body is a public profile for all of them.
       return json(route, {
         tutor: {
+          id: "p_1",
+          name: "Nusrat Jahan",
+          gender: "FEMALE",
+          ratingAvg: 0,
+          ratingCount: 0,
+          verificationStatus: "NOT_SUBMITTED",
+          isListed: false,
+          needsReaddress: false,
+          createdAt: base.createdAt,
+          updatedAt: base.updatedAt,
           areas: [{ id: 1, name: "Dhanmondi" }],
           subjects: [{ id: 5, name: "Physics" }],
+          credentials: [],
+          videos: [],
         },
-      });
-    return json(route, { message: "not mocked" }, 404);
+      } satisfies Schemas["TutorPublicProfileResult"]);
+    return json(
+      route,
+      {
+        error: "NotFound",
+        code: "NOT_FOUND",
+        message: "not mocked",
+      } satisfies Schemas["ErrorResponse"],
+      404,
+    );
   });
 
   return writes;

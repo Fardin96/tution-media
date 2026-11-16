@@ -1,46 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "./api";
-import { parseJson } from "./profile";
+import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
 
-export type Curriculum =
-  | "BANGLA_MEDIUM"
-  | "ENGLISH_VERSION"
-  | "EM_CAMBRIDGE"
-  | "EM_EDEXCEL"
-  | "EM_IB"
-  | "EM_AMERICAN"
-  | "MADRASAH";
-
-export type AcademicGroup = "SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID";
-
+// Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
+export type EducationLookup = Schemas["EducationLookup"];
+export type Curriculum = EducationLookup["curricula"][number]["code"];
+export type AcademicGroup =
+  EducationLookup["curricula"][number]["groups"][number]["code"];
 export type AdmissionTarget =
-  | "ENGINEERING"
-  | "MEDICAL"
-  | "VARSITY_SCIENCE"
-  | "VARSITY_HUMANITIES"
-  | "VARSITY_BUSINESS"
-  | "AGRICULTURE"
-  | "IBA_BUP"
-  | "PRIVATE_UNI"
-  | "ABROAD_TESTS"
-  | "ISSB";
-
-export interface EducationLookup {
-  version: number;
-  levelRange: { min: number; max: number };
-  groupLevels: { min: number; max: number };
-  admissionLevel: number;
-  levelNoteMaxLength: number;
-  curricula: {
-    code: Curriculum;
-    label: string;
-    levels: { code: number; label: string }[];
-    groups: { code: AcademicGroup; label: string }[];
-  }[];
-  admissionTargets: { code: AdmissionTarget; label: string; covers: string }[];
-  retakerLabels: { level: number; label: string }[];
-}
+  EducationLookup["admissionTargets"][number]["code"];
 
 export interface EducationFields {
   curriculum: Curriculum | null;
@@ -61,7 +29,7 @@ export const emptyEducation: EducationFields = {
 };
 
 export async function fetchEducationLookup(): Promise<EducationLookup> {
-  return parseJson<EducationLookup>(await api.get("/api/v1/lookups/education"));
+  return unwrap(client.GET("/api/v1/lookups/education"));
 }
 
 export const educationLookupQuery = {
@@ -151,19 +119,26 @@ export function reconcileEducation(
   };
 }
 
+/**
+ * Accepts requirement responses too: their curriculum and academicGroup are the same enum
+ * unions. Lookups match only known codes, so an unknown one falls back.
+ */
 export function educationSummary(
   lookup: EducationLookup | undefined,
-  e: Pick<
-    EducationFields,
-    "curriculum" | "levelCode" | "academicGroup" | "isRetaker"
-  >,
+  e: {
+    curriculum: Curriculum | null;
+    levelCode: number | null;
+    academicGroup: AcademicGroup | null;
+    isRetaker: boolean;
+  },
 ): string {
   if (!lookup || e.levelCode === null) return "";
+  const curriculum = e.curriculum;
 
   const parts = [
-    levelLabel(lookup, e.curriculum, e.levelCode) ?? `Level ${e.levelCode}`,
+    levelLabel(lookup, curriculum, e.levelCode) ?? `Level ${e.levelCode}`,
   ];
-  const group = groupsFor(lookup, e.curriculum, e.levelCode).find(
+  const group = groupsFor(lookup, curriculum, e.levelCode).find(
     (g) => g.code === e.academicGroup,
   );
   if (group) parts.push(group.label);

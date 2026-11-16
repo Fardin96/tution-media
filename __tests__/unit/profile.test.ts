@@ -11,9 +11,29 @@ import {
   toPayload,
   validate,
 } from "@/lib/profile";
-import { api } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import type { Schemas } from "@/lib/api-client";
 
-vi.mock("@/lib/api", () => ({ api: { post: vi.fn(), patch: vi.fn() } }));
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  apiFetch: vi.fn(),
+}));
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Method and path of the nth request the client sent through apiFetch. */
+function sent(i: number) {
+  const [url, init] = vi.mocked(apiFetch).mock.calls[i];
+  return {
+    method: init?.method,
+    path: new URL(String(url)).pathname,
+    body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+  };
+}
 
 describe("normalizeBdPhone", () => {
   it.each([
@@ -174,22 +194,27 @@ describe("toPayload", () => {
   });
 });
 
+const studentProfile = {
+  id: "p_1",
+  accountId: "6f1c2a4e-0b7d-4c1a-9a31-2d5e8f7b9c01",
+  name: "Rahim",
+  address: "House 12, Road 4",
+  emergencyContact: "+8801911111111",
+  phoneNumber: "+8801811111111",
+  whatsappNumber: "+8801712345678",
+  whatsappVerifiedAt: null,
+  studentIdNumber: "NDC-1",
+  verificationStatus: "NOT_SUBMITTED" as const,
+  ratingAvg: 0,
+  ratingCount: 0,
+  location: null,
+  createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+  areaId: 1,
+} satisfies Schemas["StudentProfile"];
+
 describe("formFromProfile", () => {
-  const base = {
-    id: "p_1",
-    name: "Rahim",
-    address: "House 12, Road 4",
-    emergencyContact: "+8801911111111",
-    phoneNumber: "+8801811111111",
-    whatsappNumber: "+8801712345678",
-    whatsappVerifiedAt: null,
-    studentIdNumber: "NDC-1",
-    verificationStatus: "NOT_SUBMITTED" as const,
-    ratingAvg: 0,
-    ratingCount: 0,
-    createdAt: "2026-09-01T00:00:00.000Z",
-    areaId: 1,
-  };
+  const base = studentProfile;
 
   it("reads place, coordinates and district from location", () => {
     const form = formFromProfile({
@@ -235,13 +260,10 @@ describe("formFromProfile", () => {
 });
 
 describe("profileApi.save", () => {
-  const json = (status: number, body: unknown) =>
-    new Response(JSON.stringify(body), { status });
-
   beforeEach(() => vi.clearAllMocks());
 
   it("shows a duplicate phone number and does not patch", async () => {
-    vi.mocked(api.post).mockResolvedValue(
+    vi.mocked(apiFetch).mockImplementation(async () =>
       json(409, {
         error: "PhoneInUse",
         message: "This phone number is already in use.",
@@ -253,11 +275,15 @@ describe("profileApi.save", () => {
       message: "Phone number is already in use, please use a different one.",
       status: 409,
     });
-    expect(api.patch).not.toHaveBeenCalled();
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledTimes(1);
+    expect(sent(0)).toMatchObject({
+      method: "POST",
+      path: "/api/v1/students/me",
+    });
   });
 
   it("shows a duplicate WhatsApp number and does not patch", async () => {
-    vi.mocked(api.post).mockResolvedValue(
+    vi.mocked(apiFetch).mockImplementation(async () =>
       json(409, {
         error: "WhatsappInUse",
         message: "This WhatsApp number is already in use.",
@@ -267,20 +293,42 @@ describe("profileApi.save", () => {
     expect(err).toMatchObject({
       message: "WhatsApp number is already in use, please use a different one.",
     });
-    expect(api.patch).not.toHaveBeenCalled();
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledTimes(1);
+    expect(sent(0)).toMatchObject({
+      method: "POST",
+      path: "/api/v1/tutors/me",
+    });
   });
 
   it("patches when the profile already exists", async () => {
-    vi.mocked(api.post).mockResolvedValue(
-      json(409, { error: "Error", message: "Student profile already exists" }),
+    vi.mocked(apiFetch).mockImplementation(async (_url, init) =>
+      init?.method === "PATCH"
+        ? json(200, studentProfile)
+        : json(409, {
+            error: "Error",
+            message: "Student profile already exists",
+          }),
     );
-    vi.mocked(api.patch).mockResolvedValue(json(200, { id: "p_1" }));
     await expect(
       profileApi.save("STUDENT", { name: "Rahim" }),
-    ).resolves.toEqual({ id: "p_1" });
-    expect(api.patch).toHaveBeenCalledWith("/api/v1/students/me", {
-      name: "Rahim",
+    ).resolves.toEqual(studentProfile);
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledTimes(2);
+    expect(sent(1)).toEqual({
+      method: "PATCH",
+      path: "/api/v1/students/me",
+      body: { name: "Rahim" },
     });
+  });
+
+  it("returns the created profile without patching on success", async () => {
+    vi.mocked(apiFetch).mockImplementation(async () =>
+      json(201, studentProfile),
+    );
+    await expect(
+      profileApi.save("STUDENT", { name: "Rahim" }),
+    ).resolves.toEqual(studentProfile);
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledTimes(1);
+    expect(sent(0)).toMatchObject({ method: "POST" });
   });
 });
 

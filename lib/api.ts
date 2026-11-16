@@ -1,12 +1,18 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+import type { components } from "./api-types";
 
-export interface Tokens {
-  accessToken: string;
-  refreshToken: string;
-}
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(
+  /\/$/,
+  "",
+);
+
+// Type-only import: lib/api-client imports this module, so a value import would be circular.
+type TokenResponse = components["schemas"]["TokenResponse"];
+
+export type Tokens = Pick<TokenResponse, "accessToken" | "refreshToken">;
 
 export type UserRole = "STUDENT" | "TUTOR" | "ADMIN" | "SUPER_ADMIN";
 
+// Hand-written: the API's account has no name or picture (those come from Google and the session cookie).
 export interface Account {
   id: string;
   email: string;
@@ -46,7 +52,7 @@ async function rotateRefreshToken(
       body: JSON.stringify({ refreshToken }),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as Tokens;
+    const data = (await res.json()) as TokenResponse;
     setStoredTokens(data);
     return data;
   } catch {

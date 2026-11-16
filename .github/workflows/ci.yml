@@ -41,6 +41,28 @@ jobs:
           if [ -f .yarnrc.yml ]; then yarn install --immutable; else yarn install --frozen-lockfile; fi
       - run: yarn typecheck
 
+  api-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - name: Install
+        run: |
+          if [ -f .yarnrc.yml ]; then yarn install --immutable; else yarn install --frozen-lockfile; fi
+      # Uses the backend branch with the same name when it exists, else main.
+      - name: Fetch tuition-api openapi.json
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git clone --depth 1 --branch "$BRANCH" https://github.com/Fardin96/tuition-api.git "$RUNNER_TEMP/tuition-api" \
+            || git clone --depth 1 https://github.com/Fardin96/tuition-api.git "$RUNNER_TEMP/tuition-api"
+      - name: lib/api-types.ts matches the backend spec
+        run: OPENAPI_SPEC="$RUNNER_TEMP/tuition-api/openapi.json" yarn gen:api:check
+
   format:
     runs-on: ubuntu-latest
     steps:

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "./api";
+import { client, unwrap, type Schemas } from "./api-client";
 import type { AcademicGroup, AdmissionTarget, Curriculum } from "./education";
-import { parseJson, profileApi, type Option } from "./profile";
+import { profileApi, type Option } from "./profile";
 import { queryKeys } from "./query-keys";
 import {
   DEFAULT_CURRICULUM,
@@ -22,27 +22,10 @@ export const DAYS: { bit: number; short: string; label: string }[] = [
   { bit: 64, short: "Fri", label: "Friday" },
 ];
 
-export interface TutorRequirement {
-  id: string;
-  name: string;
-  isDefault: boolean;
-  isActive: boolean;
-  levelMin: number;
-  levelMax: number;
-  curricula: Curriculum[];
-  academicGroups: AcademicGroup[];
-  admissionTargets: AdmissionTarget[];
-  timeFrom: string;
-  timeTo: string;
-  availableDays: number;
-  minSalary: number | null;
-  maxStudents: number;
-  availableFrom: string;
-  teachesOnline: boolean;
-  subjectIds: number[];
-  zoneIds: string[];
-  mappedPackageCount: number;
-}
+// Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
+export type TutorRequirement = Schemas["TutorRequirement"];
+export type CreateTutorRequirementBody = Schemas["CreateTutorRequirementInput"];
+export type UpdateTutorRequirementBody = Schemas["UpdateTutorRequirementInput"];
 
 export type SetStatus = "active" | "archived" | "all";
 
@@ -69,33 +52,54 @@ export type TutorRequirementFormErrors = Partial<
   Record<keyof TutorRequirementForm, string>
 >;
 
-const BASE = "/api/v1/tutors/me/requirements";
-
 export const tutorRequirementApi = {
   list: async (status: SetStatus) =>
     (
-      await parseJson<{ requirements: TutorRequirement[] }>(
-        await api.get(`${BASE}?status=${status}`),
+      await unwrap(
+        client.GET("/api/v1/tutors/me/requirements", {
+          params: { query: { status } },
+        }),
       )
     ).requirements,
 
-  get: async (id: string) =>
-    parseJson<TutorRequirement>(await api.get(`${BASE}/${id}`)),
+  get: (id: string) =>
+    unwrap(
+      client.GET("/api/v1/tutors/me/requirements/{id}", {
+        params: { path: { id } },
+      }),
+    ),
 
-  create: async (body: Record<string, unknown>) =>
-    parseJson<TutorRequirement>(await api.post(BASE, body)),
+  create: (body: CreateTutorRequirementBody) =>
+    unwrap(client.POST("/api/v1/tutors/me/requirements", { body })),
 
-  update: async (id: string, body: Record<string, unknown>) =>
-    parseJson<TutorRequirement>(await api.patch(`${BASE}/${id}`, body)),
+  update: (id: string, body: UpdateTutorRequirementBody) =>
+    unwrap(
+      client.PATCH("/api/v1/tutors/me/requirements/{id}", {
+        params: { path: { id } },
+        body,
+      }),
+    ),
 
-  setDefault: async (id: string) =>
-    parseJson<TutorRequirement>(await api.post(`${BASE}/${id}/default`)),
+  setDefault: (id: string) =>
+    unwrap(
+      client.POST("/api/v1/tutors/me/requirements/{id}/default", {
+        params: { path: { id } },
+      }),
+    ),
 
-  archive: async (id: string) =>
-    parseJson<TutorRequirement>(await api.delete(`${BASE}/${id}`)),
+  archive: (id: string) =>
+    unwrap(
+      client.DELETE("/api/v1/tutors/me/requirements/{id}", {
+        params: { path: { id } },
+      }),
+    ),
 
-  restore: async (id: string) =>
-    parseJson<TutorRequirement>(await api.post(`${BASE}/${id}/restore`)),
+  restore: (id: string) =>
+    unwrap(
+      client.POST("/api/v1/tutors/me/requirements/{id}/restore", {
+        params: { path: { id } },
+      }),
+    ),
 };
 
 export function emptyTutorRequirementForm(): TutorRequirementForm {
@@ -200,14 +204,20 @@ export function newProfileSubjects(
   return subjectIds.filter((id) => !profileSubjectIds.includes(id));
 }
 
+/** Class levels are null only before validateTutorRequirementForm has run. */
+function requiredLevel(value: number | null): number {
+  if (value === null) throw new Error("Class level is required.");
+  return value;
+}
+
 export function toCreatePayload(
   form: TutorRequirementForm,
   profileSubjectIds: number[],
-): Record<string, unknown> {
-  const body: Record<string, unknown> = {
+): CreateTutorRequirementBody {
+  const body: CreateTutorRequirementBody = {
     name: form.name.trim(),
-    levelMin: form.levelMin,
-    levelMax: form.levelMax,
+    levelMin: requiredLevel(form.levelMin),
+    levelMax: requiredLevel(form.levelMax),
     curricula: form.curricula,
     academicGroups: form.academicGroups,
     admissionTargets: form.admissionTargets,
@@ -239,13 +249,17 @@ export function toPatch(
   original: TutorRequirement,
   form: TutorRequirementForm,
   profileSubjectIds: number[],
-): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
+): UpdateTutorRequirementBody {
+  const patch: UpdateTutorRequirementBody = {};
 
   const name = form.name.trim();
   if (name !== original.name) patch.name = name;
-  if (form.levelMin !== original.levelMin) patch.levelMin = form.levelMin;
-  if (form.levelMax !== original.levelMax) patch.levelMax = form.levelMax;
+  if (form.levelMin !== original.levelMin) {
+    patch.levelMin = requiredLevel(form.levelMin);
+  }
+  if (form.levelMax !== original.levelMax) {
+    patch.levelMax = requiredLevel(form.levelMax);
+  }
   if (!sameMembers(form.curricula, original.curricula)) {
     patch.curricula = form.curricula;
   }

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { api } from "@/lib/api";
+import { client } from "@/lib/api-client";
 import { signOut } from "@/lib/auth.server";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -14,8 +15,8 @@ export function LogoutButton({ className }: { className?: string }) {
     const tokens = api.getTokens();
     if (tokens?.refreshToken) {
       try {
-        await api.post("/api/v1/auth/logout", {
-          refreshToken: tokens.refreshToken,
+        await client.POST("/api/v1/auth/logout", {
+          body: { refreshToken: tokens.refreshToken },
         });
       } catch {
         // Best-effort revocation: still clear local state on failure.
