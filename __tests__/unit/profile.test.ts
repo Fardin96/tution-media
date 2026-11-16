@@ -351,3 +351,87 @@ describe("conflictField", () => {
       conflictField(new ApiError("Request failed (409).", 409)),
     ).toBeNull());
 });
+
+describe("tutor institute", () => {
+  const identity = SECTIONS.TUTOR[0].fields;
+  const tutorForm = {
+    ...emptyForm("Nusrat"),
+    gender: "FEMALE" as const,
+    studentIdNumber: "1805123",
+    instituteName: "University of Dhaka",
+  };
+
+  const tutorProfile = {
+    id: "p_2",
+    accountId: "6f1c2a4e-0b7d-4c1a-9a31-2d5e8f7b9c02",
+    name: "Nusrat Jahan",
+    instituteName: "University of Dhaka",
+    address: "House 7, Road 2",
+    emergencyContact: null,
+    phoneNumber: "+8801811111111",
+    whatsappNumber: null,
+    studentIdNumber: "1805123",
+    gender: "FEMALE" as const,
+    verificationStatus: "NOT_SUBMITTED" as const,
+    isListed: false,
+    ratingAvg: 0,
+    ratingCount: 0,
+    location: null,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+  } satisfies Schemas["Tutor"];
+
+  it("sits right before the university student ID for tutors", () =>
+    expect(identity.map((f) => f.key)).toEqual([
+      "name",
+      "gender",
+      "instituteName",
+      "studentIdNumber",
+    ]));
+
+  it("is not in the student sections", () =>
+    expect(
+      SECTIONS.STUDENT.flatMap((s) => s.fields.map((f) => f.key)),
+    ).not.toContain("instituteName"));
+
+  it("requires an institute for tutors", () => {
+    expect(validate(identity, { ...tutorForm, instituteName: "  " })).toEqual({
+      instituteName: "Enter your university or college.",
+    });
+    expect(validate(identity, tutorForm)).toEqual({});
+  });
+
+  it("keeps the institute under 120 characters", () =>
+    expect(
+      validate(identity, { ...tutorForm, instituteName: "a".repeat(121) })
+        .instituteName,
+    ).toBe("Keep it under 120 characters."));
+
+  it("sends the trimmed institute for tutors", () =>
+    expect(
+      toPayload(
+        "TUTOR",
+        { ...tutorForm, instituteName: "  University of Dhaka " },
+        ["instituteName"],
+      ),
+    ).toEqual({ instituteName: "University of Dhaka" }));
+
+  it("never sends the institute for students", () =>
+    expect(
+      toPayload(
+        "STUDENT",
+        { ...emptyForm("Rahim"), instituteName: "University of Dhaka" },
+        ["name", "instituteName"],
+      ),
+    ).toEqual({ name: "Rahim" }));
+
+  it("reads the institute from a tutor profile", () =>
+    expect(formFromProfile(tutorProfile).instituteName).toBe(
+      "University of Dhaka",
+    ));
+
+  it("reads a missing institute as empty", () =>
+    expect(
+      formFromProfile({ ...tutorProfile, instituteName: null }).instituteName,
+    ).toBe(""));
+});

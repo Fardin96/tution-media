@@ -82,7 +82,22 @@ type Readiness = {
   verificationRequired: boolean;
 };
 
-function mockApi(opts: { readiness?: Readiness; rows?: unknown[] } = {}) {
+const DEFAULT_SET = {
+  id: "set-default",
+  name: "Main set",
+  isDefault: true,
+  isActive: true,
+};
+const OTHER_SET = {
+  id: "set-weekend",
+  name: "Weekend",
+  isDefault: false,
+  isActive: true,
+};
+
+function mockApi(
+  opts: { readiness?: Readiness; rows?: unknown[]; sets?: unknown[] } = {},
+) {
   const readiness = opts.readiness ?? {
     ready: true,
     missing: [],
@@ -108,6 +123,9 @@ function mockApi(opts: { readiness?: Readiness; rows?: unknown[] } = {}) {
         noServiceArea: false,
       });
     }
+    if (url.pathname === "/api/v1/tutors/me/requirements") {
+      return json(200, { requirements: opts.sets ?? [] });
+    }
     return json(404, { error: "NotFound", message: "not mocked" });
   });
 }
@@ -127,7 +145,15 @@ describe("FindTuitionsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     replace.mockClear();
+    for (const key of [...searchParams.keys()]) searchParams.delete(key);
   });
+
+  function browseRequests() {
+    return vi
+      .mocked(apiFetch)
+      .mock.calls.map(([input]) => new URL(String(input)))
+      .filter((url) => url.pathname === "/api/v1/requirements");
+  }
 
   it("renders cards from the browse page with their facts", async () => {
     mockApi();
@@ -193,5 +219,106 @@ describe("FindTuitionsPage", () => {
     expect(
       within(cards[0]).getByText("Finish your profile to apply."),
     ).toBeInTheDocument();
+  });
+
+  it("shows three scope segments", async () => {
+    mockApi();
+    renderPage();
+
+    const scope = screen.getByRole("group", { name: "Scope" });
+    expect(
+      within(scope)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["Near me", "All open", "My sets"]);
+    await screen.findAllByRole("article");
+  });
+
+  it("hides the manual filters and preselects the default set in set mode", async () => {
+    searchParams.set("scope", "set");
+    mockApi({ sets: [OTHER_SET, DEFAULT_SET] });
+    renderPage();
+
+    const select = await screen.findByLabelText("Requirement set");
+    expect(select).toHaveValue("set-default");
+    expect(
+      screen.getByRole("option", { name: "Main set (default)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Weekend" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Curriculum")).toBeNull();
+    expect(screen.queryByLabelText("Class")).toBeNull();
+    expect(screen.queryByLabelText("Subject")).toBeNull();
+    expect(screen.queryByLabelText("Area")).toBeNull();
+
+    // The chosen set goes into the URL so the page can be shared.
+    expect(replace).toHaveBeenCalledWith(
+      "/dashboard/find-tuitions?scope=set&set=set-default",
+      { scroll: false },
+    );
+  });
+
+  it("sends setId and no manual filters in set mode", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-weekend");
+    searchParams.set("subjectId", "3");
+    mockApi({ sets: [DEFAULT_SET, OTHER_SET] });
+    renderPage();
+
+    await screen.findAllByRole("article");
+    const requests = browseRequests();
+    expect(requests.length).toBeGreaterThan(0);
+    const query = requests[0].searchParams;
+    expect(query.get("scope")).toBe("set");
+    expect(query.get("setId")).toBe("set-weekend");
+    expect(query.has("subjectId")).toBe(false);
+    expect(query.has("curriculum")).toBe(false);
+    expect(query.has("levelCode")).toBe(false);
+    expect(query.has("areaId")).toBe(false);
+  });
+
+  it("falls back to the default set when the URL set is not active", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-archived");
+    mockApi({ sets: [DEFAULT_SET, OTHER_SET] });
+    renderPage();
+
+    await screen.findAllByRole("article");
+    expect(replace).toHaveBeenCalledWith(
+      "/dashboard/find-tuitions?scope=set&set=set-default",
+      { scroll: false },
+    );
+    expect(browseRequests()[0].searchParams.get("setId")).toBe("set-default");
+  });
+
+  it("waits for a set before browsing when no default exists", async () => {
+    searchParams.set("scope", "set");
+    mockApi({ sets: [OTHER_SET] });
+    renderPage();
+
+    const select = await screen.findByLabelText("Requirement set");
+    expect(select).toHaveValue("");
+    expect(
+      screen.getByRole("option", { name: "Choose a set" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Choose a set to see matching tuitions."),
+    ).toBeInTheDocument();
+    expect(browseRequests()).toHaveLength(0);
+  });
+
+  it("links to create a set when the tutor has no active sets", async () => {
+    searchParams.set("scope", "set");
+    mockApi({ sets: [] });
+    renderPage();
+
+    expect(
+      await screen.findByText("You have no requirement sets yet."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create a set" })).toHaveAttribute(
+      "href",
+      "/dashboard/tutor/requirements/new",
+    );
+    expect(screen.queryByLabelText("Requirement set")).toBeNull();
+    expect(browseRequests()).toHaveLength(0);
   });
 });

@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Star } from "lucide-react";
-import {
-  card,
-  focusRing,
-  ghostButton,
-  secondaryButton,
-} from "@/components/profile/styles";
+import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
 
 export const SEGMENT_TRACK =
@@ -26,7 +21,7 @@ export function BackLink({
   return (
     <Link
       href={href}
-      className={cn(ghostButton, "-ms-3 min-h-10 self-start px-3")}
+      className={cn(secondaryButton, "min-h-10 self-start px-4")}
     >
       <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
       {children}

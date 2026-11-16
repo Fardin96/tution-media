@@ -121,7 +121,7 @@ describe("application query keys", () => {
 });
 
 describe("invalidateApplications", () => {
-  it("invalidates applications, browse and me", async () => {
+  it("invalidates applications, browse, me and notifications", async () => {
     const client = new QueryClient();
     const spy = vi.spyOn(client, "invalidateQueries");
 
@@ -131,6 +131,7 @@ describe("invalidateApplications", () => {
       [{ queryKey: ["applications"] }],
       [{ queryKey: ["browse"] }],
       [{ queryKey: ["me"] }],
+      [{ queryKey: ["notifications"] }],
     ]);
   });
 });

@@ -81,6 +81,7 @@ import {
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   ConfirmDialog,
   type ConfirmAction,
@@ -600,6 +601,7 @@ function TopBar({ name, picture }: { name: string; picture?: string }) {
           />
         </Link>
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <span className="hidden items-center gap-2 sm:flex">
             <Avatar name={name} picture={picture} size={32} />
             <span

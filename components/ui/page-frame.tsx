@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const WASH = [
   "radial-gradient(60% 50% at 10% 0%, color-mix(in oklab, var(--color-primary-core) 16%, transparent), transparent 70%)",
@@ -34,7 +35,10 @@ export function PageFrame({
             className="h-10 w-auto sm:h-12"
           />
         </Link>
-        {headerAction}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <NotificationBell />
+          {headerAction}
+        </div>
       </header>
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
         {children}

@@ -339,11 +339,12 @@ export function formatTimeRange(from: string, to: string): string {
   return `${formatTime(from)} – ${formatTime(to)}`;
 }
 
-export function useTutorRequirements(status: SetStatus) {
+export function useTutorRequirements(status: SetStatus, enabled = true) {
   return useQuery({
     queryKey: queryKeys.tutor.requirements.list(status),
     queryFn: () => tutorRequirementApi.list(status),
     staleTime: 60_000,
+    enabled,
   });
 }
 

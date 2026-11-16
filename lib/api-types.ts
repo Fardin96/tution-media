@@ -3928,7 +3928,7 @@ export interface paths {
     };
     /**
      * Browse open requirements
-     * @description Tutor browse (#46). OPEN requirements from ACTIVE students. scope=nearby matches requirements whose student pin is inside one of the tutor's zones, or whose area is in the tutor's service areas; scope=all skips the location match. Filters: curriculum, levelCode, subjectId, areaId. Newest first, keyset cursor. No matching score is applied yet. noServiceArea is true when the tutor has no zones and no areas.
+     * @description Tutor browse (#46). OPEN requirements from ACTIVE students. scope=nearby matches requirements whose student pin is inside one of the tutor's zones, or whose area is in the tutor's service areas; scope=all skips the location match. scope=set lists requirements that match one of the tutor's own active sets (setId, required) by curriculum, level, subject and area; the manual filters are ignored in that mode. Filters: curriculum, levelCode, subjectId, areaId. Newest first, keyset cursor. No matching score is applied yet. noServiceArea is true when the tutor has no zones and no areas.
      *
      *     **Who:** TUTOR.
      *
@@ -3937,7 +3937,8 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          scope?: "nearby" | "all";
+          scope?: "nearby" | "all" | "set";
+          setId?: string;
           curriculum?:
             | "BANGLA_MEDIUM"
             | "ENGLISH_VERSION"
@@ -5949,6 +5950,314 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/notifications": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my notifications
+     * @description In-app alerts about my applications, newest first, keyset cursor. unreadCount counts all unread alerts, not just this page. Admins get an empty list.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["NotificationPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/unread-count": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Count my unread notifications
+     * @description Polled by the dashboard bell.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UnreadCount"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/{id}/read": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark one notification as read
+     * @description Replies 204 with no body. Calling it again on a read alert is fine. Another account's alert is 404.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/read-all": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark all my notifications as read
+     * @description Replies 204 with no body.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/videos": {
     parameters: {
       query?: never;
@@ -6301,6 +6610,27 @@ export interface components {
       requests: components["schemas"]["AdminZoneRequest"][];
       nextCursor: string | null;
     };
+    AppNotification: {
+      id: string;
+      /** @enum {string} */
+      kind:
+        | "APPLICATION_RECEIVED"
+        | "PACKAGE_REQUESTED"
+        | "APPLICATION_ACCEPTED"
+        | "APPLICATION_DECLINED"
+        | "LISTING_FILLED"
+        | "APPLICATION_WITHDRAWN"
+        | "APPLICATION_REOPENED"
+        | "APPLICATION_CANCELLED"
+        | "APPLICATION_COMPLETED";
+      applicationId: string;
+      /** @enum {string} */
+      listingKind: "REQUIREMENT" | "PACKAGE";
+      counterpartName: string;
+      readAt: string | null;
+      /** Format: date-time */
+      createdAt: string;
+    };
     Application: {
       id: string;
       /** @enum {string} */
@@ -6354,6 +6684,8 @@ export interface components {
       )[];
       counterpartContact: components["schemas"]["ApplicationContact"] | null;
       fee: components["schemas"]["ApplicationFee"] | null;
+      tutorProfile: components["schemas"]["ApplicationTutorProfile"] | null;
+      tutorSet: components["schemas"]["ApplicationTutorSet"] | null;
     };
     ApplicationFee: {
       id: string;
@@ -6405,8 +6737,73 @@ export interface components {
       name: string;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
+      instituteName: string | null;
       ratingAvg: number;
       ratingCount: number;
+    };
+    ApplicationTutorProfile: {
+      id: string;
+      name: string;
+      /** @enum {string} */
+      gender: "MALE" | "FEMALE" | "OTHER";
+      instituteName: string | null;
+      ratingAvg: number;
+      ratingCount: number;
+      /** @enum {string} */
+      verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      areas: {
+        id: number;
+        name: string;
+      }[];
+      subjects: {
+        id: number;
+        name: string;
+      }[];
+      credentials: {
+        id: string;
+        examLabel: string;
+        result: string;
+      }[];
+    };
+    ApplicationTutorSet: {
+      /** @enum {string} */
+      matchedBy: "MATCH" | "DEFAULT" | "PACKAGE";
+      set: {
+        id: string;
+        name: string;
+        isDefault: boolean;
+        levelMin: number;
+        levelMax: number;
+        curricula: (
+          | "BANGLA_MEDIUM"
+          | "ENGLISH_VERSION"
+          | "EM_CAMBRIDGE"
+          | "EM_EDEXCEL"
+          | "EM_IB"
+          | "EM_AMERICAN"
+          | "MADRASAH"
+        )[];
+        academicGroups: ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID")[];
+        admissionTargets: (
+          | "ENGINEERING"
+          | "MEDICAL"
+          | "VARSITY_SCIENCE"
+          | "VARSITY_HUMANITIES"
+          | "VARSITY_BUSINESS"
+          | "AGRICULTURE"
+          | "IBA_BUP"
+          | "PRIVATE_UNI"
+          | "ABROAD_TESTS"
+          | "ISSB"
+        )[];
+        subjectIds: number[];
+        timeFrom: string;
+        timeTo: string;
+        availableDays: number;
+        minSalary: number | null;
+        maxStudents: number;
+        teachesOnline: boolean;
+      };
     };
     BrowseRequirement: {
       id: string;
@@ -6591,6 +6988,7 @@ export interface components {
     };
     CreateTutorProfileInput: {
       name: string;
+      instituteName?: string;
       address: string;
       emergencyContact: string;
       phoneNumber: string;
@@ -6875,6 +7273,7 @@ export interface components {
       /** @enum {string} */
       role: "STUDENT" | "TUTOR" | "ADMIN";
       name: string;
+      instituteName: string | null;
       address: string;
       emergencyContact: string | null;
       whatsappNumber: string | null;
@@ -6917,6 +7316,11 @@ export interface components {
         | "WITHDRAWN"
         | "CANCELLED"
         | "EXPIRED";
+    };
+    NotificationPage: {
+      notifications: components["schemas"]["AppNotification"][];
+      nextCursor: string | null;
+      unreadCount: number;
     };
     Package: {
       id: string;
@@ -7121,6 +7525,7 @@ export interface components {
       id: string;
       accountId: string;
       name: string;
+      instituteName: string | null;
       address: string;
       emergencyContact: string | null;
       phoneNumber: string;
@@ -7174,15 +7579,25 @@ export interface components {
     TutorNearbyResult: {
       id: string;
       name: string;
+      instituteName: string | null;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
       ratingAvg: number;
       ratingCount: number;
       distanceMeters: number;
+      areas: {
+        id: number;
+        name: string;
+      }[];
+      subjects: {
+        id: number;
+        name: string;
+      }[];
     };
     TutorPublicProfile: {
       id: string;
       name: string;
+      instituteName: string | null;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
       ratingAvg: number;
@@ -7298,6 +7713,7 @@ export interface components {
     TutorSearchResult: {
       id: string;
       name: string;
+      instituteName: string | null;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
       ratingAvg: number;
@@ -7350,6 +7766,9 @@ export interface components {
     };
     TutorVideoList: {
       videos: components["schemas"]["TutorVideo"][];
+    };
+    UnreadCount: {
+      count: number;
     };
     UpdateRequirementInput: {
       areaId?: number;
@@ -7416,6 +7835,7 @@ export interface components {
     };
     UpdateTutorProfileInput: {
       name?: string;
+      instituteName?: string;
       address?: string;
       emergencyContact?: string;
       phoneNumber?: string;

@@ -120,6 +120,8 @@ export function formatBdPhone(e164: string): string {
 export interface ProfileForm {
   name: string;
   studentIdNumber: string;
+  /** Tutor only: the university or college they study at. */
+  instituteName: string;
   gender: Gender | "";
   phoneNumber: string;
   whatsappNumber: string;
@@ -247,6 +249,15 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
         name,
         { key: "gender", kind: "gender", label: "Gender" },
         {
+          key: "instituteName",
+          kind: "text",
+          label: "University or college",
+          hint: "Students see this on your profile.",
+          placeholder: "University of Dhaka",
+          maxLength: 120,
+          autoComplete: "organization",
+        },
+        {
           key: "studentIdNumber",
           kind: "text",
           label: "University student ID",
@@ -291,6 +302,7 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
 export const emptyForm = (fullName = ""): ProfileForm => ({
   name: fullName,
   studentIdNumber: "",
+  instituteName: "",
   gender: "",
   phoneNumber: "",
   whatsappNumber: "",
@@ -312,6 +324,8 @@ export function formFromProfile(
   return {
     name: profile.name,
     studentIdNumber: profile.studentIdNumber ?? "",
+    instituteName:
+      "instituteName" in profile ? (profile.instituteName ?? "") : "",
     gender: "gender" in profile ? profile.gender : "",
     phoneNumber: profile.phoneNumber,
     whatsappNumber: profile.whatsappNumber ?? "",
@@ -394,6 +408,11 @@ export function toPayload(
   const body: Record<string, unknown> = {};
   for (const key of keys) {
     if (key === "subjectIds") continue;
+    if (key === "instituteName") {
+      // Tutor-only; the student sections never list it, so students never send it.
+      if (role === "TUTOR") body.instituteName = form.instituteName.trim();
+      continue;
+    }
     if (key === "areaIds") {
       if (role === "STUDENT") body.areaId = form.areaIds[0];
       continue;

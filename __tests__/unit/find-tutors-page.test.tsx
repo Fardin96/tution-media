@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FindTutorsPage } from "@/components/browse/find-tutors-page";
@@ -165,6 +165,83 @@ describe("FindTutorsPage packages tab", () => {
         screen.getByRole("link", { name: /View package/ }),
       ).toHaveAttribute("href", "/dashboard/find-tutors/packages/pkg-open"),
     );
+  });
+});
+
+describe("FindTutorsPage tutors tab", () => {
+  const NEARBY = [
+    {
+      id: "tutor-1",
+      name: "Nusrat Jahan",
+      instituteName: "University of Dhaka",
+      gender: "FEMALE",
+      ratingAvg: 4.5,
+      ratingCount: 12,
+      distanceMeters: 2500,
+      areas: [
+        { id: 1, name: "Dhanmondi" },
+        { id: 2, name: "Banani" },
+      ],
+      subjects: [{ id: 5, name: "Physics" }],
+    },
+  ];
+
+  const SEARCH = [
+    {
+      id: "tutor-2",
+      name: "Rafi Ahmed",
+      instituteName: "BUET",
+      gender: "MALE",
+      ratingAvg: 0,
+      ratingCount: 0,
+      areas: [{ id: 2, name: "Banani" }],
+      subjects: [{ id: 7, name: "Chemistry" }],
+    },
+  ];
+
+  function mockTutors(path: string, tutors: unknown[]) {
+    vi.mocked(apiFetch).mockImplementation(async (input: string) => {
+      const { pathname } = new URL(String(input), "http://localhost");
+      if (pathname === path) return json({ tutors });
+      return json({ error: "unexpected" }, 500);
+    });
+  }
+
+  it("shows the institute, distance and areas on nearby cards", async () => {
+    mockTutors("/api/v1/tutors/nearby", NEARBY);
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Nusrat Jahan" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("University of Dhaka")).toBeInTheDocument();
+    expect(
+      screen.getByText("Dhanmondi, Banani", { exact: false }).closest("p"),
+    ).toHaveTextContent("Dhanmondi, Banani · 2.5 km away");
+    expect(screen.getByRole("list", { name: "Subjects" })).toHaveTextContent(
+      "Physics",
+    );
+  });
+
+  it("shows the institute and areas without a distance in search results", async () => {
+    mockTutors("/api/v1/tutors", SEARCH);
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Rafi Ahmed" }),
+    ).toBeInTheDocument();
+    const card = screen
+      .getByRole("heading", { name: "Rafi Ahmed" })
+      .closest("li")!;
+    expect(within(card).getByText("BUET")).toBeInTheDocument();
+    expect(
+      within(card).getByText("Banani", { exact: false }).closest("p"),
+    ).toHaveTextContent(/^Banani$/);
+    expect(screen.queryByText(/away/)).not.toBeInTheDocument();
   });
 });
 
