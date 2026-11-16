@@ -32,6 +32,7 @@ import {
 } from "@/components/profile/styles";
 import { EducationRangePicker } from "@/components/tutor-requirements/education-range-picker";
 import { SetSubjectPicker } from "@/components/tutor-requirements/set-subject-picker";
+import { ZonePicker } from "@/components/tutor-requirements/zone-picker";
 
 const LIST_HREF = "/dashboard/tutor/requirements";
 const legendClass =
@@ -376,21 +377,15 @@ export function TutorRequirementForm({
           </div>
         </fieldset>
 
-        {/* Group 5: Zones, not yet available */}
+        {/* Group 5: Zones */}
         <fieldset className="grid min-w-0 gap-6">
           <legend className={legendClass}>Zones</legend>
-          <div
-            aria-disabled="true"
-            className="flex flex-wrap items-center gap-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
-          >
-            <p className={hintClass}>
-              Teaching zones are coming soon. Until then, students in your areas
-              can find you.
-            </p>
-            <span className="rounded-full bg-[var(--color-neutral-white)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]">
-              Soon
-            </span>
-          </div>
+          <ZonePicker
+            idPrefix={idPrefix}
+            value={form.zoneIds}
+            onChange={(ids) => updateForm({ zoneIds: ids })}
+            teachesOnline={form.teachesOnline}
+          />
         </fieldset>
       </div>
 

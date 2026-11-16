@@ -176,6 +176,14 @@ describe("toCreatePayload", () => {
     expect("syncProfileSubjects" in payload).toBe(false);
   });
 
+  it("sends the form's zoneIds", () => {
+    const payload = toCreatePayload(
+      { ...validForm, zoneIds: ["z1", "z2"] },
+      [3],
+    );
+    expect(payload.zoneIds).toEqual(["z1", "z2"]);
+  });
+
   it("sends null for an empty salary and sets the sync flag for new subjects", () => {
     const payload = toCreatePayload(validForm, [1]);
     expect(payload.minSalary).toBeNull();
@@ -239,10 +247,45 @@ describe("toPatch", () => {
     });
   });
 
-  it("never sends zoneIds", () => {
+  it("omits zoneIds when zone membership is unchanged", () => {
     expect(
       toPatch(original, { ...form, maxStudents: 5 }, [3, 1]),
     ).not.toHaveProperty("zoneIds");
+  });
+
+  it("sends the full zoneIds array when a zone is added", () => {
+    expect(
+      toPatch(original, { ...form, zoneIds: ["z1", "z2"] }, [3, 1]),
+    ).toEqual({ zoneIds: ["z1", "z2"] });
+  });
+
+  it("sends the full zoneIds array when a zone is removed", () => {
+    expect(toPatch(original, { ...form, zoneIds: [] }, [3, 1])).toEqual({
+      zoneIds: [],
+    });
+  });
+
+  it("treats reordered zoneIds as unchanged", () => {
+    const multi = { ...original, zoneIds: ["z1", "z2"] };
+    expect(
+      toPatch(
+        multi,
+        { ...fromTutorRequirement(multi), zoneIds: ["z2", "z1"] },
+        [3, 1],
+      ),
+    ).toEqual({});
+  });
+});
+
+describe("fromTutorRequirement", () => {
+  it("copies zoneIds into a new array", () => {
+    const form = fromTutorRequirement({ ...original, zoneIds: ["z1", "z2"] });
+    expect(form.zoneIds).toEqual(["z1", "z2"]);
+    expect(form.zoneIds).not.toBe(original.zoneIds);
+  });
+
+  it("starts an empty zone selection for a new form", () => {
+    expect(emptyTutorRequirementForm().zoneIds).toEqual([]);
   });
 });
 

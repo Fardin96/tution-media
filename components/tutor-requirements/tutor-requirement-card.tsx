@@ -65,6 +65,15 @@ export function TutorRequirementCard({
           .filter((label): label is string => Boolean(label))
           .join(" · ");
 
+  const zoneText =
+    set.zoneIds.length > 0
+      ? set.zoneIds.length === 1
+        ? "1 zone"
+        : `${set.zoneIds.length} zones`
+      : set.teachesOnline
+        ? "Online only"
+        : "No zones";
+
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="min-w-0">
@@ -89,6 +98,7 @@ export function TutorRequirementCard({
           ) : (
             <p>{set.subjectIds.map(subjectNames).join(", ")}</p>
           )}
+          <p>{zoneText}</p>
           <p>
             {daysLabel(set.availableDays)} ·{" "}
             {formatTimeRange(set.timeFrom, set.timeTo)}

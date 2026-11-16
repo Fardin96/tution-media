@@ -62,6 +62,7 @@ export interface TutorRequirementForm {
   availableFrom: string;
   teachesOnline: boolean;
   subjectIds: number[];
+  zoneIds: string[];
 }
 
 export type TutorRequirementFormErrors = Partial<
@@ -113,6 +114,7 @@ export function emptyTutorRequirementForm(): TutorRequirementForm {
     availableFrom: getLocalIsoDate(),
     teachesOnline: false,
     subjectIds: [],
+    zoneIds: [],
   };
 }
 
@@ -134,6 +136,7 @@ export function fromTutorRequirement(
     availableFrom: r.availableFrom,
     teachesOnline: r.teachesOnline,
     subjectIds: [...r.subjectIds],
+    zoneIds: [...r.zoneIds],
   };
 }
 
@@ -216,7 +219,7 @@ export function toCreatePayload(
     availableFrom: form.availableFrom,
     teachesOnline: form.teachesOnline,
     subjectIds: form.subjectIds,
-    zoneIds: [],
+    zoneIds: form.zoneIds,
   };
 
   if (newProfileSubjects(form.subjectIds, profileSubjectIds).length > 0) {
@@ -274,6 +277,9 @@ export function toPatch(
     if (newProfileSubjects(form.subjectIds, profileSubjectIds).length > 0) {
       patch.syncProfileSubjects = true;
     }
+  }
+  if (!sameMembers(form.zoneIds, original.zoneIds)) {
+    patch.zoneIds = form.zoneIds;
   }
 
   return patch;

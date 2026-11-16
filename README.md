@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment
+
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` — HTTP-referrer restricted, Maps JavaScript API only. Used by `@vis.gl/react-google-maps` on the tutor zones page. Without it the page shows a fallback and stays usable through place search.
+- `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` — Optional map ID; falls back to DEMO_MAP_ID.
+- The server-only `GOOGLE_MAPS_API_KEY` powers `/api/places/*` and must never be exposed to the browser.
+
 ## Location & address
 
 - Addresses are picked with Google Places autocomplete, restricted to Bangladesh (`includedRegionCodes: ["bd"]`). `app/api/places/details` returns `422 "Pick a location in Bangladesh."` for any other country; the picker shows that message as a toast.
