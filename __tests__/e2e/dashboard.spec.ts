@@ -71,9 +71,30 @@ test.describe("Dashboard", () => {
     await mockApi(context, "STUDENT", { onboarded: true });
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Log out" }).click();
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Log out" })
+      .click();
     await expect(page).toHaveURL(/\/sign-in/);
 
     const cookies = await context.cookies();
     expect(cookies.find((c) => c.name === "session")).toBeUndefined();
+  });
+
+  test("cancelling logout keeps the session", async ({ page, context }) => {
+    await context.addCookies([sessionCookie("STUDENT")]);
+    await mockApi(context, "STUDENT", { onboarded: true });
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Log out" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Cancel" })
+      .click();
+    await expect(page.getByRole("alertdialog")).toBeHidden();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === "session")).toBeDefined();
   });
 });

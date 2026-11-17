@@ -109,7 +109,7 @@ function makeSet(
     timeFrom: "16:00",
     timeTo: "18:00",
     availableDays: 127,
-    daysPerWeek: null,
+    daysPerWeek: 3,
     minSalary: 8000,
     maxStudents: 1,
     availableFrom: "2026-11-01",
