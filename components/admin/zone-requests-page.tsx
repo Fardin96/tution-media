@@ -13,7 +13,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
-import { BackLink } from "@/components/ui/back-link";
+import { AdminPage } from "@/components/admin/admin-ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatRequestDate } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -118,106 +118,97 @@ export function ZoneRequestsPage() {
   }
 
   return (
-    <main className="min-h-dvh bg-[var(--color-neutral-off-white)] px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
-      <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-4 flex">
-          <BackLink href="/dashboard">Dashboard</BackLink>
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-          Zone requests
-        </h1>
-        <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
-          Tutors ask for more zones here. Approve a request or deny it with a
-          note.
-        </p>
+    <AdminPage
+      back={{ href: "/dashboard/admin", label: "Admin" }}
+      title="Zone requests"
+      description="Tutors ask for more zones here. Approve a request or deny it with a note."
+    >
+      <Tabs value={tabValue} onValueChange={onTabChange}>
+        <TabsList className="w-full justify-start overflow-x-auto">
+          {TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="min-h-11 px-4"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        <Tabs value={tabValue} onValueChange={onTabChange} className="mt-6">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            {TABS.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="min-h-11 px-4"
+        <TabsContent value={tabValue} className="mt-4">
+          {queue.isPending ? (
+            <div role="status" className="grid gap-4">
+              <span className="sr-only">Loading requests</span>
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  aria-hidden="true"
+                  className={cn(
+                    card,
+                    "h-32 animate-pulse p-5 motion-reduce:animate-none",
+                  )}
+                />
+              ))}
+            </div>
+          ) : queue.isError ? (
+            <div
+              className={cn(
+                card,
+                "flex flex-col items-center gap-3 p-6 text-center",
+              )}
+            >
+              <p className="font-semibold text-[var(--color-neutral-charcoal)]">
+                Couldn&apos;t load these requests.
+              </p>
+              <button
+                type="button"
+                onClick={() => void queue.refetch()}
+                className={cn(secondaryButton, "min-h-11")}
               >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value={tabValue} className="mt-4">
-            {queue.isPending ? (
-              <div role="status" className="grid gap-4">
-                <span className="sr-only">Loading requests</span>
-                {[0, 1].map((i) => (
-                  <div
-                    key={i}
-                    aria-hidden="true"
-                    className={cn(
-                      card,
-                      "h-32 animate-pulse p-5 motion-reduce:animate-none",
-                    )}
-                  />
+                Try again
+              </button>
+            </div>
+          ) : requests.length === 0 ? (
+            <div
+              className={cn(
+                card,
+                "p-6 text-center text-sm text-[var(--color-text-secondary)]",
+              )}
+            >
+              {EMPTY_COPY[status]}
+            </div>
+          ) : (
+            <>
+              <ul className="grid gap-4">
+                {requests.map((request) => (
+                  <li key={request.id} className={cn(card, "grid gap-4 p-5")}>
+                    <RequestRow
+                      request={request}
+                      onApprove={() =>
+                        setDecision({ request, action: "APPROVE" })
+                      }
+                      onDeny={() => setDecision({ request, action: "DENY" })}
+                    />
+                  </li>
                 ))}
-              </div>
-            ) : queue.isError ? (
-              <div
-                className={cn(
-                  card,
-                  "flex flex-col items-center gap-3 p-6 text-center",
-                )}
-              >
-                <p className="font-semibold text-[var(--color-neutral-charcoal)]">
-                  Couldn&apos;t load these requests.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void queue.refetch()}
-                  className={cn(secondaryButton, "min-h-11")}
-                >
-                  Try again
-                </button>
-              </div>
-            ) : requests.length === 0 ? (
-              <div
-                className={cn(
-                  card,
-                  "p-6 text-center text-sm text-[var(--color-text-secondary)]",
-                )}
-              >
-                {EMPTY_COPY[status]}
-              </div>
-            ) : (
-              <>
-                <ul className="grid gap-4">
-                  {requests.map((request) => (
-                    <li key={request.id} className={cn(card, "grid gap-4 p-5")}>
-                      <RequestRow
-                        request={request}
-                        onApprove={() =>
-                          setDecision({ request, action: "APPROVE" })
-                        }
-                        onDeny={() => setDecision({ request, action: "DENY" })}
-                      />
-                    </li>
-                  ))}
-                </ul>
-                {queue.hasNextPage && (
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => void queue.fetchNextPage()}
-                      disabled={queue.isFetchingNextPage}
-                      className={cn(secondaryButton, "min-h-11")}
-                    >
-                      {queue.isFetchingNextPage ? "Loading..." : "Load more"}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+              </ul>
+              {queue.hasNextPage && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => void queue.fetchNextPage()}
+                    disabled={queue.isFetchingNextPage}
+                    className={cn(secondaryButton, "min-h-11")}
+                  >
+                    {queue.isFetchingNextPage ? "Loading..." : "Load more"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <DecisionDialog
         decision={decision}
@@ -227,7 +218,7 @@ export function ZoneRequestsPage() {
         }}
         onSubmit={(id, body) => decide.mutate({ id, body })}
       />
-    </main>
+    </AdminPage>
   );
 }
 

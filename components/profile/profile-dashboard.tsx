@@ -45,11 +45,11 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { useSubjects } from "@/lib/subjects";
 import {
   AREAS,
   ApiError,
   SECTIONS,
-  SUBJECTS,
   clearSession,
   formatBdPhone,
   formFromProfile,
@@ -338,6 +338,7 @@ export function ProfileDashboard({
     setDialog({ title: blocked.title, body: blocked.body, actions });
   };
 
+  const { subjects } = useSubjects();
   const saveSection = async (next: ProfileForm, fields: FieldDef[]) => {
     if (!me) return;
     const keys = fields.map((f) => f.key);
@@ -360,7 +361,7 @@ export function ProfileDashboard({
         const d = describeRemoval(
           subjectRemovalImpact(all, removed),
           removed,
-          (id) => optionName(SUBJECTS, id),
+          (id) => optionName(subjects, id),
         );
         if (d.kind === "blocked") {
           openBlocked(d);
@@ -1520,8 +1521,9 @@ function RequirementItem({
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
 
+  const { subjects } = useSubjects();
   const subjectName = r.subjectIds.length
-    ? r.subjectIds.map((id) => optionName(SUBJECTS, id)).join(", ")
+    ? r.subjectIds.map((id) => optionName(subjects, id)).join(", ")
     : "Tuition Requirement";
   const { data: lookup } = useEducationLookup();
   const title = `${subjectName} · ${educationSummary(lookup, r) || "Class not set"}`;

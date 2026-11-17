@@ -13,7 +13,8 @@ import {
 import { TutorRequirementCard } from "@/components/tutor-requirements/tutor-requirement-card";
 import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
-import { optionName, SUBJECTS } from "@/lib/profile";
+import { optionName } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import {
   MAX_ACTIVE_SETS,
   dashboardVisibleCount,
@@ -79,9 +80,10 @@ export function TutorRequirementsSection() {
     setStep(1);
   };
 
+  const { subjects } = useSubjects();
   const subjectNames = (id: number) => {
     const fromProfile = profileSubjects.data?.find((s) => s.id === id);
-    return fromProfile ? fromProfile.name : optionName(SUBJECTS, id);
+    return fromProfile ? fromProfile.name : optionName(subjects, id);
   };
 
   const visible = list.slice(0, dashboardVisibleCount(step, list.length));

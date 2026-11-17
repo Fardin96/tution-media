@@ -205,13 +205,17 @@ export function PackageForm(props: PackageFormProps) {
           router.push(LIST_HREF);
           return;
         }
+        // Saving a rejected package resubmits it for review.
+        const wasRejected = initial.moderationStatus === "REJECTED";
         await updatePackage.mutateAsync(patch);
-        toastSuccess("Changes saved.");
+        toastSuccess(
+          wasRejected ? "Package sent for review again" : "Changes saved.",
+        );
       } else {
         await createPackage.mutateAsync(
           toCreatePackagePayload(form, profileIds),
         );
-        toastSuccess("Package published.");
+        toastSuccess("Package sent for review");
       }
 
       if (newProfileSubjects(form.subjectIds, profileIds).length > 0) {

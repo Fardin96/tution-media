@@ -14,7 +14,8 @@ import {
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEducationLookup } from "@/lib/education";
-import { optionName, SUBJECTS } from "@/lib/profile";
+import { optionName } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import {
   MAX_ACTIVE_SETS,
   useProfileSubjects,
@@ -89,9 +90,10 @@ export function TutorRequirementsPage() {
   const atLimit = active.length >= MAX_ACTIVE_SETS;
   const tab = searchParams.get("tab") === "archived" ? "archived" : "active";
 
+  const { subjects } = useSubjects();
   const subjectNames = (id: number) => {
     const fromProfile = profileSubjects.data?.find((s) => s.id === id);
-    return fromProfile ? fromProfile.name : optionName(SUBJECTS, id);
+    return fromProfile ? fromProfile.name : optionName(subjects, id);
   };
 
   const onTabChange = (value: string) => {

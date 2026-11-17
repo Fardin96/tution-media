@@ -39,7 +39,8 @@ import {
   useEducationLookup,
 } from "@/lib/education";
 import { queryKeys } from "@/lib/query-keys";
-import { AREAS, SUBJECTS, optionName, profileApi } from "@/lib/profile";
+import { AREAS, optionName, profileApi } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { useTutorRequirements } from "@/lib/tutor-requirements";
 
@@ -70,6 +71,7 @@ function useMeAccount() {
 
 export function FindTuitionsPage() {
   const router = useRouter();
+  const { subjects } = useSubjects();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -337,7 +339,7 @@ export function FindTuitionsPage() {
               }
             >
               <option value="">All subjects</option>
-              {SUBJECTS.map((s) => (
+              {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
@@ -424,7 +426,7 @@ export function FindTuitionsPage() {
                   <TuitionCard
                     tuition={row}
                     subjectNames={row.subjectIds.map((id) =>
-                      optionName(SUBJECTS, id),
+                      optionName(subjects, id),
                     )}
                     curriculumLabel={
                       curriculumOf(lookup, row.curriculum)?.label ?? null

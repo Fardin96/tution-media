@@ -3,6 +3,28 @@ import { render, screen, within } from "@testing-library/react";
 import { TutorSetSection } from "@/components/applications/tutor-details";
 import type { ApplicationTutorSet } from "@/lib/applications";
 
+const SUBJECT_OPTIONS = [
+  "Bangla",
+  "English",
+  "Mathematics",
+  "Higher Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "ICT",
+  "Accounting",
+  "Finance",
+  "Economics",
+  "General Science",
+  "Religion",
+  "Arabic",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+}));
+
 function tutorSet(
   overrides: Partial<ApplicationTutorSet> = {},
 ): ApplicationTutorSet {

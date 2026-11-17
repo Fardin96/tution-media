@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -24,6 +25,7 @@ import {
   TutorSetSection,
 } from "@/components/applications/tutor-details";
 import { useEducationLookup } from "@/lib/education";
+import { useSubjects } from "@/lib/subjects";
 import { ApiError, formatBdPhone } from "@/lib/profile";
 import { formatTaka } from "@/lib/requirements";
 import { useApplication, type ApplicationDetail } from "@/lib/applications";
@@ -80,7 +82,8 @@ export function ApplicationDetailPage({
   packageId,
 }: {
   id: string;
-  role: "TUTOR" | "STUDENT";
+  /** ADMIN gets a read-only view: no actions, no contact details, and a link to the placement fee. */
+  role: "TUTOR" | "STUDENT" | "ADMIN";
   /** "applicants" when opened from a requirement's applicants list, "package-requests" from a package's requests list. */
   from?: "applicants" | "package-requests";
   /** The package whose requests list the page was opened from. */
@@ -88,23 +91,26 @@ export function ApplicationDetailPage({
 }) {
   const query = useApplication(id);
   const lookup = useEducationLookup();
+  const { subjects } = useSubjects();
 
   // Back returns to the applicants list only when we came from there and the
   // target is a requirement (the applicants list is keyed by requirement id).
   const back =
-    from === "applicants" && query.data?.target.kind === "REQUIREMENT"
-      ? {
-          href: `/dashboard/requirements/${query.data.target.id}/applicants`,
-          label: "Applicants",
-        }
-      : from === "package-requests" &&
-          packageId &&
-          query.data?.target.kind === "PACKAGE"
+    role === "ADMIN"
+      ? { href: "/dashboard/admin/applications", label: "Applications" }
+      : from === "applicants" && query.data?.target.kind === "REQUIREMENT"
         ? {
-            href: `/dashboard/tutor/packages/${encodeURIComponent(packageId)}/requests`,
-            label: "Requests",
+            href: `/dashboard/requirements/${query.data.target.id}/applicants`,
+            label: "Applicants",
           }
-        : { href: "/dashboard/applications", label: "Applications" };
+        : from === "package-requests" &&
+            packageId &&
+            query.data?.target.kind === "PACKAGE"
+          ? {
+              href: `/dashboard/tutor/packages/${encodeURIComponent(packageId)}/requests`,
+              label: "Requests",
+            }
+          : { href: "/dashboard/applications", label: "Applications" };
 
   let body: ReactNode;
   if (query.isPending) {
@@ -134,12 +140,19 @@ export function ApplicationDetailPage({
   } else {
     const app = query.data;
     const isTutor = role === "TUTOR";
-    const counterpart = isTutor ? app.student.name : app.tutor.name;
+    const isAdmin = role === "ADMIN";
+    const counterpart = isTutor
+      ? app.student.name
+      : isAdmin
+        ? `${app.tutor.name} → ${app.student.name}`
+        : app.tutor.name;
     const heading = headingText(app.target, counterpart);
     const contact = app.counterpartContact;
-    const fee = isTutor ? app.fee : null;
+    const fee = isTutor || isAdmin ? app.fee : null;
     const feeOpen =
-      fee !== null && (fee.status === "DUE" || fee.status === "PARTIAL");
+      isTutor &&
+      fee !== null &&
+      (fee.status === "DUE" || fee.status === "PARTIAL");
 
     body = (
       <div className="grid gap-6">
@@ -162,7 +175,7 @@ export function ApplicationDetailPage({
               Application closed
             </TonePill>
           )}
-          {app.allowedActions.length > 0 && (
+          {!isAdmin && app.allowedActions.length > 0 && (
             <ApplicationActions
               applicationId={app.id}
               allowedActions={app.allowedActions}
@@ -171,14 +184,14 @@ export function ApplicationDetailPage({
         </header>
 
         <Section title="Tuition">
-          <Rows rows={targetRows(lookup.data, app.target)} />
+          <Rows rows={targetRows(lookup.data, app.target, subjects)} />
         </Section>
 
-        {!isTutor && app.tutorProfile && (
+        {role === "STUDENT" && app.tutorProfile && (
           <TutorProfileSection profile={app.tutorProfile} />
         )}
 
-        {!isTutor && app.tutorSet && (
+        {role === "STUDENT" && app.tutorSet && (
           <TutorSetSection tutorSet={app.tutorSet} lookup={lookup.data} />
         )}
 
@@ -197,32 +210,34 @@ export function ApplicationDetailPage({
           </dl>
         </Section>
 
-        <Section title="Contact">
-          {contact ? (
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={`tel:${contact.phoneNumber}`}
-                className={cn(secondaryButton, "min-h-10 px-4")}
-              >
-                {formatBdPhone(contact.phoneNumber)}
-              </a>
-              {contact.whatsappNumber && (
+        {!isAdmin && (
+          <Section title="Contact">
+            {contact ? (
+              <div className="flex flex-wrap gap-2">
                 <a
-                  href={whatsappHref(contact.whatsappNumber)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`tel:${contact.phoneNumber}`}
                   className={cn(secondaryButton, "min-h-10 px-4")}
                 >
-                  WhatsApp
+                  {formatBdPhone(contact.phoneNumber)}
                 </a>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
-              Contact details appear once the application is accepted.
-            </p>
-          )}
-        </Section>
+                {contact.whatsappNumber && (
+                  <a
+                    href={whatsappHref(contact.whatsappNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(secondaryButton, "min-h-10 px-4")}
+                  >
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
+                Contact details appear once the application is accepted.
+              </p>
+            )}
+          </Section>
+        )}
 
         {fee && (
           <Section title="Placement fee">
@@ -244,7 +259,15 @@ export function ApplicationDetailPage({
                   {fee.unpaid ? "Unpaid" : FEE_STATUS_LABEL[fee.status]}
                 </TonePill>
               </div>
-              {fee.unpaid && (
+              {isAdmin && (
+                <Link
+                  href={`/dashboard/admin/fees/${encodeURIComponent(fee.id)}`}
+                  className={cn(secondaryButton, "min-h-10 self-start px-4")}
+                >
+                  Open fee
+                </Link>
+              )}
+              {fee.unpaid && isTutor && (
                 <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
                   Payment is still open. Pay to keep your account in good
                   standing.

@@ -5,12 +5,8 @@ import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { control, FieldError } from "@/components/profile/profile-fields";
 import { focusRing } from "@/components/profile/styles";
-import {
-  optionName,
-  searchSubjects,
-  SUBJECTS,
-  type Option,
-} from "@/lib/profile";
+import { optionName, searchSubjects, type Option } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import { newProfileSubjects } from "@/lib/tutor-requirements";
 
 const labelClass = "text-sm font-semibold text-[var(--color-neutral-charcoal)]";
@@ -58,11 +54,12 @@ export function SetSubjectPicker({
     };
   }, [query]);
 
+  const { subjects } = useSubjects();
   const profileIds = profileSubjects.map((o) => o.id);
   const nameOf = (id: number) =>
     known.get(id)?.name ??
     profileSubjects.find((o) => o.id === id)?.name ??
-    optionName(SUBJECTS, id);
+    optionName(subjects, id);
 
   const addedIds = newProfileSubjects(value, profileIds);
   const addedNames = addedIds.map(nameOf);

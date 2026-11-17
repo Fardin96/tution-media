@@ -3,6 +3,26 @@ import type { components } from "@/lib/api-types";
 
 type Schemas = components["schemas"];
 
+// Same 14 subjects, in display order, as the static list they replace (ids match tuition-api/src/seed/index.ts).
+export const subjectsMock = {
+  subjects: [
+    { id: 1, name: "Bangla", slug: "bangla" },
+    { id: 2, name: "English", slug: "english" },
+    { id: 3, name: "Mathematics", slug: "mathematics" },
+    { id: 4, name: "Higher Mathematics", slug: "higher-mathematics" },
+    { id: 5, name: "Physics", slug: "physics" },
+    { id: 6, name: "Chemistry", slug: "chemistry" },
+    { id: 7, name: "Biology", slug: "biology" },
+    { id: 8, name: "ICT", slug: "ict" },
+    { id: 9, name: "Accounting", slug: "accounting" },
+    { id: 10, name: "Finance", slug: "finance" },
+    { id: 11, name: "Economics", slug: "economics" },
+    { id: 12, name: "General Science", slug: "general-science" },
+    { id: 13, name: "Religion", slug: "religion" },
+    { id: 14, name: "Arabic", slug: "arabic" },
+  ],
+} satisfies Schemas["SubjectList"];
+
 export const sessionCookie = (role: "STUDENT" | "TUTOR") => ({
   name: "session",
   value: JSON.stringify({
@@ -124,6 +144,7 @@ export async function mockApi(
       profile = { ...base, ...(profile ?? {}), ...req.postDataJSON() };
       return json(route, profile, method === "POST" ? 201 : 200);
     }
+    if (path === "/subjects") return json(route, subjectsMock);
     if (path === "/tutors/me/areas")
       return json(route, { areas: [] } satisfies Schemas["TutorAreas"]);
     if (path === "/tutors/me/subjects")

@@ -1,5 +1,6 @@
 import { api } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
+import { loadSubjects } from "./subjects";
 
 export type ProfileRole = "STUDENT" | "TUTOR";
 export type Gender = NonNullable<Schemas["CreateTutorProfileInput"]["gender"]>;
@@ -67,24 +68,6 @@ export const TUITION_TYPES = [
   "Group Coaching",
 ] as const;
 
-// shortcut: static list until GET /api/v1/subjects exists; ids match tuition-api/src/seed/index.ts.
-export const SUBJECTS: Option[] = [
-  "Bangla",
-  "English",
-  "Mathematics",
-  "Higher Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "ICT",
-  "Accounting",
-  "Finance",
-  "Economics",
-  "General Science",
-  "Religion",
-  "Arabic",
-].map((name, i) => ({ id: i + 1, name }));
-
 /** Async so a Places/backend-backed lookup can drop in without touching the picker. */
 export async function searchAreas(query: string): Promise<Option[]> {
   const q = query.trim().toLowerCase();
@@ -92,10 +75,11 @@ export async function searchAreas(query: string): Promise<Option[]> {
 }
 
 export async function searchSubjects(query: string): Promise<Option[]> {
+  const subjects = await loadSubjects();
   const q = query.trim().toLowerCase();
   return q
-    ? SUBJECTS.filter((s) => s.name.toLowerCase().includes(q))
-    : SUBJECTS;
+    ? subjects.filter((s) => s.name.toLowerCase().includes(q))
+    : subjects;
 }
 
 export const optionName = (list: Option[], id: number) =>

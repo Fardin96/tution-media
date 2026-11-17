@@ -11,6 +11,28 @@ import { searchSubjects, type Option } from "@/lib/profile";
 import { useProfileSubjects } from "@/lib/tutor-requirements";
 import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
 
+const SUBJECT_OPTIONS = [
+  "Bangla",
+  "English",
+  "Mathematics",
+  "Higher Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "ICT",
+  "Accounting",
+  "Finance",
+  "Economics",
+  "General Science",
+  "Religion",
+  "Arabic",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+}));
+
 const push = vi.fn();
 
 vi.mock("next/navigation", () => ({
@@ -299,7 +321,7 @@ describe("PackageForm create", () => {
     await user.click(screen.getByRole("button", { name: "Publish package" }));
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("Package published."),
+      expect(toast.success).toHaveBeenCalledWith("Package sent for review"),
     );
     expect(push).toHaveBeenCalledWith("/dashboard/tutor/packages");
     expect(sentBody("POST")).toMatchObject({
@@ -506,5 +528,25 @@ describe("PackageForm edit", () => {
       expect(toast.success).toHaveBeenCalledWith("Changes saved."),
     );
     expect(sentBody("PATCH")).toEqual({ price: 16000 });
+  });
+
+  it("says the package is sent for review again when a rejected package is saved", async () => {
+    const user = userEvent.setup();
+    renderForm({
+      ...PACKAGE,
+      moderationStatus: "REJECTED",
+      moderationNote: "Add the class range.",
+    });
+
+    const price = screen.getByLabelText("Price for the whole package (taka)");
+    await user.clear(price);
+    await user.type(price, "16000");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Package sent for review again",
+      ),
+    );
   });
 });

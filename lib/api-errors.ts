@@ -32,6 +32,11 @@ export const ERROR_CODES = {
   ApplicationClosed: "APPLICATION_CLOSED",
   ListingNotOpen: "LISTING_NOT_OPEN",
   InvalidApplicationState: "INVALID_APPLICATION_STATE",
+  InvalidAdminState: "INVALID_ADMIN_STATE",
+  InvalidAccountState: "INVALID_ACCOUNT_STATE",
+  InvalidFeeState: "INVALID_FEE_STATE",
+  PackageAlreadyModerated: "PACKAGE_ALREADY_MODERATED",
+  SubjectExists: "SUBJECT_EXISTS",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -134,6 +139,15 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   LISTING_NOT_OPEN: "This listing isn't open anymore.",
   INVALID_APPLICATION_STATE:
     "This application changed. Refresh to see its current status.",
+  // Admin conflicts: the server's message names the exact rule (amount still due, already blocked...).
+  INVALID_ADMIN_STATE: (err) =>
+    err.message || "This admin changed. Refresh to see their current status.",
+  INVALID_ACCOUNT_STATE: (err) =>
+    err.message || "This account changed. Refresh to see its current status.",
+  INVALID_FEE_STATE: (err) =>
+    err.message || "This fee changed. Refresh to see its current status.",
+  PACKAGE_ALREADY_MODERATED: "Another admin already reviewed this package.",
+  SUBJECT_EXISTS: "A subject with this name or slug already exists.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

@@ -7,6 +7,28 @@ import { MyPackagesPage } from "@/components/packages/my-packages-page";
 import { apiFetch } from "@/lib/api";
 import type { MyPackage } from "@/lib/packages";
 
+const SUBJECT_OPTIONS = [
+  "Bangla",
+  "English",
+  "Mathematics",
+  "Higher Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "ICT",
+  "Accounting",
+  "Finance",
+  "Economics",
+  "General Science",
+  "Religion",
+  "Arabic",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   apiFetch: vi.fn(),
