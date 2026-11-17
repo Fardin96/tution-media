@@ -90,7 +90,6 @@ function set(
     teachesOnline: false,
     subjectIds: [1],
     zoneIds: [],
-    mappedPackageCount: 0,
     ...overrides,
   };
 }
@@ -133,6 +132,18 @@ beforeEach(() => {
 });
 
 describe("TutorRequirementsPage", () => {
+  it("describes what a set holds without mentioning packages", () => {
+    mockRequirements([set({ id: "1", name: "Main set", isDefault: true })]);
+    renderPage();
+
+    expect(
+      screen.getByText(
+        "Each set says which classes, subjects and times you take.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Packages use/)).toBeNull();
+  });
+
   it("shows the active count and tab counts", () => {
     mockRequirements([
       set({ id: "d", name: "Main set", isDefault: true }),

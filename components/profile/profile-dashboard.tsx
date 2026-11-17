@@ -18,7 +18,6 @@ import {
   FileText,
   MapPin,
   MessageCircle,
-  Package,
   Pencil,
   PlayCircle,
   Plus,
@@ -87,6 +86,7 @@ import {
   ConfirmDialog,
   type ConfirmAction,
 } from "@/components/ui/confirm-dialog";
+import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
 import {
@@ -522,7 +522,7 @@ export function ProfileDashboard({
                       videos={tutorData.videos}
                       onRemove={removeVideo}
                     />
-                    <PackagesSection />
+                    <TutorPackagesSection />
                     <TeachingZonesCard />
                     <FindWorkCard />
                     <TutorRequirementsSection />
@@ -1277,76 +1277,6 @@ function VideosSection({
   );
 }
 
-/* ───────── Sample sections ───────── */
-
-// shortcut: static placeholders until packages/requirements screens are built.
-const PACKAGES = [
-  {
-    name: "SSC Booster",
-    body: "Full syllabus revision with weekly mock exams and guardian reports.",
-    seats: "3–5 students",
-    price: "৳6,500 / month",
-    tone: "info" as Tone,
-    status: "Open",
-    bg: "var(--color-secondary-sky)",
-  },
-  {
-    name: "HSC Physics Prep",
-    body: "Chapter tests, doubt-clearing sessions and past papers.",
-    seats: "3–5 students",
-    price: "৳7,500 / month",
-    tone: "warning" as Tone,
-    status: "In review",
-    bg: "var(--color-secondary-peach)",
-  },
-];
-
-function PackagesSection() {
-  return (
-    <section
-      id="packages"
-      aria-labelledby="packages-heading"
-      className="scroll-mt-24"
-    >
-      <SectionHeading
-        id="packages-heading"
-        title="Your tuition packages"
-        description="Fixed packages students can join directly."
-        sample
-      />
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-        {PACKAGES.map((p) => (
-          <li key={p.name} className={cn(card, "flex flex-col gap-3 p-5")}>
-            <div className="flex items-start justify-between gap-3">
-              <span
-                className="flex size-11 items-center justify-center rounded-[14px] text-[var(--color-neutral-charcoal)]"
-                style={{ backgroundColor: p.bg }}
-              >
-                <Package aria-hidden="true" className="size-5" />
-              </span>
-              <Pill tone={p.tone}>{p.status}</Pill>
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--color-neutral-charcoal)]">
-              {p.name}
-            </h3>
-            <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
-              {p.body}
-            </p>
-            <div className="mt-auto flex items-end justify-between gap-3 pt-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">
-                {p.seats}
-              </span>
-              <span className="font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
-                {p.price}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 function TeachingZonesCard() {
   return (
     <section
@@ -1892,7 +1822,11 @@ function VerificationCard({
 }) {
   const v = VERIFICATION[status];
   return (
-    <section aria-labelledby="verification-heading" className={cn(card, "p-5")}>
+    <section
+      id="verification"
+      aria-labelledby="verification-heading"
+      className={cn(card, "scroll-mt-24 p-5")}
+    >
       <div className="flex items-center justify-between gap-3">
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <ShieldCheck aria-hidden="true" className="size-5" />

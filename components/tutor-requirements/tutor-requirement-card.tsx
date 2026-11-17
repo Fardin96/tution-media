@@ -1,11 +1,18 @@
 import type { ReactNode } from "react";
+import { Layers } from "lucide-react";
+import { TonePill } from "@/components/applications/status-pill";
+import {
+  ListingCard,
+  listingTitleClass,
+  type ListingAccent,
+} from "@/components/ui/listing-card";
 import { cn } from "@/lib/utils";
-import { card } from "@/components/profile/styles";
 import {
   combinedLevelLabel,
   curriculumOf,
   type EducationLookup,
 } from "@/lib/education";
+import { formatTaka } from "@/lib/requirements";
 import {
   daysSummary,
   formatTimeRange,
@@ -13,24 +20,6 @@ import {
 } from "@/lib/tutor-requirements";
 
 const CURRICULUM_COUNT = 7;
-
-const TONE = {
-  info: "bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]",
-};
-
-function Pill({ children }: { children: ReactNode }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-        TONE.info,
-      )}
-    >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-      {children}
-    </span>
-  );
-}
 
 /** Level label across the chosen curricula, falling back to the bare number while the lookup loads. */
 function levelText(
@@ -45,11 +34,13 @@ export function TutorRequirementCard({
   set,
   lookup,
   subjectNames,
+  accent = "sky",
   actions,
 }: {
   set: TutorRequirement;
   lookup?: EducationLookup;
   subjectNames: (id: number) => string;
+  accent?: ListingAccent;
   actions?: ReactNode;
 }) {
   const classRange =
@@ -75,21 +66,24 @@ export function TutorRequirementCard({
         : "No zones";
 
   return (
-    <article className={cn(card, "flex flex-col gap-4 p-5")}>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3
-            id={`set-title-${set.id}`}
-            tabIndex={-1}
-            className="font-semibold text-[var(--color-neutral-charcoal)] outline-none"
-          >
-            {set.name}
-          </h3>
-          {set.isDefault && <Pill>Default</Pill>}
-        </div>
-
-        <div className="mt-2 flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
-          <p>{classRange}</p>
+    <ListingCard
+      icon={Layers}
+      accent={accent}
+      status={
+        set.isDefault ? <TonePill tone="info">Default</TonePill> : undefined
+      }
+      title={
+        <h3
+          id={`set-title-${set.id}`}
+          tabIndex={-1}
+          className={cn(listingTitleClass, "outline-none")}
+        >
+          {set.name}
+        </h3>
+      }
+      body={classRange}
+      details={
+        <>
           <p>{curriculumNames}</p>
           {set.subjectIds.length === 0 ? (
             <p className="text-[var(--color-semantic-error-text)]">
@@ -98,21 +92,23 @@ export function TutorRequirementCard({
           ) : (
             <p>{set.subjectIds.map(subjectNames).join(", ")}</p>
           )}
-          <p>{zoneText}</p>
           <p>
             {daysSummary(set)} · {formatTimeRange(set.timeFrom, set.timeTo)}
           </p>
-          {set.mappedPackageCount > 0 && (
-            <p>
-              {set.mappedPackageCount === 1
-                ? "Used by 1 package"
-                : `Used by ${set.mappedPackageCount} packages`}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
-    </article>
+        </>
+      }
+      meta={zoneText}
+      figure={
+        set.minSalary !== null ? (
+          <>
+            {formatTaka(set.minSalary)}
+            <span className="font-normal text-[var(--color-text-secondary)]">
+              {" / month"}
+            </span>
+          </>
+        ) : undefined
+      }
+      actions={actions}
+    />
   );
 }

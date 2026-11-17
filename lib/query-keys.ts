@@ -80,6 +80,14 @@ export function invalidateTutorRequirements(queryClient: QueryClient) {
   ]);
 }
 
+/** Package writes move the tutor's list, the student browse and detail, request lists (expired on close) and alerts. */
+export function invalidatePackages(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.packages.mine }),
+    invalidateApplications(queryClient),
+  ]);
+}
+
 /** Zone writes change the zone list and, through cascades, requirement sets and apply readiness. */
 export function invalidateTutorZones(queryClient: QueryClient) {
   return Promise.all([

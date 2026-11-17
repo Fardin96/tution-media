@@ -17,6 +17,7 @@ import { ZoneLimitRequestDialog } from "@/components/tutor-zones/zone-limit-requ
 import { ZoneMap, hasMapsKey } from "@/components/tutor-zones/zone-map";
 import { ZoneEditor } from "@/components/tutor-zones/zone-editor";
 import { ZoneList } from "@/components/tutor-zones/zone-list";
+import { useMyPackages, type MyPackage } from "@/lib/packages";
 import { invalidateTutorZones } from "@/lib/query-keys";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
@@ -84,6 +85,7 @@ export function TutorZonesPage() {
   const queryClient = useQueryClient();
   const zonesQuery = useTutorZones();
   const requirementsQuery = useTutorRequirements("all");
+  const packagesQuery = useMyPackages();
 
   const [editor, setEditor] = useState<EditorState>(null);
   const [form, setForm] = useState<ZoneForm>(emptyZoneForm);
@@ -131,6 +133,26 @@ export function TutorZonesPage() {
 
   const blockedSets = pendingDelete
     ? affectedSets.filter((set) => blocksApplying(set, pendingDelete.id))
+    : [];
+
+  // Open packages that use the zone. zone.packageIds lists only open packages.
+  const affectedPackages = useMemo(() => {
+    if (!pendingDelete || !packagesQuery.data) return [];
+    return packagesQuery.data.packages.filter((pkg) =>
+      pendingDelete.packageIds.includes(pkg.id),
+    );
+  }, [pendingDelete, packagesQuery.data]);
+
+  // A package left with no zone and not online stays open but drops out of nearby browse.
+  const emptiedPackages: MyPackage[] = pendingDelete
+    ? affectedPackages.filter(
+        (pkg) =>
+          !pkg.teachesOnline &&
+          (data?.zones ?? []).every(
+            (zone) =>
+              zone.id === pendingDelete.id || !zone.packageIds.includes(pkg.id),
+          ),
+      )
     : [];
 
   // A new zone has no pin yet, so with a map key the first tap places it.
@@ -437,6 +459,28 @@ export function TutorZonesPage() {
             </ul>
           </>
         )}
+        {pendingDelete &&
+          pendingDelete.packageIds.length > 0 &&
+          (packagesQuery.isPending ? (
+            <p>Checking which packages use this zone.</p>
+          ) : packagesQuery.isError ? (
+            <p>We couldn&apos;t check which packages use this zone.</p>
+          ) : (
+            affectedPackages.length > 0 && (
+              <>
+                <p>
+                  {affectedPackages.length === 1
+                    ? "1 package uses this zone:"
+                    : `${affectedPackages.length} packages use this zone:`}
+                </p>
+                <ul className="list-disc ps-5 text-[var(--color-neutral-charcoal)]">
+                  {affectedPackages.map((pkg) => (
+                    <li key={pkg.id}>{pkg.title}</li>
+                  ))}
+                </ul>
+              </>
+            )
+          ))}
         {blockedSets.map((set) => (
           <p
             key={set.id}
@@ -444,6 +488,15 @@ export function TutorZonesPage() {
             className="rounded-[12px] border border-[var(--color-semantic-warning)] bg-[var(--color-semantic-warning-surface)] px-4 py-3 text-[var(--color-semantic-warning-text)]"
           >
             {`${set.name} is your default set. You can't apply to tuitions until it gets another zone or teaches online.`}
+          </p>
+        ))}
+        {emptiedPackages.map((pkg) => (
+          <p
+            key={pkg.id}
+            role="status"
+            className="rounded-[12px] border border-[var(--color-semantic-warning)] bg-[var(--color-semantic-warning-surface)] px-4 py-3 text-[var(--color-semantic-warning-text)]"
+          >
+            {`${pkg.title} will have no zone left. It stays open but won't show to students searching near them.`}
           </p>
         ))}
       </ConfirmDialog>

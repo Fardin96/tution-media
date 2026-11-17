@@ -190,6 +190,36 @@ describe("blockedFromServerError", () => {
     });
   });
 
+  it("counts open packages that would be left with no subjects", () => {
+    const err = new ApiError("conflict", 409, {
+      code: "REQUIREMENT_LOSES_LAST_SUBJECT",
+      details: { requirementIds: [], packageIds: ["p1"] },
+    });
+    expect(blockedFromServerError(err, sets)).toEqual({
+      kind: "blocked",
+      title: "Can't remove this subject yet",
+      body: [
+        "1 open package would have no subjects left.",
+        "Edit the set to add another subject, or archive it first.",
+      ],
+      sets: [],
+    });
+  });
+
+  it("lists sets and counts packages in the same dialog", () => {
+    const err = new ApiError("conflict", 409, {
+      code: "REQUIREMENT_LOSES_LAST_SUBJECT",
+      details: { requirementIds: ["a"], packageIds: ["p1", "p2"] },
+    });
+    expect(blockedFromServerError(err, sets)).toMatchObject({
+      body: [
+        "'Evening Math' would have no subjects left.",
+        "2 open packages would have no subjects left.",
+        "Edit the set to add another subject, or archive it first.",
+      ],
+    });
+  });
+
   it("returns null for other errors", () => {
     const other = new ApiError("nope", 409, { code: "REQUIREMENT_IS_DEFAULT" });
     expect(blockedFromServerError(other, sets)).toBeNull();

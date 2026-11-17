@@ -7,14 +7,16 @@ import type { Application } from "@/lib/applications";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
+  areaText,
+  durationText,
   formatDay,
+  headingText,
   levelText,
+  moneyText,
   ratingText,
-  salaryText,
   scheduleText,
   showsClosedNote,
   subjectNames,
-  areaName,
 } from "@/components/applications/format";
 
 export function ApplicationCard({
@@ -31,22 +33,30 @@ export function ApplicationCard({
     ? application.student.name
     : application.tutor.name;
 
+  const heading = headingText(target, counterpartName);
   const details = [
     subjectNames(target.subjectIds),
     levelText(lookup.data, target),
-    areaName(target.areaId),
+    areaText(target),
   ].filter(Boolean);
-  const money = [salaryText(target.salary), scheduleText(target)].filter(
-    Boolean,
-  );
+  const money = [
+    moneyText(target),
+    durationText(target),
+    scheduleText(target),
+  ].filter(Boolean);
 
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
-            {counterpartName}
+            {heading}
           </h2>
+          {heading !== counterpartName && (
+            <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+              {counterpartName}
+            </p>
+          )}
           {!isTutor && application.tutor.ratingCount > 0 && (
             <p className="mt-0.5 flex items-center gap-1 text-sm text-[var(--color-text-secondary)] tabular-nums">
               <Star

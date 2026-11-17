@@ -24,14 +24,14 @@ describe("ApiError", () => {
 
   it("exposes code and details and is an Error and an ApiError", () => {
     const err = new ApiError("m", 409, {
-      code: "REQUIREMENT_IN_USE",
-      details: { packageIds: ["a"] },
+      code: "REQUIREMENT_LOSES_LAST_SUBJECT",
+      details: { requirementIds: ["a"], packageIds: ["p"] },
     });
     expect(err).toBeInstanceOf(Error);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.message).toBe("m");
-    expect(err.code).toBe("REQUIREMENT_IN_USE");
-    expect(err.details).toEqual({ packageIds: ["a"] });
+    expect(err.code).toBe("REQUIREMENT_LOSES_LAST_SUBJECT");
+    expect(err.details).toEqual({ requirementIds: ["a"], packageIds: ["p"] });
   });
 });
 
@@ -40,19 +40,19 @@ describe("parseJson", () => {
     const err = await rejectionOf(
       parseJson(
         json(409, {
-          error: "RequirementInUse",
-          code: "REQUIREMENT_IN_USE",
-          message: "Requirement is used by open packages",
-          details: { packageIds: ["p1"] },
+          error: "RequirementLosesLastSubject",
+          code: "REQUIREMENT_LOSES_LAST_SUBJECT",
+          message: "Removing this subject would leave a package with none",
+          details: { requirementIds: [], packageIds: ["p1"] },
         }),
       ),
     );
     expect(err).toBeInstanceOf(ApiError);
     expect(err).toMatchObject({
       status: 409,
-      code: "REQUIREMENT_IN_USE",
-      details: { packageIds: ["p1"] },
-      message: "Requirement is used by open packages",
+      code: "REQUIREMENT_LOSES_LAST_SUBJECT",
+      details: { requirementIds: [], packageIds: ["p1"] },
+      message: "Removing this subject would leave a package with none",
     });
   });
 

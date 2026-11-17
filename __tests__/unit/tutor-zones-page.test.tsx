@@ -14,6 +14,7 @@ import {
   useTutorRequirements,
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
+import { useMyPackages, type MyPackage } from "@/lib/packages";
 
 vi.mock("@/components/tutor-zones/zone-limit-request-dialog", () => ({
   ZoneLimitRequestDialog: () => null,
@@ -50,6 +51,11 @@ vi.mock("@/lib/tutor-requirements", async (importOriginal) => {
   return { ...actual, useTutorRequirements: vi.fn() };
 });
 
+vi.mock("@/lib/packages", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/packages")>();
+  return { ...actual, useMyPackages: vi.fn() };
+});
+
 function zone(overrides: Partial<TutorZone> & { id: string }): TutorZone {
   return {
     label: "Zone",
@@ -59,10 +65,23 @@ function zone(overrides: Partial<TutorZone> & { id: string }): TutorZone {
     placeId: null,
     addressText: null,
     requirementIds: [],
+    packageIds: [],
     createdAt: "2026-11-01T00:00:00.000Z",
     updatedAt: "2026-11-01T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function myPackage(
+  overrides: Partial<MyPackage> & { id: string; title: string },
+): MyPackage {
+  return {
+    status: "OPEN",
+    closed: false,
+    teachesOnline: false,
+    zoneIds: [],
+    ...overrides,
+  } as MyPackage;
 }
 
 function requirement(
@@ -85,7 +104,6 @@ function requirement(
     teachesOnline: false,
     subjectIds: [1],
     zoneIds: [],
-    mappedPackageCount: 0,
     ...overrides,
   } as TutorRequirement;
 }
@@ -109,6 +127,15 @@ function mockZones(list: ZoneList | undefined) {
     isError: false,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useTutorZones>);
+}
+
+function mockPackages(list: MyPackage[] | undefined) {
+  vi.mocked(useMyPackages).mockReturnValue({
+    data: list === undefined ? undefined : { packages: list },
+    isPending: list === undefined,
+    isError: false,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useMyPackages>);
 }
 
 function mockRequirements(data: TutorRequirement[] | undefined) {
@@ -136,6 +163,7 @@ beforeEach(() => {
   // Without a key the map shows its fallback, so no Google code runs in tests.
   vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
   mockRequirements([]);
+  mockPackages([]);
 });
 
 afterEach(() => {
@@ -164,14 +192,56 @@ describe("TutorZonesPage", () => {
     expect(screen.getByText("2 of 5 zones used")).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Your zones" });
     expect(within(list).getByText("Dhanmondi")).toBeInTheDocument();
-    expect(
-      within(list).getByText("2.5 km · Used by 2 sets"),
-    ).toBeInTheDocument();
+    expect(within(list).getByText("2.5 km")).toBeInTheDocument();
+    expect(within(list).getByText("Used by 2 sets")).toBeInTheDocument();
     expect(within(list).getByText("Road 27, Dhaka")).toBeInTheDocument();
     expect(within(list).getByText("Gulshan")).toBeInTheDocument();
+    expect(within(list).getByText("1 km")).toBeInTheDocument();
+    expect(within(list).getByText("Not used yet")).toBeInTheDocument();
+  });
+
+  it("counts sets and packages that use each zone", () => {
+    mockZones({
+      zones: [
+        zone({
+          id: "z1",
+          label: "Dhanmondi",
+          requirementIds: ["r1", "r2"],
+          packageIds: ["p1"],
+        }),
+      ],
+      limit: 5,
+      used: 1,
+      pendingRequest: null,
+    });
+    renderPage();
+
+    const list = screen.getByRole("list", { name: "Your zones" });
     expect(
-      within(list).getByText("1 km · Not used by any set"),
+      within(list).getByText("Used by 2 sets · 1 package"),
     ).toBeInTheDocument();
+  });
+
+  it("marks the selected zone as pressed", async () => {
+    mockZones({
+      zones: [
+        zone({ id: "z1", label: "Dhanmondi" }),
+        zone({ id: "z2", label: "Gulshan" }),
+      ],
+      limit: 5,
+      used: 2,
+      pendingRequest: null,
+    });
+    renderPage();
+
+    const list = screen.getByRole("list", { name: "Your zones" });
+    const gulshan = within(list).getByRole("button", {
+      pressed: false,
+      name: "Gulshan",
+    });
+    await userEvent.click(gulshan);
+
+    expect(gulshan).toHaveAttribute("aria-pressed", "true");
   });
 
   it("disables Add zone at the limit and offers to ask for more", () => {
@@ -264,6 +334,81 @@ describe("TutorZonesPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("warns when deleting the last zone of an open package", async () => {
+    mockZones({
+      zones: [
+        zone({ id: "z1", label: "Dhanmondi", packageIds: ["p1"] }),
+        zone({ id: "z2", label: "Gulshan" }),
+      ],
+      limit: 5,
+      used: 2,
+      pendingRequest: null,
+    });
+    mockPackages([myPackage({ id: "p1", title: "SSC Booster" })]);
+    renderPage();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Delete Dhanmondi/ }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(
+      within(dialog).getByText("1 package uses this zone:"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("SSC Booster")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "SSC Booster will have no zone left. It stays open but won't show to students searching near them.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("lists a package without warning when another zone remains", async () => {
+    mockZones({
+      zones: [
+        zone({ id: "z1", label: "Dhanmondi", packageIds: ["p1"] }),
+        zone({ id: "z2", label: "Gulshan", packageIds: ["p1"] }),
+      ],
+      limit: 5,
+      used: 2,
+      pendingRequest: null,
+    });
+    mockPackages([myPackage({ id: "p1", title: "SSC Booster" })]);
+    renderPage();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Delete Dhanmondi/ }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText("SSC Booster")).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/will have no zone left/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not warn when the package teaches online", async () => {
+    mockZones({
+      zones: [zone({ id: "z1", label: "Dhanmondi", packageIds: ["p1"] })],
+      limit: 5,
+      used: 1,
+      pendingRequest: null,
+    });
+    mockPackages([
+      myPackage({ id: "p1", title: "SSC Booster", teachesOnline: true }),
+    ]);
+    renderPage();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Delete Dhanmondi/ }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(
+      within(dialog).queryByText(/will have no zone left/),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not warn when the default set teaches online", async () => {
     mockZones({
       zones: [zone({ id: "z1", label: "Dhanmondi", requirementIds: ["r1"] })],
@@ -305,6 +450,7 @@ describe("TutorZonesPage", () => {
     vi.mocked(tutorZoneApi.remove).mockResolvedValue({
       id: "z1",
       affectedRequirements: [],
+      affectedPackages: [],
     });
     renderPage();
 

@@ -22,7 +22,7 @@ export default async function EditTutorRequirementPage({
   return (
     <RequirementPageShell
       title="Edit requirement set"
-      description="Changes apply to packages that use this set."
+      description="Changes apply to the tuitions this set matches."
       back={{
         href: "/dashboard/tutor/requirements",
         label: "Requirement sets",

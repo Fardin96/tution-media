@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRequestPackage } from "@/lib/applications";
 import { usePackage } from "@/lib/browse";
+import { useEducationLookup } from "@/lib/education";
 import {
-  curriculumOf,
-  educationSummary,
-  useEducationLookup,
-} from "@/lib/education";
-import { ApiError, AREAS, SUBJECTS, optionName } from "@/lib/profile";
-import { formatTaka, formatTime } from "@/lib/requirements";
+  COVERAGE_LABEL,
+  durationLabel,
+  packageLevelText,
+  priceLabel,
+} from "@/lib/packages";
+import { ApiError } from "@/lib/profile";
+import { daysSummary, formatTimeRange } from "@/lib/tutor-requirements";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -24,10 +26,18 @@ import {
   SkeletonCards,
   TutorInitial,
 } from "./browse-ui";
+import { studentPlaceText } from "./package-card";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
-import { formatDay } from "@/components/applications/format";
+import {
+  admissionNamesText,
+  curriculaText,
+  formatDay,
+  groupNamesText,
+  studentsText,
+  subjectNames,
+} from "@/components/applications/format";
 
 function isNotFound(err: unknown): boolean {
   return err instanceof ApiError && err.status === 404;
@@ -71,11 +81,38 @@ export function PackageDetailPage({ id }: { id: string }) {
   }
 
   const pkg = query.data;
-  const subject = optionName(SUBJECTS, pkg.subjectId);
-  const curriculum = curriculumOf(lookup, pkg.curriculum)?.label;
-  const level = educationSummary(lookup, pkg) || `Level ${pkg.levelCode}`;
-  const place = pkg.areaId === null ? "Online" : optionName(AREAS, pkg.areaId);
   const mine = pkg.myApplication;
+
+  const details = [
+    { label: "Coverage", value: COVERAGE_LABEL[pkg.coverage] },
+    { label: "Duration", value: durationLabel(pkg.durationWeeks) },
+    { label: "Price", value: `${priceLabel(pkg.price)} total` },
+    { label: "Subjects", value: subjectNames(pkg.subjectIds) },
+    {
+      label: "Classes",
+      value: [
+        packageLevelText(lookup, pkg),
+        curriculaText(lookup, pkg.curricula),
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    },
+    {
+      label: "Groups",
+      value: groupNamesText(lookup, pkg.academicGroups),
+    },
+    {
+      label: "Admission targets",
+      value: admissionNamesText(lookup, pkg.admissionTargets),
+    },
+    {
+      label: "Schedule",
+      value: `${daysSummary(pkg)} · ${formatTimeRange(pkg.timeFrom, pkg.timeTo)}`,
+    },
+    { label: "Students", value: `Up to ${studentsText(pkg.maxStudents)}` },
+    { label: "Place", value: studentPlaceText(pkg) },
+    { label: "Available from", value: formatDay(pkg.availableFrom) },
+  ].filter((row) => row.value !== "");
 
   function sendRequest() {
     request.mutate(pkg.id, {
@@ -97,10 +134,10 @@ export function PackageDetailPage({ id }: { id: string }) {
       <BackLink href="/dashboard/find-tutors?tab=packages">Packages</BackLink>
 
       <h1 className="mt-4 text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-        {subject}
+        {pkg.title}
       </h1>
-      <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
-        {[curriculum, level].filter(Boolean).join(" · ")}
+      <p className="mt-2 max-w-prose text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
+        {pkg.description}
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -115,51 +152,16 @@ export function PackageDetailPage({ id }: { id: string }) {
             Package details
           </h2>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-            <div className="min-w-0">
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                Place
-              </dt>
-              <dd className="font-medium text-[var(--color-neutral-charcoal)]">
-                {place}
-              </dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                Schedule
-              </dt>
-              <dd className="font-medium text-[var(--color-neutral-charcoal)] tabular-nums">
-                {pkg.daysPerWeek} days/week
-                {pkg.timeOfDay && <> · {formatTime(pkg.timeOfDay)}</>}
-              </dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                Salary
-              </dt>
-              <dd className="font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
-                {formatTaka(pkg.expectedSalary)}
-                <span className="font-normal text-[var(--color-text-secondary)]">
-                  {" "}
-                  / month
-                </span>
-              </dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                Seats
-              </dt>
-              <dd className="font-medium text-[var(--color-neutral-charcoal)] tabular-nums">
-                {pkg.studentCount} {pkg.studentCount === 1 ? "seat" : "seats"}
-              </dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                Available from
-              </dt>
-              <dd className="font-medium text-[var(--color-neutral-charcoal)]">
-                {formatDay(pkg.availableFrom)}
-              </dd>
-            </div>
+            {details.map((row) => (
+              <div key={row.label} className="min-w-0">
+                <dt className="text-sm text-[var(--color-text-secondary)]">
+                  {row.label}
+                </dt>
+                <dd className="font-medium text-pretty text-[var(--color-neutral-charcoal)] tabular-nums">
+                  {row.value}
+                </dd>
+              </div>
+            ))}
           </dl>
         </section>
 

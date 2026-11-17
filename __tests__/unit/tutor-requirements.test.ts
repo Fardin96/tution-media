@@ -43,7 +43,6 @@ const original: TutorRequirement = {
   teachesOnline: false,
   subjectIds: [3, 1],
   zoneIds: ["z1"],
-  mappedPackageCount: 0,
 };
 
 function set(

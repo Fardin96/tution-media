@@ -14,36 +14,6 @@ describe("errorCodeMessage", () => {
     expect(msg).not.toBe("");
   });
 
-  describe("REQUIREMENT_IN_USE", () => {
-    const code = ERROR_CODES.RequirementInUse;
-
-    it("names a single open package", () => {
-      expect(
-        errorCodeMessage(
-          new ApiError("m", 409, { code, details: { packageIds: [7] } }),
-        ),
-      ).toBe(
-        "This set is used by 1 open package. Move it to another set first.",
-      );
-    });
-
-    it("counts several open packages", () => {
-      expect(
-        errorCodeMessage(
-          new ApiError("m", 409, { code, details: { packageIds: [1, 2, 3] } }),
-        ),
-      ).toBe(
-        "This set is used by 3 open packages. Move them to another set first.",
-      );
-    });
-
-    it("falls back when packageIds is missing", () => {
-      expect(errorCodeMessage(new ApiError("m", 409, { code }))).toBe(
-        "This set is used by open packages. Move them to another set first.",
-      );
-    });
-  });
-
   describe("REQUIREMENT_LOSES_LAST_SUBJECT", () => {
     const code = ERROR_CODES.RequirementLosesLastSubject;
 
@@ -76,6 +46,54 @@ describe("errorCodeMessage", () => {
     it("falls back when requirementIds is missing", () => {
       expect(errorCodeMessage(new ApiError("m", 409, { code }))).toBe(
         "Removing this subject would leave a requirement set with no subjects.",
+      );
+    });
+
+    it("names a single open package when no set is left empty", () => {
+      expect(
+        errorCodeMessage(
+          new ApiError("m", 409, {
+            code,
+            details: { requirementIds: [], packageIds: ["p1"] },
+          }),
+        ),
+      ).toBe("Removing this subject would leave 1 package with no subjects.");
+    });
+
+    it("counts several open packages when no set is left empty", () => {
+      expect(
+        errorCodeMessage(
+          new ApiError("m", 409, {
+            code,
+            details: { requirementIds: [], packageIds: ["p1", "p2"] },
+          }),
+        ),
+      ).toBe("Removing this subject would leave 2 packages with no subjects.");
+    });
+
+    it("counts sets and packages together", () => {
+      expect(
+        errorCodeMessage(
+          new ApiError("m", 409, {
+            code,
+            details: { requirementIds: [4], packageIds: ["p1", "p2"] },
+          }),
+        ),
+      ).toBe(
+        "Removing this subject would leave 1 requirement set and 2 packages with no subjects.",
+      );
+    });
+
+    it("keeps the set wording when packageIds is empty", () => {
+      expect(
+        errorCodeMessage(
+          new ApiError("m", 409, {
+            code,
+            details: { requirementIds: [4, 5], packageIds: [] },
+          }),
+        ),
+      ).toBe(
+        "Removing this subject would leave 2 requirement sets with no subjects.",
       );
     });
   });

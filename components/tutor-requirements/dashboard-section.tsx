@@ -11,6 +11,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { TutorRequirementCard } from "@/components/tutor-requirements/tutor-requirement-card";
+import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
 import { optionName, SUBJECTS } from "@/lib/profile";
 import {
@@ -95,7 +96,7 @@ export function TutorRequirementsSection() {
       <SectionHeading
         id="requirement-sets-heading"
         title="Requirement sets"
-        description="Packages use your default set unless they pick another."
+        description="The classes, subjects and times you take."
         action={
           // With no sets, the empty card carries the only create button.
           list.length === 0 ? undefined : atLimit ? (
@@ -158,8 +159,8 @@ export function TutorRequirementsSection() {
           </Link>
         </div>
       ) : (
-        <ul className="mt-5 grid gap-4">
-          {visible.map((set) => (
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          {visible.map((set, index) => (
             <li
               key={set.id}
               className={cn(
@@ -171,6 +172,7 @@ export function TutorRequirementsSection() {
                 set={set}
                 lookup={lookup.data}
                 subjectNames={subjectNames}
+                accent={accentAt(index)}
                 actions={
                   <Link
                     href={`/dashboard/tutor/requirements/${set.id}/edit`}

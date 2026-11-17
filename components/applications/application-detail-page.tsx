@@ -13,6 +13,7 @@ import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
   formatDay,
+  headingText,
   showsClosedNote,
   targetRows,
   whatsappHref,
@@ -76,11 +77,14 @@ export function ApplicationDetailPage({
   id,
   role,
   from,
+  packageId,
 }: {
   id: string;
   role: "TUTOR" | "STUDENT";
-  /** "applicants" when opened from a requirement's applicants list. */
-  from?: "applicants";
+  /** "applicants" when opened from a requirement's applicants list, "package-requests" from a package's requests list. */
+  from?: "applicants" | "package-requests";
+  /** The package whose requests list the page was opened from. */
+  packageId?: string;
 }) {
   const query = useApplication(id);
   const lookup = useEducationLookup();
@@ -93,7 +97,14 @@ export function ApplicationDetailPage({
           href: `/dashboard/requirements/${query.data.target.id}/applicants`,
           label: "Applicants",
         }
-      : { href: "/dashboard/applications", label: "Applications" };
+      : from === "package-requests" &&
+          packageId &&
+          query.data?.target.kind === "PACKAGE"
+        ? {
+            href: `/dashboard/tutor/packages/${encodeURIComponent(packageId)}/requests`,
+            label: "Requests",
+          }
+        : { href: "/dashboard/applications", label: "Applications" };
 
   let body: ReactNode;
   if (query.isPending) {
@@ -124,6 +135,7 @@ export function ApplicationDetailPage({
     const app = query.data;
     const isTutor = role === "TUTOR";
     const counterpart = isTutor ? app.student.name : app.tutor.name;
+    const heading = headingText(app.target, counterpart);
     const contact = app.counterpartContact;
     const fee = isTutor ? app.fee : null;
     const feeOpen =
@@ -135,8 +147,13 @@ export function ApplicationDetailPage({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-                {counterpart}
+                {heading}
               </h1>
+              {heading !== counterpart && (
+                <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
+                  {counterpart}
+                </p>
+              )}
             </div>
             <StatusPill status={app.status} />
           </div>

@@ -54,19 +54,25 @@ function pkg(overrides: Partial<TuitionPackage> = {}): TuitionPackage {
       ratingAvg: 4.5,
       ratingCount: 12,
     },
-    subjectId: 3,
-    areaId: null,
-    curriculum: "BANGLA_MEDIUM",
-    levelCode: 9,
-    academicGroup: null,
+    title: "Class 9 maths catch-up",
+    description: "Covers the class 9 syllabus, one topic a week.",
+    coverage: "PARTIAL",
+    durationWeeks: 12,
+    price: 15000,
+    subjectIds: [3],
+    levelMin: 9,
+    levelMax: 9,
+    curricula: ["BANGLA_MEDIUM"],
+    academicGroups: [],
     admissionTargets: [],
-    isRetaker: false,
-    levelNote: null,
-    timeOfDay: "16:00",
+    timeFrom: "16:00",
+    timeTo: "18:00",
+    availableDays: 5,
     daysPerWeek: 3,
-    expectedSalary: 5000,
-    studentCount: 2,
+    maxStudents: 2,
     availableFrom: "2026-12-01",
+    teachesOnline: false,
+    zoneCount: 1,
     status: "OPEN",
     moderationStatus: "APPROVED",
     createdAt: "2026-11-01T00:00:00.000Z",
@@ -118,10 +124,10 @@ describe("FindTutorsPage packages tab", () => {
 
     renderPage();
 
-    expect(await screen.findByText("No packages yet")).toBeInTheDocument();
+    expect(await screen.findByText("No packages found")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Tutors will be able to publish fixed packages soon. Meanwhile, browse tutors or post a requirement.",
+        "No packages match these filters yet. Browse tutors or post a requirement instead.",
       ),
     ).toBeInTheDocument();
     expect(

@@ -17,7 +17,7 @@ export default async function NewTutorRequirementPage() {
   return (
     <RequirementPageShell
       title="New requirement set"
-      description="Students who match these can see your packages."
+      description="Students who match these can find you for tuitions."
       back={{
         href: "/dashboard/tutor/requirements",
         label: "Requirement sets",

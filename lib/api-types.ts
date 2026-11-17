@@ -1525,7 +1525,7 @@ export interface paths {
     get?: never;
     /**
      * Replace my subjects
-     * @description Replaces the tutor's subjects with subjectIds. Fails with 409 REQUIREMENT_LOSES_LAST_SUBJECT (details.requirementIds) when an active requirement set would be left with no subjects. Archived sets silently lose the subject.
+     * @description Replaces the tutor's subjects with subjectIds. Fails with 409 REQUIREMENT_LOSES_LAST_SUBJECT (details.requirementIds, details.packageIds) when an active requirement set or an OPEN package would be left with no subjects. Archived sets, closed packages and OPEN packages that keep another subject lose the removed subject silently.
      *
      *     **Who:** TUTOR.
      *
@@ -2411,7 +2411,7 @@ export interface paths {
     };
     /**
      * List my requirement sets
-     * @description status=active (default) lists active sets, archived lists archived sets (newest first, capped at 50), all lists both. mappedPackageCount counts OPEN packages, plus packages with no set chosen on the default set.
+     * @description status=active (default) lists active sets, archived lists archived sets (newest first, capped at 50), all lists both.
      *
      *     **Who:** TUTOR.
      *
@@ -2690,7 +2690,7 @@ export interface paths {
     post?: never;
     /**
      * Archive a requirement set
-     * @description Sets isActive to false. Fails with 409 REQUIREMENT_IS_DEFAULT for the default set, and with 409 REQUIREMENT_IN_USE (details.packageIds) when OPEN packages use it. An archived set is returned unchanged.
+     * @description Sets isActive to false. Fails with 409 REQUIREMENT_IS_DEFAULT for the default set. Packages are offers and do not reference a set, so archiving never waits on them. An archived set is returned unchanged.
      *
      *     **Who:** TUTOR.
      *
@@ -3283,7 +3283,7 @@ export interface paths {
     post?: never;
     /**
      * Delete a zone
-     * @description Returns the requirement sets that used the zone and how many zones each has left.
+     * @description Returns the requirement sets and OPEN packages that used the zone (affectedRequirements, affectedPackages) and how many zones each has left. A package left with no zone and not online stays open but no longer shows in nearby browse.
      *
      *     **Who:** TUTOR.
      *
@@ -4240,7 +4240,7 @@ export interface paths {
     };
     /**
      * Browse tuition packages
-     * @description Student browse (#52). Packages are APPROVED, OPEN, from listed tutors. scope=nearby keeps online packages plus packages whose tutor has a zone covering the student pin. Without a usable pin, nearby falls back to online packages and the student's area, and locationMissing is true. scope=all skips the location match. Filters: curriculum, levelCode, subjectId. Newest first, keyset cursor.
+     * @description Student browse (#52). Packages are APPROVED, OPEN, from listed tutors. A filter matches when the package covers it: curriculum is one of its curricula, levelCode is inside its level range, subjectId is one of its subjects. scope=nearby keeps online packages plus packages with one of their own zones covering the student pin. Without a usable pin, nearby keeps online packages only and locationMissing is true. scope=all skips the location match. Newest first, keyset cursor.
      *
      *     **Who:** STUDENT.
      *
@@ -4285,6 +4285,179 @@ export interface paths {
           };
           content: {
             "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Create a package
+     * @description #51. A tutor publishes a package offer: title, what it covers, duration in weeks and the total price in BDT. The placement fee is a percentage of that price. It goes live right away (admin moderation is not built yet). Fails with 403 PROFILE_INCOMPLETE until the profile passes the apply gate; the default requirement set is not needed. Fails with 400 INVALID_REQUIREMENT (fields subjectIds or zoneIds) when a subject is not on the profile or a zone is not one of the tutor's zones. The package needs a zone or teachesOnline (400 VALIDATION_ERROR on zoneIds). syncProfileSubjects adds missing subjects to the profile in the same transaction.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreatePackageInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Package"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/packages/mine": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my packages
+     * @description #53. The tutor's own packages in any state, newest first, at most 100. Each one lists its subjectIds and zoneIds, with request counts.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyPackageList"];
           };
         };
         /** @description Missing, invalid or expired access token */
@@ -4435,6 +4608,210 @@ export interface paths {
     };
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Edit my package
+     * @description #55. Partial edit of an OPEN package. The merged values are checked with the same rules as create (400 VALIDATION_ERROR with issues, one per field). subjectIds and zoneIds replace the lists when sent, and subjects must be on the profile and zones must be the tutor's own. Clearing every zone needs teachesOnline. Price is the total for the package. daysPerWeek accepts null to clear. Moderation is not reset. Students with a pending or confirmed request get a PACKAGE_UPDATED alert. 409 LISTING_NOT_OPEN when the package is not OPEN.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdatePackageInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Package"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  "/api/v1/packages/{id}/close": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Close my package
+     * @description #56. OPEN to CLOSED. Pending requests become EXPIRED and those students get a PACKAGE_CLOSED alert. Confirmed placements are not affected. 409 LISTING_NOT_OPEN when already closed.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Package"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     delete?: never;
     options?: never;
     head?: never;
@@ -6354,7 +6731,9 @@ export interface components {
         | "APPLICATION_WITHDRAWN"
         | "APPLICATION_REOPENED"
         | "APPLICATION_CANCELLED"
-        | "APPLICATION_COMPLETED";
+        | "APPLICATION_COMPLETED"
+        | "PACKAGE_UPDATED"
+        | "PACKAGE_CLOSED";
       applicationId: string;
       /** @enum {string} */
       listingKind: "REQUIREMENT" | "PACKAGE";
@@ -6463,6 +6842,9 @@ export interface components {
       salary: number | null;
       daysPerWeek: number | null;
       timeOfDay: string | null;
+      title: string | null;
+      price: number | null;
+      durationWeeks: number | null;
     };
     ApplicationTutor: {
       id: string;
@@ -6499,7 +6881,7 @@ export interface components {
     };
     ApplicationTutorSet: {
       /** @enum {string} */
-      matchedBy: "MATCH" | "DEFAULT" | "PACKAGE";
+      matchedBy: "MATCH" | "DEFAULT";
       set: {
         id: string;
         name: string;
@@ -6596,6 +6978,56 @@ export interface components {
     ConsentResult: {
       consentVersion: string | null;
       consentAcceptedAt: string | null;
+    };
+    CreatePackageInput: {
+      title: string;
+      description: string;
+      /** @enum {string} */
+      coverage: "FULL_CURRICULUM" | "PARTIAL";
+      durationWeeks: number;
+      price: number;
+      subjectIds: number[];
+      levelMin: number;
+      levelMax: number;
+      curricula: (
+        | "BANGLA_MEDIUM"
+        | "ENGLISH_VERSION"
+        | "EM_CAMBRIDGE"
+        | "EM_EDEXCEL"
+        | "EM_IB"
+        | "EM_AMERICAN"
+        | "MADRASAH"
+      )[];
+      /** @default [] */
+      academicGroups?: ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID")[];
+      /** @default [] */
+      admissionTargets?: (
+        | "ENGINEERING"
+        | "MEDICAL"
+        | "VARSITY_SCIENCE"
+        | "VARSITY_HUMANITIES"
+        | "VARSITY_BUSINESS"
+        | "AGRICULTURE"
+        | "IBA_BUP"
+        | "PRIVATE_UNI"
+        | "ABROAD_TESTS"
+        | "ISSB"
+      )[];
+      timeFrom: string;
+      timeTo: string;
+      /** @default 127 */
+      availableDays?: number;
+      /** @default null */
+      daysPerWeek?: number | null;
+      /** @default 1 */
+      maxStudents?: number;
+      /** Format: date */
+      availableFrom: string;
+      /** @default false */
+      teachesOnline?: boolean;
+      /** @default [] */
+      zoneIds?: string[];
+      syncProfileSubjects?: boolean;
     };
     CreateRequirementInput:
       | {
@@ -6874,7 +7306,6 @@ export interface components {
       | "WHATSAPP_IN_USE"
       | "REQUIREMENT_LIMIT_REACHED"
       | "REQUIREMENT_IS_DEFAULT"
-      | "REQUIREMENT_IN_USE"
       | "REQUIREMENT_ARCHIVED"
       | "REQUIREMENT_NO_SUBJECTS"
       | "REQUIREMENT_LOSES_LAST_SUBJECT"
@@ -6894,7 +7325,7 @@ export interface components {
       message: string;
     };
     ErrorResponse: {
-      /** @description Error name, for example RequirementInUse. */
+      /** @description Error name, for example RequirementIsDefault. */
       error: string;
       code: components["schemas"]["ErrorCode"];
       /** @description Human-readable message. */
@@ -7054,6 +7485,73 @@ export interface components {
         | "CANCELLED"
         | "EXPIRED";
     };
+    MyPackage: {
+      id: string;
+      tutor: {
+        id: string;
+        name: string;
+        /** @enum {string} */
+        gender: "MALE" | "FEMALE" | "OTHER";
+        ratingAvg: number;
+        ratingCount: number;
+      };
+      title: string;
+      description: string;
+      /** @enum {string} */
+      coverage: "FULL_CURRICULUM" | "PARTIAL";
+      durationWeeks: number;
+      price: number;
+      subjectIds: number[];
+      levelMin: number;
+      levelMax: number;
+      curricula: (
+        | "BANGLA_MEDIUM"
+        | "ENGLISH_VERSION"
+        | "EM_CAMBRIDGE"
+        | "EM_EDEXCEL"
+        | "EM_IB"
+        | "EM_AMERICAN"
+        | "MADRASAH"
+      )[];
+      academicGroups: ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID")[];
+      admissionTargets: (
+        | "ENGINEERING"
+        | "MEDICAL"
+        | "VARSITY_SCIENCE"
+        | "VARSITY_HUMANITIES"
+        | "VARSITY_BUSINESS"
+        | "AGRICULTURE"
+        | "IBA_BUP"
+        | "PRIVATE_UNI"
+        | "ABROAD_TESTS"
+        | "ISSB"
+      )[];
+      timeFrom: string;
+      timeTo: string;
+      availableDays: number;
+      daysPerWeek: number | null;
+      maxStudents: number;
+      availableFrom: string;
+      teachesOnline: boolean;
+      zoneCount: number;
+      /** @enum {string} */
+      status: "DRAFT" | "OPEN" | "FILLED" | "CLOSED" | "EXPIRED";
+      /** @enum {string} */
+      moderationStatus: "PENDING" | "APPROVED" | "REJECTED";
+      /** Format: date-time */
+      createdAt: string;
+      closed: boolean;
+      myApplication: components["schemas"]["MyApplication"] | null;
+      zoneIds: string[];
+      moderationNote: string | null;
+      /** Format: date-time */
+      updatedAt: string;
+      pendingRequestCount: number;
+      requestCount: number;
+    };
+    MyPackageList: {
+      packages: components["schemas"]["MyPackage"][];
+    };
     NotificationPage: {
       notifications: components["schemas"]["AppNotification"][];
       nextCursor: string | null;
@@ -7069,20 +7567,25 @@ export interface components {
         ratingAvg: number;
         ratingCount: number;
       };
-      subjectId: number;
-      areaId: number | null;
+      title: string;
+      description: string;
       /** @enum {string} */
-      curriculum:
+      coverage: "FULL_CURRICULUM" | "PARTIAL";
+      durationWeeks: number;
+      price: number;
+      subjectIds: number[];
+      levelMin: number;
+      levelMax: number;
+      curricula: (
         | "BANGLA_MEDIUM"
         | "ENGLISH_VERSION"
         | "EM_CAMBRIDGE"
         | "EM_EDEXCEL"
         | "EM_IB"
         | "EM_AMERICAN"
-        | "MADRASAH";
-      levelCode: number;
-      academicGroup:
-        ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID") | null;
+        | "MADRASAH"
+      )[];
+      academicGroups: ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID")[];
       admissionTargets: (
         | "ENGINEERING"
         | "MEDICAL"
@@ -7095,13 +7598,14 @@ export interface components {
         | "ABROAD_TESTS"
         | "ISSB"
       )[];
-      isRetaker: boolean;
-      levelNote: string | null;
-      timeOfDay: string;
-      daysPerWeek: number;
-      expectedSalary: number;
-      studentCount: number;
+      timeFrom: string;
+      timeTo: string;
+      availableDays: number;
+      daysPerWeek: number | null;
+      maxStudents: number;
       availableFrom: string;
+      teachesOnline: boolean;
+      zoneCount: number;
       /** @enum {string} */
       status: "DRAFT" | "OPEN" | "FILLED" | "CLOSED" | "EXPIRED";
       /** @enum {string} */
@@ -7428,7 +7932,6 @@ export interface components {
       teachesOnline: boolean;
       subjectIds: number[];
       zoneIds: string[];
-      mappedPackageCount: number;
     };
     TutorRequirementList: {
       requirements: components["schemas"]["TutorRequirement"][];
@@ -7508,6 +8011,49 @@ export interface components {
     };
     UnreadCount: {
       count: number;
+    };
+    UpdatePackageInput: {
+      title?: string;
+      description?: string;
+      /** @enum {string} */
+      coverage?: "FULL_CURRICULUM" | "PARTIAL";
+      durationWeeks?: number;
+      price?: number;
+      subjectIds?: number[];
+      levelMin?: number;
+      levelMax?: number;
+      curricula?: (
+        | "BANGLA_MEDIUM"
+        | "ENGLISH_VERSION"
+        | "EM_CAMBRIDGE"
+        | "EM_EDEXCEL"
+        | "EM_IB"
+        | "EM_AMERICAN"
+        | "MADRASAH"
+      )[];
+      academicGroups?: ("SCIENCE" | "BUSINESS" | "HUMANITIES" | "MUJABBID")[];
+      admissionTargets?: (
+        | "ENGINEERING"
+        | "MEDICAL"
+        | "VARSITY_SCIENCE"
+        | "VARSITY_HUMANITIES"
+        | "VARSITY_BUSINESS"
+        | "AGRICULTURE"
+        | "IBA_BUP"
+        | "PRIVATE_UNI"
+        | "ABROAD_TESTS"
+        | "ISSB"
+      )[];
+      timeFrom?: string;
+      timeTo?: string;
+      availableDays?: number;
+      daysPerWeek?: number | null;
+      maxStudents?: number;
+      /** Format: date */
+      availableFrom?: string;
+      teachesOnline?: boolean;
+      zoneIds?: string[];
+      syncProfileSubjects?: boolean;
     };
     UpdateRequirementInput: {
       areaId?: number;
@@ -7648,6 +8194,7 @@ export interface components {
       placeId: string | null;
       addressText: string | null;
       requirementIds: string[];
+      packageIds: string[];
       createdAt: string;
       updatedAt: string;
     };
@@ -7660,6 +8207,13 @@ export interface components {
         name: string;
         isDefault: boolean;
         isActive: boolean;
+        teachesOnline: boolean;
+        remainingZoneCount: number;
+      }[];
+      affectedPackages: {
+        /** Format: uuid */
+        id: string;
+        title: string;
         teachesOnline: boolean;
         remainingZoneCount: number;
       }[];

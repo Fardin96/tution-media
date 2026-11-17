@@ -176,6 +176,24 @@ export function formatRadius(radiusM: number): string {
   return `${Number.isInteger(km) ? km : km.toFixed(2).replace(/0$/, "")} km`;
 }
 
+function countText(count: number, one: string, many: string) {
+  return count === 1 ? `1 ${one}` : `${count} ${many}`;
+}
+
+/** "Not used yet", "Used by 1 set", "Used by 2 sets · 1 package". */
+export function zoneUsageText(
+  zone: Pick<TutorZone, "requirementIds" | "packageIds">,
+) {
+  const parts: string[] = [];
+  if (zone.requirementIds.length > 0) {
+    parts.push(countText(zone.requirementIds.length, "set", "sets"));
+  }
+  if (zone.packageIds.length > 0) {
+    parts.push(countText(zone.packageIds.length, "package", "packages"));
+  }
+  return parts.length === 0 ? "Not used yet" : `Used by ${parts.join(" · ")}`;
+}
+
 export function useTutorZones() {
   return useQuery({
     queryKey: queryKeys.tutor.zones,
