@@ -80,13 +80,24 @@ export function packagePlaceText(
   return zones ?? "No zone";
 }
 
-/** The pill on a tutor's package card. A confirmed request counts as taken even while the package is OPEN. */
-export function packageState(pkg: Pick<MyPackage, "status" | "closed">): {
+/**
+ * The pill on a tutor's package card. A confirmed request counts as taken even while the package is OPEN.
+ * An open package waits for admin review first: students see it only once it is APPROVED.
+ */
+export function packageState(
+  pkg: Pick<MyPackage, "status" | "closed" | "moderationStatus">,
+): {
   label: string;
   tone: Tone;
 } {
   if (pkg.closed) return { label: "Taken", tone: "success" };
-  if (pkg.status === "OPEN") return { label: "Live", tone: "info" };
+  if (pkg.status === "OPEN") {
+    if (pkg.moderationStatus === "PENDING")
+      return { label: "In review", tone: "info" };
+    if (pkg.moderationStatus === "REJECTED")
+      return { label: "Changes needed", tone: "error" };
+    return { label: "Live", tone: "info" };
+  }
   return { label: "Closed", tone: "neutral" };
 }
 

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth.server";
-import { cn } from "@/lib/utils";
-import { primaryButton } from "@/components/profile/styles";
 import { isFeatureEnabled, getFeatureFlags } from "@/lib/features";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -17,6 +15,8 @@ export default async function DashboardPage() {
 
   if (user.role === "STUDENT" || user.role === "TUTOR")
     return <ProfileDashboard session={user} featureFlags={flags} />;
+  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN")
+    redirect("/dashboard/admin");
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[var(--color-neutral-off-white)] px-6 py-12">
@@ -46,14 +46,6 @@ export default async function DashboardPage() {
         </p>
 
         <div className="mt-8 grid gap-3">
-          {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
-            <Link
-              href="/dashboard/admin/zone-requests"
-              className={cn(primaryButton, "min-h-10 px-4 text-sm")}
-            >
-              Review zone requests
-            </Link>
-          )}
           <LogoutButton className="h-10 w-auto px-4 text-sm" />
           {isFeatureEnabled("DELETE_ACCOUNT", flags) && (
             <DeleteAccountButton className="h-10" />

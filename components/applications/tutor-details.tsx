@@ -9,6 +9,7 @@ import {
   studentsText,
   subjectNames,
 } from "@/components/applications/format";
+import { useSubjects } from "@/lib/subjects";
 import type { EducationLookup } from "@/lib/education";
 import { daysSummary, formatTimeRange } from "@/lib/tutor-requirements";
 import type {
@@ -100,6 +101,7 @@ export function TutorSetSection({
   tutorSet: ApplicationTutorSet;
   lookup: EducationLookup | undefined;
 }) {
+  const { subjects } = useSubjects();
   const { set, matchedBy } = tutorSet;
 
   const rows = [
@@ -113,7 +115,7 @@ export function TutorSetSection({
       ),
     },
     { label: "Curricula", value: curriculaText(lookup, set.curricula) },
-    { label: "Subjects", value: subjectNames(set.subjectIds) },
+    { label: "Subjects", value: subjectNames(set.subjectIds, subjects) },
     { label: "Time", value: formatTimeRange(set.timeFrom, set.timeTo) },
     { label: "Days", value: daysSummary(set) },
     { label: "Minimum salary", value: minSalaryText(set.minSalary) },

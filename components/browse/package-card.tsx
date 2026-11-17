@@ -9,6 +9,7 @@ import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { formatDay, subjectNames } from "@/components/applications/format";
 import type { TuitionPackage } from "@/lib/browse";
 import { useEducationLookup } from "@/lib/education";
+import { useSubjects } from "@/lib/subjects";
 import { durationLabel, packageLevelText, priceLabel } from "@/lib/packages";
 import { daysSummary, formatTimeRange } from "@/lib/tutor-requirements";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,8 @@ export function studentPlaceText(
 /** Renders an `<li>`; the parent list is a `<ul>`. */
 export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
   const { data: lookup } = useEducationLookup();
-  const subjects = subjectNames(pkg.subjectIds);
+  const { subjects: subjectOptions } = useSubjects();
+  const subjects = subjectNames(pkg.subjectIds, subjectOptions);
   const mine = pkg.myApplication;
 
   return (

@@ -215,12 +215,12 @@ describe("ZoneRequestsPage (admin queue)", () => {
     ).toBeInTheDocument();
   });
 
-  it("links back to the dashboard", () => {
+  it("links back to the admin overview", () => {
     mockQueue([]);
     renderPage();
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
       "href",
-      "/dashboard",
+      "/dashboard/admin",
     );
   });
 

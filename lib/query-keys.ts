@@ -18,10 +18,32 @@ export const queryKeys = {
     profileSubjects: ["tutor", "profile-subjects"] as const,
   },
   admin: {
+    all: ["admin"] as const,
     zoneRequestsAll: ["admin", "zone-requests"] as const,
     zoneRequests: (filters: { status: ZoneRequestStatus }) =>
       ["admin", "zone-requests", filters] as const,
+    team: ["admin", "team"] as const,
+    accountsAll: ["admin", "accounts"] as const,
+    accounts: <F extends object>(filters: F) =>
+      ["admin", "accounts", "list", filters] as const,
+    account: (id: string) => ["admin", "accounts", "detail", id] as const,
+    applications: <F extends object>(filters: F) =>
+      ["admin", "applications", filters] as const,
+    feesAll: ["admin", "fees"] as const,
+    fees: <F extends object>(filters: F) =>
+      ["admin", "fees", "list", filters] as const,
+    fee: (id: string) => ["admin", "fees", "detail", id] as const,
+    packagesAll: ["admin", "packages"] as const,
+    packages: <F extends object>(filters: F) =>
+      ["admin", "packages", "list", filters] as const,
+    package: (id: string) => ["admin", "packages", "detail", id] as const,
+    subjects: ["admin", "subjects"] as const,
+    settings: ["admin", "settings"] as const,
+    auditLogs: <F extends object>(filters: F) =>
+      ["admin", "audit-logs", filters] as const,
   },
+  /** Public GET /subjects: the live subject list for pickers and labels. */
+  subjects: ["subjects"] as const,
   packages: { mine: ["packages", "mine"] as const },
   lookups: { education: ["lookups", "education"] as const },
   applications: {

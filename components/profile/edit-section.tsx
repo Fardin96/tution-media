@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { useSubjects } from "@/lib/subjects";
 import { cn } from "@/lib/utils";
 import {
   AREAS,
-  SUBJECTS,
   conflictField,
   formatBdPhone,
   optionName,
@@ -185,6 +185,7 @@ export function EditSection({
 }
 
 function Value({ field, values }: { field: FieldDef; values: ProfileForm }) {
+  const { subjects } = useSubjects();
   const empty = (
     <span className="font-normal text-[var(--color-text-secondary)]">
       Not added
@@ -202,7 +203,7 @@ function Value({ field, values }: { field: FieldDef; values: ProfileForm }) {
     case "areas":
     case "subjects": {
       const ids = field.kind === "areas" ? values.areaIds : values.subjectIds;
-      const list = field.kind === "areas" ? AREAS : SUBJECTS;
+      const list = field.kind === "areas" ? AREAS : subjects;
       if (!ids.length) return empty;
       return (
         <ul className="mt-1 flex flex-wrap gap-2">

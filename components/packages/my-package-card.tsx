@@ -27,7 +27,8 @@ import {
   useClosePackage,
   type MyPackage,
 } from "@/lib/packages";
-import { SUBJECTS, optionName } from "@/lib/profile";
+import { optionName } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import { formatTimeRange } from "@/lib/tutor-requirements";
 import { toastError, toastSuccess } from "@/lib/toast";
 
@@ -57,13 +58,14 @@ export function MyPackageCard({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const close = useClosePackage();
+  const { subjects: subjectOptions } = useSubjects();
 
   const state = packageState(pkg);
   const requests = requestSummary(pkg);
   const isLive = pkg.status === "OPEN";
   const needsZone = isLive && !pkg.teachesOnline && pkg.zoneCount === 0;
   const subjects = pkg.subjectIds
-    .map((id) => optionName(SUBJECTS, id))
+    .map((id) => optionName(subjectOptions, id))
     .join(", ");
 
   function confirmClose() {
@@ -84,6 +86,14 @@ export function MyPackageCard({
         body={<p className="line-clamp-3">{pkg.description}</p>}
         details={
           <>
+            {pkg.moderationStatus === "REJECTED" && pkg.moderationNote && (
+              <p className="font-medium text-[var(--color-semantic-error-text)]">
+                {`Admin note: ${pkg.moderationNote}`}
+              </p>
+            )}
+            {isLive && pkg.moderationStatus === "PENDING" && (
+              <p>Students can&apos;t see it until an admin approves it.</p>
+            )}
             <p>{`${COVERAGE_LABEL[pkg.coverage]} · ${durationLabel(pkg.durationWeeks)}`}</p>
             <p>{packageLevelText(lookup, pkg)}</p>
             <p>{subjects}</p>

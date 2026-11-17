@@ -4,7 +4,7 @@ import {
   type BrowserContext,
   type Route,
 } from "@playwright/test";
-import { sessionCookie, tutorProfile } from "./profile-mocks";
+import { sessionCookie, subjectsMock, tutorProfile } from "./profile-mocks";
 import type { EducationLookup } from "@/lib/education";
 import type { TutorRequirement } from "@/lib/tutor-requirements";
 
@@ -79,7 +79,7 @@ const EDUCATION_LOOKUP: EducationLookup = {
   ],
 };
 
-// Matches the ids in SUBJECTS (lib/profile.ts).
+// Matches the ids in subjectsMock (__tests__/e2e/profile-mocks.ts).
 const SUBJECT_NAMES: Record<number, string> = {
   1: "Bangla",
   2: "English",
@@ -176,6 +176,10 @@ async function mockTutorApi(
           subjects: state.profileSubjectIds.map(toOption),
         },
       });
+    }
+
+    if (path === "/subjects" && method === "GET") {
+      return json(route, subjectsMock);
     }
 
     if (path === "/tutors/me/subjects" && method === "PUT") {

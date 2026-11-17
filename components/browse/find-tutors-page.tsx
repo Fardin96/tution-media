@@ -26,7 +26,8 @@ import {
   levelOptionsFor,
   useEducationLookup,
 } from "@/lib/education";
-import { SUBJECTS, AREAS } from "@/lib/profile";
+import { AREAS } from "@/lib/profile";
+import { useSubjects } from "@/lib/subjects";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -260,6 +261,7 @@ function NearbyTutors() {
 }
 
 function SearchTutors() {
+  const { subjects } = useSubjects();
   const [nameInput, setNameInput] = useState("");
   const [area, setArea] = useState("");
   const [subject, setSubject] = useState("");
@@ -362,7 +364,7 @@ function SearchTutors() {
           onChange={setSubject}
         >
           <option value="">All subjects</option>
-          {SUBJECTS.map((s) => (
+          {subjects.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
@@ -400,6 +402,7 @@ function SearchTutors() {
 /* ───────── Packages ───────── */
 
 function PackagesPanel() {
+  const { subjects } = useSubjects();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -544,7 +547,7 @@ function PackagesPanel() {
           }
         >
           <option value="">All subjects</option>
-          {SUBJECTS.map((s) => (
+          {subjects.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>

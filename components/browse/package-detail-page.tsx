@@ -28,6 +28,7 @@ import {
 } from "./browse-ui";
 import { studentPlaceText } from "./package-card";
 import { BackLink } from "@/components/ui/back-link";
+import { useSubjects } from "@/lib/subjects";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
@@ -47,6 +48,7 @@ export function PackageDetailPage({ id }: { id: string }) {
   const query = usePackage(id);
   const request = useRequestPackage();
   const { data: lookup } = useEducationLookup();
+  const { subjects } = useSubjects();
 
   if (query.isPending) {
     return (
@@ -87,7 +89,7 @@ export function PackageDetailPage({ id }: { id: string }) {
     { label: "Coverage", value: COVERAGE_LABEL[pkg.coverage] },
     { label: "Duration", value: durationLabel(pkg.durationWeeks) },
     { label: "Price", value: `${priceLabel(pkg.price)} total` },
-    { label: "Subjects", value: subjectNames(pkg.subjectIds) },
+    { label: "Subjects", value: subjectNames(pkg.subjectIds, subjects) },
     {
       label: "Classes",
       value: [

@@ -6,6 +6,28 @@ import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { FindTuitionsPage } from "@/components/browse/find-tuitions-page";
 
+const SUBJECT_OPTIONS = [
+  "Bangla",
+  "English",
+  "Mathematics",
+  "Higher Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "ICT",
+  "Accounting",
+  "Finance",
+  "Economics",
+  "General Science",
+  "Religion",
+  "Arabic",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   apiFetch: vi.fn(),

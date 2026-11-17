@@ -5,6 +5,28 @@ import userEvent from "@testing-library/user-event";
 import { SetSubjectPicker } from "@/components/tutor-requirements/set-subject-picker";
 import { searchSubjects, type Option } from "@/lib/profile";
 
+const SUBJECT_OPTIONS = [
+  "Bangla",
+  "English",
+  "Mathematics",
+  "Higher Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "ICT",
+  "Accounting",
+  "Finance",
+  "Economics",
+  "General Science",
+  "Religion",
+  "Arabic",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+}));
+
 vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   searchSubjects: vi.fn(),

@@ -13,7 +13,11 @@ export default async function ApplicationRoute({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireSession();
-  if (user.role !== "TUTOR" && user.role !== "STUDENT") redirect("/dashboard");
+  // Admins get the read-only view; the component hides every action for them.
+  const role =
+    user.role === "ADMIN" || user.role === "SUPER_ADMIN" ? "ADMIN" : user.role;
+  if (role !== "TUTOR" && role !== "STUDENT" && role !== "ADMIN")
+    redirect("/dashboard");
 
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const from =
@@ -25,7 +29,7 @@ export default async function ApplicationRoute({
   return (
     <ApplicationDetailPage
       id={id}
-      role={user.role}
+      role={role}
       from={from}
       packageId={packageId}
     />

@@ -8,7 +8,7 @@ import {
   type Curriculum,
   type EducationLookup,
 } from "@/lib/education";
-import { AREAS, SUBJECTS, optionName } from "@/lib/profile";
+import { AREAS, optionName, type Option } from "@/lib/profile";
 import { durationLabel } from "@/lib/packages";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import type { Application } from "@/lib/applications";
@@ -28,8 +28,9 @@ export function formatDay(value: string): string {
   return Number.isNaN(date.getTime()) ? value : DAY_FORMAT.format(date);
 }
 
-export function subjectNames(ids: number[]): string {
-  return ids.map((id) => optionName(SUBJECTS, id)).join(" · ");
+/** Subject names joined for a row. `subjects` is the live list from useSubjects(). */
+export function subjectNames(ids: number[], subjects: Option[]): string {
+  return ids.map((id) => optionName(subjects, id)).join(" · ");
 }
 
 export function areaName(areaId: number | null): string {
@@ -104,10 +105,12 @@ export function scheduleText(target: ApplicationTarget): string | null {
 export function targetRows(
   lookup: EducationLookup | undefined,
   target: ApplicationTarget,
+  // Callers should pass useSubjects().subjects; the default keeps older callers from crashing.
+  subjects: Option[] = [],
 ): { label: string; value: string }[] {
   const isPackage = target.kind === "PACKAGE";
   const rows = [
-    { label: "Subjects", value: subjectNames(target.subjectIds) },
+    { label: "Subjects", value: subjectNames(target.subjectIds, subjects) },
     { label: "Level", value: levelText(lookup, target) ?? "" },
     { label: "Area", value: areaText(target) ?? "" },
     { label: isPackage ? "Price" : "Salary", value: moneyText(target) ?? "" },
