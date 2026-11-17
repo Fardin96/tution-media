@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
+import { daysLabel, daysPerWeekError, daysPerWeekLabel } from "./days";
 import type { AcademicGroup, AdmissionTarget, Curriculum } from "./education";
 import { profileApi, type Option } from "./profile";
 import { queryKeys } from "./query-keys";
@@ -11,16 +12,7 @@ import {
 
 export const MAX_ACTIVE_SETS = 10;
 
-// bit0 = Saturday, matching the server's availableDays bitmask.
-export const DAYS: { bit: number; short: string; label: string }[] = [
-  { bit: 1, short: "Sat", label: "Saturday" },
-  { bit: 2, short: "Sun", label: "Sunday" },
-  { bit: 4, short: "Mon", label: "Monday" },
-  { bit: 8, short: "Tue", label: "Tuesday" },
-  { bit: 16, short: "Wed", label: "Wednesday" },
-  { bit: 32, short: "Thu", label: "Thursday" },
-  { bit: 64, short: "Fri", label: "Friday" },
-];
+export { DAYS, daysLabel } from "./days";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type TutorRequirement = Schemas["TutorRequirement"];
@@ -39,6 +31,8 @@ export interface TutorRequirementForm {
   timeFrom: string;
   timeTo: string;
   availableDays: number;
+  /** 1-7, or null for any number of the available days. */
+  daysPerWeek: number | null;
   /** Digits, may contain commas. "" means no floor. */
   minSalary: string;
   maxStudents: number;
@@ -113,6 +107,7 @@ export function emptyTutorRequirementForm(): TutorRequirementForm {
     timeFrom: "16:00",
     timeTo: "18:00",
     availableDays: 127,
+    daysPerWeek: 3,
     minSalary: "",
     maxStudents: 1,
     availableFrom: getLocalIsoDate(),
@@ -135,6 +130,7 @@ export function fromTutorRequirement(
     timeFrom: r.timeFrom,
     timeTo: r.timeTo,
     availableDays: r.availableDays,
+    daysPerWeek: r.daysPerWeek,
     minSalary: r.minSalary === null ? "" : String(r.minSalary),
     maxStudents: r.maxStudents,
     availableFrom: r.availableFrom,
@@ -185,6 +181,12 @@ export function validateTutorRequirementForm(
   if (form.availableDays === 0) {
     errors.availableDays = "Choose at least one day.";
   }
+  if (form.daysPerWeek === null) {
+    errors.daysPerWeek = "Choose how many days a week.";
+  } else {
+    const fit = daysPerWeekError(form.daysPerWeek, form.availableDays);
+    if (fit) errors.daysPerWeek = fit;
+  }
 
   const salary = form.minSalary.replace(/,/g, "").trim();
   if (salary !== "" && !(/^\d+$/.test(salary) && Number(salary) > 0)) {
@@ -224,6 +226,7 @@ export function toCreatePayload(
     timeFrom: form.timeFrom,
     timeTo: form.timeTo,
     availableDays: form.availableDays,
+    daysPerWeek: form.daysPerWeek,
     minSalary: salaryValue(form.minSalary),
     maxStudents: form.maxStudents,
     availableFrom: form.availableFrom,
@@ -273,6 +276,9 @@ export function toPatch(
   if (form.timeTo !== original.timeTo) patch.timeTo = form.timeTo;
   if (form.availableDays !== original.availableDays) {
     patch.availableDays = form.availableDays;
+  }
+  if (form.daysPerWeek !== original.daysPerWeek) {
+    patch.daysPerWeek = form.daysPerWeek;
   }
   if (salaryValue(form.minSalary) !== original.minSalary) {
     patch.minSalary = salaryValue(form.minSalary);
@@ -327,12 +333,12 @@ export function subjectRemovalImpact(
   return { affected, emptied, emptiedArchived };
 }
 
-export function daysLabel(mask: number): string {
-  if (mask === 127) return "Every day";
-  if (mask === 0) return "No days";
-  return DAYS.filter((d) => (mask & d.bit) !== 0)
-    .map((d) => d.short)
-    .join(", ");
+/** "2 days a week · Sat, Mon" when a count is set, otherwise just the chosen days. */
+export function daysSummary(
+  set: Pick<TutorRequirement, "availableDays" | "daysPerWeek">,
+): string {
+  if (set.daysPerWeek === null) return daysLabel(set.availableDays);
+  return `${daysPerWeekLabel(set.daysPerWeek)} · ${daysLabel(set.availableDays)}`;
 }
 
 export function formatTimeRange(from: string, to: string): string {

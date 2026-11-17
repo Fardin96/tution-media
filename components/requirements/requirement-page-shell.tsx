@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { secondaryButton } from "@/components/profile/styles";
+import { BackLink } from "@/components/ui/back-link";
 
 const WASH = [
   "radial-gradient(60% 50% at 10% 0%, color-mix(in oklab, var(--color-primary-core) 16%, transparent), transparent 70%)",
@@ -15,12 +13,18 @@ const WASH = [
 interface RequirementPageShellProps {
   title: string;
   description: string;
+  /** Where the back link goes. Defaults to the dashboard. */
+  back?: { href: string; label: string };
+  /** Small label above the title. */
+  eyebrow?: string;
   children: React.ReactNode;
 }
 
 export function RequirementPageShell({
   title,
   description,
+  back = { href: "/dashboard", label: "Dashboard" },
+  eyebrow = "Tuition requirement",
   children,
 }: RequirementPageShellProps) {
   return (
@@ -39,18 +43,14 @@ export function RequirementPageShell({
             className="h-10 w-auto sm:h-12"
           />
         </Link>
-        <Link
-          href="/dashboard"
-          className={cn(secondaryButton, "min-h-10 px-4")}
-        >
-          <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-          Back to dashboard
-        </Link>
       </header>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+        <div className="mb-4 flex">
+          <BackLink href={back.href}>{back.label}</BackLink>
+        </div>
         <p className="text-sm font-semibold text-[var(--color-primary-core)]">
-          Tuition requirement
+          {eyebrow}
         </p>
         <h1
           id="requirement-form-title"

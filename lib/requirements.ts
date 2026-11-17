@@ -5,6 +5,7 @@ import {
   type EducationFields,
 } from "./education";
 import type { TUITION_TYPES } from "./profile";
+import { daysPerWeekError, EVERY_DAY } from "./days";
 
 export type TuitionType = (typeof TUITION_TYPES)[number];
 
@@ -23,6 +24,7 @@ export type RequirementForm = EducationFields & {
   areaId: number | null;
   tuitionType: TuitionType;
   daysPerWeek: number;
+  availableDays: number;
   timeOfDay: string;
   hireByDate: string;
   salary: string;
@@ -97,6 +99,7 @@ export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
     areaId: defaultAreaId ?? null,
     tuitionType: "Home Tutoring Solo",
     daysPerWeek: 3,
+    availableDays: EVERY_DAY,
     timeOfDay: "",
     hireByDate: getLocalIsoDate(in14Days),
     salary: "",
@@ -118,6 +121,7 @@ export function fromRequirement(r: Requirement): RequirementForm {
     areaId: r.areaId ?? null,
     tuitionType: r.tuitionType ?? "Home Tutoring Solo",
     daysPerWeek: r.daysPerWeek ?? 3,
+    availableDays: r.availableDays ?? EVERY_DAY,
     timeOfDay: r.timeOfDay ?? "",
     hireByDate: r.hireByDate ?? "",
     salary: r.salary ? String(r.salary) : "",
@@ -135,7 +139,8 @@ export function hasAnyInput(form: RequirementForm): boolean {
     form.instituteName.trim().length > 0 ||
     form.areaId !== null ||
     form.salary.trim().length > 0 ||
-    form.timeOfDay.trim().length > 0
+    form.timeOfDay.trim().length > 0 ||
+    form.availableDays !== EVERY_DAY
   );
 }
 
@@ -165,6 +170,7 @@ export function toPayload(
     if (form.areaId !== null) payload.areaId = form.areaId;
     if (form.tuitionType) payload.tuitionType = form.tuitionType;
     if (form.daysPerWeek) payload.daysPerWeek = form.daysPerWeek;
+    if (form.availableDays) payload.availableDays = form.availableDays;
     if (form.timeOfDay) payload.timeOfDay = form.timeOfDay;
     if (form.hireByDate) payload.hireByDate = form.hireByDate;
     if (!isNaN(salaryNum) && salaryNum > 0) payload.salary = salaryNum;
@@ -185,6 +191,7 @@ export function toPayload(
     areaId: form.areaId as number,
     tuitionType: form.tuitionType,
     daysPerWeek: form.daysPerWeek,
+    availableDays: form.availableDays,
     timeOfDay: form.timeOfDay,
     hireByDate: form.hireByDate,
     salary: isNaN(salaryNum) ? 0 : salaryNum,
@@ -236,8 +243,14 @@ export function validateRequirementForm(
   if (!form.tuitionType) {
     errors.tuitionType = "Choose one.";
   }
+  if (form.availableDays === 0) {
+    errors.availableDays = "Choose at least one day.";
+  }
   if (!form.daysPerWeek || form.daysPerWeek < 1 || form.daysPerWeek > 7) {
     errors.daysPerWeek = "Choose how many days.";
+  } else {
+    const fit = daysPerWeekError(form.daysPerWeek, form.availableDays);
+    if (fit) errors.daysPerWeek = fit;
   }
   if (!form.timeOfDay || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.timeOfDay)) {
     errors.timeOfDay = "Pick a time.";

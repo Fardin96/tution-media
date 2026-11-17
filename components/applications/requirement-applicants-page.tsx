@@ -2,10 +2,11 @@
 
 import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
+import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
@@ -46,7 +47,7 @@ function ApplicantCard({ application }: { application: Application }) {
           {`Applied ${formatDay(application.appliedAt)}`}
         </p>
         <Link
-          href={`/dashboard/applications/${application.id}`}
+          href={`/dashboard/applications/${application.id}?from=applicants`}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
           View tutor
@@ -118,12 +119,6 @@ export function RequirementApplicantsPage({
         <p className="text-pretty text-[var(--color-text-secondary)]">
           No tutors have applied to this tuition yet.
         </p>
-        <Link
-          href="/dashboard"
-          className={cn(secondaryButton, "min-h-10 px-4")}
-        >
-          Back to dashboard
-        </Link>
       </div>
     );
   } else {
@@ -141,13 +136,7 @@ export function RequirementApplicantsPage({
   return (
     <PageFrame>
       <div className="grid gap-6">
-        <Link
-          href="/dashboard"
-          className={cn(secondaryButton, "min-h-10 self-start px-4")}
-        >
-          <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-          Dashboard
-        </Link>
+        <BackLink href="/dashboard">Dashboard</BackLink>
 
         <header className="grid gap-2">
           <div className="flex flex-wrap items-center gap-3">

@@ -245,12 +245,14 @@ export function Chip({
   label,
   checked,
   onChange,
+  invalid,
 }: {
   type: "radio" | "checkbox";
   name: string;
   label: string;
   checked: boolean;
   onChange: () => void;
+  invalid?: boolean;
 }) {
   const Unchecked = type === "radio" ? Circle : Plus;
   return (
@@ -267,6 +269,7 @@ export function Chip({
         name={name}
         checked={checked}
         onChange={onChange}
+        aria-invalid={invalid || undefined}
         className="sr-only"
       />
       {/* Plus/check cross-fade; the fill change is the static cue. */}

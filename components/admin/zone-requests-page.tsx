@@ -13,6 +13,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { BackLink } from "@/components/ui/back-link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatRequestDate } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -119,6 +120,9 @@ export function ZoneRequestsPage() {
   return (
     <main className="min-h-dvh bg-[var(--color-neutral-off-white)] px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
       <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-4 flex">
+          <BackLink href="/dashboard">Dashboard</BackLink>
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
           Zone requests
         </h1>

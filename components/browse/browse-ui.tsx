@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
 
@@ -10,24 +9,6 @@ export const SEGMENT_SELECTED =
 export const SEGMENT_IDLE =
   "text-[var(--color-text-secondary)] hover:text-[var(--color-neutral-charcoal)]";
 export const SEGMENT_BUTTON = `min-h-10 rounded-full px-4 text-sm font-semibold transition-[background-color,box-shadow,color] duration-150 ease-out active:scale-[0.96] motion-reduce:transition-none ${focusRing}`;
-
-export function BackLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(secondaryButton, "min-h-10 self-start px-4")}
-    >
-      <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-      {children}
-    </Link>
-  );
-}
 
 export function Segmented<T extends string>({
   label,

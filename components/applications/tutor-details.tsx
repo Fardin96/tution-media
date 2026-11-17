@@ -10,7 +10,7 @@ import {
   subjectNames,
 } from "@/components/applications/format";
 import type { EducationLookup } from "@/lib/education";
-import { daysLabel, formatTimeRange } from "@/lib/tutor-requirements";
+import { daysSummary, formatTimeRange } from "@/lib/tutor-requirements";
 import type {
   ApplicationTutorProfile,
   ApplicationTutorSet,
@@ -119,7 +119,7 @@ export function TutorSetSection({
     { label: "Curricula", value: curriculaText(lookup, set.curricula) },
     { label: "Subjects", value: subjectNames(set.subjectIds) },
     { label: "Time", value: formatTimeRange(set.timeFrom, set.timeTo) },
-    { label: "Days", value: daysLabel(set.availableDays) },
+    { label: "Days", value: daysSummary(set) },
     { label: "Minimum salary", value: minSalaryText(set.minSalary) },
     { label: "Max students", value: studentsText(set.maxStudents) },
   ].filter((row) => row.value !== "");

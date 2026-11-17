@@ -37,8 +37,8 @@ import {
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import { PackageCard } from "./package-card";
 import { TutorResultCard } from "./tutor-result-card";
+import { BackLink } from "@/components/ui/back-link";
 import {
-  BackLink,
   EmptyCard,
   ErrorBlock,
   FilterSelect,

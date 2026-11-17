@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dashboardVisibleCount,
   daysLabel,
+  daysSummary,
   emptyTutorRequirementForm,
   fromTutorRequirement,
   formatTimeRange,
@@ -35,6 +36,7 @@ const original: TutorRequirement = {
   timeFrom: "16:00",
   timeTo: "18:00",
   availableDays: 127,
+  daysPerWeek: null,
   minSalary: 8000,
   maxStudents: 2,
   availableFrom: "2026-11-01",
@@ -125,6 +127,33 @@ describe("validateTutorRequirementForm", () => {
     ).toBe("Choose at least one day.");
   });
 
+  it("requires a days-per-week choice", () => {
+    expect(
+      validateTutorRequirementForm({ ...validForm, daysPerWeek: null })
+        .daysPerWeek,
+    ).toBe("Choose how many days a week.");
+  });
+
+  it("rejects more days a week than the chosen days cover", () => {
+    expect(
+      validateTutorRequirementForm({
+        ...validForm,
+        availableDays: 1 | 4,
+        daysPerWeek: 4,
+      }).daysPerWeek,
+    ).toBe("Pick at least 4 days, or fewer days a week.");
+  });
+
+  it("accepts a days-per-week count equal to the chosen days", () => {
+    expect(
+      validateTutorRequirementForm({
+        ...validForm,
+        availableDays: 1 | 4,
+        daysPerWeek: 2,
+      }),
+    ).toEqual({});
+  });
+
   it("accepts an empty salary floor or a positive amount with commas", () => {
     expect(
       validateTutorRequirementForm({ ...validForm, minSalary: "" }),
@@ -166,6 +195,7 @@ describe("toCreatePayload", () => {
       timeFrom: "16:00",
       timeTo: "18:00",
       availableDays: 127,
+      daysPerWeek: 3,
       minSalary: 8000,
       maxStudents: 1,
       availableFrom: validForm.availableFrom,
@@ -174,6 +204,15 @@ describe("toCreatePayload", () => {
       zoneIds: [],
     });
     expect("syncProfileSubjects" in payload).toBe(false);
+  });
+
+  it("sends the form's daysPerWeek, including null", () => {
+    expect(
+      toCreatePayload({ ...validForm, daysPerWeek: 5 }, [3]).daysPerWeek,
+    ).toBe(5);
+    expect(
+      toCreatePayload({ ...validForm, daysPerWeek: null }, [3]).daysPerWeek,
+    ).toBeNull();
   });
 
   it("sends the form's zoneIds", () => {
@@ -208,6 +247,26 @@ describe("toPatch", () => {
           academicGroups: ["BUSINESS", "SCIENCE"],
           subjectIds: [1, 3],
         },
+        [3, 1],
+      ),
+    ).toEqual({});
+  });
+
+  it("sends daysPerWeek only when it changed", () => {
+    expect(toPatch(original, { ...form, daysPerWeek: 3 }, [3, 1])).toEqual({
+      daysPerWeek: 3,
+    });
+    expect(
+      toPatch(
+        { ...original, daysPerWeek: 3 },
+        { ...form, daysPerWeek: null },
+        [3, 1],
+      ),
+    ).toEqual({ daysPerWeek: null });
+    expect(
+      toPatch(
+        { ...original, daysPerWeek: 3 },
+        { ...form, daysPerWeek: 3 },
         [3, 1],
       ),
     ).toEqual({});
@@ -329,6 +388,23 @@ describe("daysLabel", () => {
     expect(daysLabel(127)).toBe("Every day");
     expect(daysLabel(0)).toBe("No days");
     expect(daysLabel(1 | 4)).toBe("Sat, Mon");
+  });
+});
+
+describe("daysSummary", () => {
+  it("leads with the count when one is set", () => {
+    expect(daysSummary({ availableDays: 1 | 4, daysPerWeek: 2 })).toBe(
+      "2 days a week · Sat, Mon",
+    );
+    expect(daysSummary({ availableDays: 127, daysPerWeek: 1 })).toBe(
+      "1 day a week · Every day",
+    );
+  });
+
+  it("shows only the chosen days when the count is null", () => {
+    expect(daysSummary({ availableDays: 1 | 4, daysPerWeek: null })).toBe(
+      "Sat, Mon",
+    );
   });
 });
 

@@ -11,7 +11,6 @@ import { mapServerIssuesToFields } from "@/lib/api-errors";
 import { invalidateTutorRequirements, queryKeys } from "@/lib/query-keys";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
-  DAYS,
   emptyTutorRequirementForm,
   fromTutorRequirement,
   newProfileSubjects,
@@ -30,6 +29,10 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import {
+  DaysOfWeekField,
+  DaysPerWeekField,
+} from "@/components/requirements/day-fields";
 import { EducationRangePicker } from "@/components/tutor-requirements/education-range-picker";
 import { SetSubjectPicker } from "@/components/tutor-requirements/set-subject-picker";
 import { ZonePicker } from "@/components/tutor-requirements/zone-picker";
@@ -78,6 +81,8 @@ export function TutorRequirementForm({
       for (const k of Object.keys(patch)) {
         delete next[k as keyof FormState];
       }
+      // The days-per-week fit depends on the chosen days, so drop its stale error.
+      if ("availableDays" in patch) delete next.daysPerWeek;
       return next;
     });
   };
@@ -242,36 +247,19 @@ export function TutorRequirementForm({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <span id={`${idPrefix}-days-label`} className={labelClass}>
-              Days
-            </span>
-            <div
-              role="group"
-              aria-labelledby={`${idPrefix}-days-label`}
-              aria-describedby={
-                errors.availableDays ? `${idPrefix}-days-error` : undefined
-              }
-              className="flex flex-wrap gap-2"
-            >
-              {DAYS.map((d) => (
-                <Chip
-                  key={d.bit}
-                  type="checkbox"
-                  name={`${idPrefix}-availableDays`}
-                  label={d.label}
-                  checked={(form.availableDays & d.bit) !== 0}
-                  onChange={() =>
-                    updateForm({ availableDays: form.availableDays ^ d.bit })
-                  }
-                />
-              ))}
-            </div>
-            <FieldError
-              id={`${idPrefix}-days-error`}
-              message={errors.availableDays}
-            />
-          </div>
+          <DaysOfWeekField
+            idPrefix={idPrefix}
+            value={form.availableDays}
+            onChange={(availableDays) => updateForm({ availableDays })}
+            error={errors.availableDays}
+          />
+
+          <DaysPerWeekField
+            idPrefix={idPrefix}
+            value={form.daysPerWeek}
+            onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
+            error={errors.daysPerWeek}
+          />
 
           <div className="grid gap-2">
             <label htmlFor={`${idPrefix}-availableFrom`} className={labelClass}>

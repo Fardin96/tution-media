@@ -111,6 +111,7 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
         timeFrom: "16:00",
         timeTo: "18:00",
         availableDays: 5,
+        daysPerWeek: 2,
         minSalary: 5000,
         maxStudents: 3,
         teachesOnline: true,
@@ -129,13 +130,13 @@ function mockDetail(body: ApplicationDetail) {
   });
 }
 
-function renderPage(role: "TUTOR" | "STUDENT") {
+function renderPage(role: "TUTOR" | "STUDENT", from?: "applicants") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <ApplicationDetailPage id={APP_ID} role={role} />
+      <ApplicationDetailPage id={APP_ID} role={role} from={from} />
     </QueryClientProvider>,
   );
 }
@@ -166,7 +167,9 @@ describe("ApplicationDetailPage for a student", () => {
     expect(
       within(set).getByText(formatTimeRange("16:00", "18:00")),
     ).toBeInTheDocument();
-    expect(within(set).getByText("Sat, Mon")).toBeInTheDocument();
+    expect(
+      within(set).getByText("2 days a week · Sat, Mon"),
+    ).toBeInTheDocument();
     expect(within(set).getByText("৳5,000 a month")).toBeInTheDocument();
     expect(within(set).getByText("3 students")).toBeInTheDocument();
     expect(within(set).getByText("Teaches online")).toBeInTheDocument();
@@ -221,6 +224,42 @@ describe("ApplicationDetailPage for a student", () => {
     expect(
       screen.queryByRole("region", { name: "Their teaching set" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("ApplicationDetailPage back link", () => {
+  it("returns to the applications list by default", async () => {
+    mockDetail(detail());
+    renderPage("STUDENT");
+
+    expect(
+      await screen.findByRole("link", { name: "Applications" }),
+    ).toHaveAttribute("href", "/dashboard/applications");
+  });
+
+  it("returns to the requirement's applicants when opened from there", async () => {
+    mockDetail(detail());
+    renderPage("STUDENT", "applicants");
+
+    expect(
+      await screen.findByRole("link", { name: "Applicants" }),
+    ).toHaveAttribute("href", "/dashboard/requirements/r1/applicants");
+    expect(
+      screen.queryByRole("link", { name: "Applications" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("falls back to applications when the target is a package", async () => {
+    mockDetail(
+      detail({
+        target: { ...detail().target, kind: "PACKAGE", id: "p1" },
+      }),
+    );
+    renderPage("STUDENT", "applicants");
+
+    expect(
+      await screen.findByRole("link", { name: "Applications" }),
+    ).toHaveAttribute("href", "/dashboard/applications");
   });
 });
 

@@ -1,16 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/profile";
 import { useTutorRequirement } from "@/lib/tutor-requirements";
 import { TutorRequirementForm } from "@/components/tutor-requirements/tutor-requirement-form";
-import {
-  card,
-  primaryButton,
-  secondaryButton,
-} from "@/components/profile/styles";
+import { card, primaryButton } from "@/components/profile/styles";
 
 export function EditTutorRequirementView({ id }: { id: string }) {
   const query = useTutorRequirement(id);
@@ -41,14 +36,8 @@ export function EditTutorRequirementView({ id }: { id: string }) {
             ? "This set doesn't exist or isn't yours."
             : "Couldn't load this set."}
         </h2>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/dashboard/tutor/requirements"
-            className={secondaryButton}
-          >
-            Back to requirement sets
-          </Link>
-          {!notFound && (
+        {!notFound && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => void query.refetch()}
@@ -57,8 +46,8 @@ export function EditTutorRequirementView({ id }: { id: string }) {
               <RotateCw aria-hidden="true" className="size-4" />
               Try again
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }

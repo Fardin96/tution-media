@@ -243,6 +243,7 @@ export function TutorRequirementsPage() {
     <RequirementPageShell
       title="Requirement sets"
       description="Each set says which classes, subjects and times you take. Packages use your default set unless they pick another."
+      eyebrow="Teaching"
     >
       <div className="mt-8 flex flex-col gap-2">
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">

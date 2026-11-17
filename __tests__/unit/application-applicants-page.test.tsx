@@ -95,13 +95,29 @@ describe("RequirementApplicantsPage", () => {
     expect(within(card).getByText("University of Dhaka")).toBeInTheDocument();
     expect(
       within(card).getByRole("link", { name: "View tutor" }),
-    ).toHaveAttribute("href", "/dashboard/applications/app-1");
+    ).toHaveAttribute("href", "/dashboard/applications/app-1?from=applicants");
     expect(
       within(card).getByRole("button", { name: "Accept" }),
     ).toBeInTheDocument();
     expect(
       within(card).getByRole("button", { name: "Decline" }),
     ).toBeInTheDocument();
+  });
+
+  it("links back to the dashboard with one back control", async () => {
+    mockApplicants([]);
+    renderPage();
+
+    expect(
+      await screen.findByText("No tutors have applied to this tuition yet."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Back to dashboard" }),
+    ).not.toBeInTheDocument();
   });
 
   it("leaves out the institute line when the tutor has none", async () => {

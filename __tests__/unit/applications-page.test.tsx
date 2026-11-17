@@ -213,4 +213,16 @@ describe("ApplicationsPage", () => {
     renderPage("TUTOR");
     expect(screen.getByText("Loading applications")).toBeInTheDocument();
   });
+
+  it.each(["TUTOR", "STUDENT"] as const)(
+    "links back to the dashboard for a %s",
+    (role) => {
+      mockList([application({ id: "a1" })]);
+      renderPage(role);
+      expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+        "href",
+        "/dashboard",
+      );
+    },
+  );
 });

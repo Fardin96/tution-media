@@ -12,13 +12,13 @@ import {
 } from "@/components/profile/styles";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import {
-  BackLink,
   EmptyCard,
   ErrorBlock,
   FilterSelect,
   Segmented,
   SkeletonCards,
 } from "@/components/browse/browse-ui";
+import { BackLink } from "@/components/ui/back-link";
 import {
   TuitionCard,
   type TuitionApplyState,
