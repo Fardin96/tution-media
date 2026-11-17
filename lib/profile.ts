@@ -1,5 +1,6 @@
 import { api } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
+import { loadAreas } from "./areas";
 import { loadSubjects } from "./subjects";
 
 export type ProfileRole = "STUDENT" | "TUTOR";
@@ -36,31 +37,6 @@ export interface Option {
 
 /* ───────── Lookups ───────── */
 
-// shortcut: placeholder Dhaka areas; ids match tuition-api/src/seed/index.ts. Replace with
-// Google Places suggestions (mapped to backend area ids) when that integration lands.
-export const AREAS: Option[] = [
-  "Dhanmondi",
-  "Gulshan",
-  "Banani",
-  "Uttara",
-  "Mirpur",
-  "Mohammadpur",
-  "Bashundhara",
-  "Badda",
-  "Rampura",
-  "Khilgaon",
-  "Motijheel",
-  "Old Dhaka",
-  "Lalmatia",
-  "Tejgaon",
-  "Farmgate",
-  "Shyamoli",
-  "Malibagh",
-  "Moghbazar",
-  "Wari",
-  "Jatrabari",
-].map((name, i) => ({ id: i + 1, name }));
-
 export const TUITION_TYPES = [
   "Home Tutoring Solo",
   "Home Tutoring Group",
@@ -70,8 +46,9 @@ export const TUITION_TYPES = [
 
 /** Async so a Places/backend-backed lookup can drop in without touching the picker. */
 export async function searchAreas(query: string): Promise<Option[]> {
+  const areas = await loadAreas();
   const q = query.trim().toLowerCase();
-  return q ? AREAS.filter((a) => a.name.toLowerCase().includes(q)) : AREAS;
+  return q ? areas.filter((a) => a.name.toLowerCase().includes(q)) : areas;
 }
 
 export async function searchSubjects(query: string): Promise<Option[]> {

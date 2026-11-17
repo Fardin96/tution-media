@@ -3,6 +3,7 @@ import { ChevronRight, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { card, focusRing } from "@/components/profile/styles";
 import { useEducationLookup } from "@/lib/education";
+import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import type { Application } from "@/lib/applications";
 import { ApplicationActions } from "@/components/applications/application-actions";
@@ -29,6 +30,7 @@ export function ApplicationCard({
 }) {
   const lookup = useEducationLookup();
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
   const { target } = application;
   const isTutor = role === "TUTOR";
   const counterpartName = isTutor
@@ -39,7 +41,7 @@ export function ApplicationCard({
   const details = [
     subjectNames(target.subjectIds, subjects),
     levelText(lookup.data, target),
-    areaText(target),
+    areaText(target, areas),
   ].filter(Boolean);
   const money = [
     moneyText(target),

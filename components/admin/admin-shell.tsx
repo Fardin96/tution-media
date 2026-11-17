@@ -71,6 +71,12 @@ export const ADMIN_NAV = [
     description: "The subject list tutors and students pick from.",
   },
   {
+    href: "/dashboard/admin/areas",
+    label: "Areas",
+    icon: MapPin,
+    description: "Add, rename or retire the areas people pick.",
+  },
+  {
     href: "/dashboard/admin/settings",
     label: "Settings",
     icon: Settings,

@@ -25,6 +25,7 @@ import {
   TutorSetSection,
 } from "@/components/applications/tutor-details";
 import { useEducationLookup } from "@/lib/education";
+import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { ApiError, formatBdPhone } from "@/lib/profile";
 import { formatTaka } from "@/lib/requirements";
@@ -92,6 +93,7 @@ export function ApplicationDetailPage({
   const query = useApplication(id);
   const lookup = useEducationLookup();
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
 
   // Back returns to the applicants list only when we came from there and the
   // target is a requirement (the applicants list is keyed by requirement id).
@@ -184,7 +186,7 @@ export function ApplicationDetailPage({
         </header>
 
         <Section title="Tuition">
-          <Rows rows={targetRows(lookup.data, app.target, subjects)} />
+          <Rows rows={targetRows(lookup.data, app.target, subjects, areas)} />
         </Section>
 
         {role === "STUDENT" && app.tutorProfile && (

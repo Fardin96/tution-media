@@ -14,6 +14,7 @@ import {
   ErrorBlock,
   SkeletonCards,
 } from "@/components/browse/browse-ui";
+import { useAreas } from "@/lib/areas";
 import { useEducationLookup } from "@/lib/education";
 import type { Application } from "@/lib/applications";
 import {
@@ -37,6 +38,7 @@ function RequestCard({
   packageId: string;
 }) {
   const { student } = application;
+  const { areas } = useAreas();
   return (
     <article className={cn(card, "flex flex-col gap-2 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -45,7 +47,7 @@ function RequestCard({
             {student.name}
           </h2>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            {areaName(student.areaId)}
+            {areaName(student.areaId, areas)}
           </p>
         </div>
         <StatusPill status={application.status} />

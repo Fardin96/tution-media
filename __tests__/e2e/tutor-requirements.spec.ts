@@ -4,7 +4,12 @@ import {
   type BrowserContext,
   type Route,
 } from "@playwright/test";
-import { sessionCookie, subjectsMock, tutorProfile } from "./profile-mocks";
+import {
+  areasMock,
+  sessionCookie,
+  subjectsMock,
+  tutorProfile,
+} from "./profile-mocks";
 import type { EducationLookup } from "@/lib/education";
 import type { TutorRequirement } from "@/lib/tutor-requirements";
 
@@ -180,6 +185,10 @@ async function mockTutorApi(
 
     if (path === "/subjects" && method === "GET") {
       return json(route, subjectsMock);
+    }
+
+    if (path === "/areas" && method === "GET") {
+      return json(route, areasMock);
     }
 
     if (path === "/tutors/me/subjects" && method === "PUT") {

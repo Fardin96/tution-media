@@ -12,6 +12,34 @@ const nav = vi.hoisted(() => ({
   search: "",
 }));
 
+const AREA_OPTIONS = [
+  "Dhanmondi",
+  "Gulshan",
+  "Banani",
+  "Uttara",
+  "Mirpur",
+  "Mohammadpur",
+  "Bashundhara",
+  "Badda",
+  "Rampura",
+  "Khilgaon",
+  "Motijheel",
+  "Old Dhaka",
+  "Lalmatia",
+  "Tejgaon",
+  "Farmgate",
+  "Shyamoli",
+  "Malibagh",
+  "Moghbazar",
+  "Wari",
+  "Jatrabari",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/areas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/areas")>()),
+  useAreas: () => ({ areas: AREA_OPTIONS }),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: nav.replace }),
   usePathname: () => "/dashboard/find-tutors",

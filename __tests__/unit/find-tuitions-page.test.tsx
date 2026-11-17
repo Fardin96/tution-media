@@ -23,6 +23,34 @@ const SUBJECT_OPTIONS = [
   "Arabic",
 ].map((name, i) => ({ id: i + 1, name }));
 
+const AREA_OPTIONS = [
+  "Dhanmondi",
+  "Gulshan",
+  "Banani",
+  "Uttara",
+  "Mirpur",
+  "Mohammadpur",
+  "Bashundhara",
+  "Badda",
+  "Rampura",
+  "Khilgaon",
+  "Motijheel",
+  "Old Dhaka",
+  "Lalmatia",
+  "Tejgaon",
+  "Farmgate",
+  "Shyamoli",
+  "Malibagh",
+  "Moghbazar",
+  "Wari",
+  "Jatrabari",
+].map((name, i) => ({ id: i + 1, name }));
+
+vi.mock("@/lib/areas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/areas")>()),
+  useAreas: () => ({ areas: AREA_OPTIONS }),
+}));
+
 vi.mock("@/lib/subjects", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/subjects")>()),
   useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),

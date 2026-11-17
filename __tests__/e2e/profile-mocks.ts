@@ -23,6 +23,43 @@ export const subjectsMock = {
   ],
 } satisfies Schemas["SubjectList"];
 
+// Same 20 Dhaka areas, ids 1..20, as the placeholder list they replace (ids match tuition-api/src/seed/index.ts).
+export const areasMock = {
+  divisions: [
+    {
+      name: "Dhaka",
+      districts: [
+        {
+          code: "dhaka",
+          name: "Dhaka",
+          areas: [
+            "Dhanmondi",
+            "Gulshan",
+            "Banani",
+            "Uttara",
+            "Mirpur",
+            "Mohammadpur",
+            "Bashundhara",
+            "Badda",
+            "Rampura",
+            "Khilgaon",
+            "Motijheel",
+            "Old Dhaka",
+            "Lalmatia",
+            "Tejgaon",
+            "Farmgate",
+            "Shyamoli",
+            "Malibagh",
+            "Moghbazar",
+            "Wari",
+            "Jatrabari",
+          ].map((name, i) => ({ id: i + 1, name })),
+        },
+      ],
+    },
+  ],
+} satisfies Schemas["AreaList"];
+
 export const sessionCookie = (role: "STUDENT" | "TUTOR") => ({
   name: "session",
   value: JSON.stringify({
@@ -145,6 +182,7 @@ export async function mockApi(
       return json(route, profile, method === "POST" ? 201 : 200);
     }
     if (path === "/subjects") return json(route, subjectsMock);
+    if (path === "/areas") return json(route, areasMock);
     if (path === "/tutors/me/areas")
       return json(route, { areas: [] } satisfies Schemas["TutorAreas"]);
     if (path === "/tutors/me/subjects")
