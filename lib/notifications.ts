@@ -185,6 +185,10 @@ export function notificationText(
       return `${name} cancelled the tuition.`;
     case "APPLICATION_COMPLETED":
       return `${name} marked the tuition as completed.`;
+    case "PACKAGE_UPDATED":
+      return `${name} updated a package you requested.`;
+    case "PACKAGE_CLOSED":
+      return `${name} closed a package you requested.`;
   }
 }
 

@@ -3,10 +3,13 @@ import {
   curriculumOf,
   groupsFor,
   levelLabel,
+  type AcademicGroup,
+  type AdmissionTarget,
   type Curriculum,
   type EducationLookup,
 } from "@/lib/education";
 import { AREAS, SUBJECTS, optionName } from "@/lib/profile";
+import { durationLabel } from "@/lib/packages";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import type { Application } from "@/lib/applications";
 
@@ -33,6 +36,21 @@ export function areaName(areaId: number | null): string {
   return areaId === null ? "Online" : optionName(AREAS, areaId);
 }
 
+/** Packages carry no area on the application, so only requirements show one. */
+export function areaText(target: ApplicationTarget): string | null {
+  return target.kind === "PACKAGE" ? null : areaName(target.areaId);
+}
+
+/** A package is listed by its title; a requirement keeps the other party's name. */
+export function headingText(
+  target: ApplicationTarget,
+  counterpartName: string,
+): string {
+  return target.kind === "PACKAGE" && target.title
+    ? target.title
+    : counterpartName;
+}
+
 /** "Class 9 · Science" style label, or null when the target has no level. */
 export function levelText(
   lookup: EducationLookup | undefined,
@@ -51,6 +69,21 @@ export function levelText(
 export function salaryText(salary: number | null): string | null {
   if (salary === null) return null;
   return `${formatTaka(salary)} a month`;
+}
+
+/** "৳15,000 total" for a package, "৳5,000 a month" for a requirement's salary. */
+export function moneyText(target: ApplicationTarget): string | null {
+  if (target.kind === "PACKAGE") {
+    return target.price === null ? null : `${formatTaka(target.price)} total`;
+  }
+  return salaryText(target.salary);
+}
+
+/** "12 weeks" for a package; requirements have no duration. */
+export function durationText(target: ApplicationTarget): string | null {
+  return target.durationWeeks === null
+    ? null
+    : durationLabel(target.durationWeeks);
 }
 
 export function scheduleText(target: ApplicationTarget): string | null {
@@ -72,16 +105,21 @@ export function targetRows(
   lookup: EducationLookup | undefined,
   target: ApplicationTarget,
 ): { label: string; value: string }[] {
+  const isPackage = target.kind === "PACKAGE";
   const rows = [
     { label: "Subjects", value: subjectNames(target.subjectIds) },
     { label: "Level", value: levelText(lookup, target) ?? "" },
-    { label: "Area", value: areaName(target.areaId) },
-    { label: "Salary", value: salaryText(target.salary) ?? "" },
+    { label: "Area", value: areaText(target) ?? "" },
+    { label: isPackage ? "Price" : "Salary", value: moneyText(target) ?? "" },
+    { label: "Duration", value: durationText(target) ?? "" },
     {
       label: "Days per week",
       value: target.daysPerWeek === null ? "" : String(target.daysPerWeek),
     },
-    { label: "Time", value: formatTime(target.timeOfDay) },
+    {
+      label: isPackage ? "Start time" : "Time",
+      value: formatTime(target.timeOfDay),
+    },
   ];
   return rows.filter((row) => row.value !== "");
 }
@@ -143,6 +181,32 @@ export function curriculaText(
   }
   return curricula
     .map((c) => curriculumOf(lookup, c)?.label)
+    .filter((label): label is string => Boolean(label))
+    .join(" · ");
+}
+
+/** "Science · Business". Group labels live under each curriculum in the lookup. */
+export function groupNamesText(
+  lookup: EducationLookup | undefined,
+  codes: AcademicGroup[],
+): string {
+  return codes
+    .map(
+      (code) =>
+        lookup?.curricula.flatMap((c) => c.groups).find((g) => g.code === code)
+          ?.label,
+    )
+    .filter((label): label is string => Boolean(label))
+    .join(" · ");
+}
+
+/** Admission target labels, e.g. "Engineering · Medical". */
+export function admissionNamesText(
+  lookup: EducationLookup | undefined,
+  codes: AdmissionTarget[],
+): string {
+  return codes
+    .map((code) => lookup?.admissionTargets.find((t) => t.code === code)?.label)
     .filter((label): label is string => Boolean(label))
     .join(" · ");
 }

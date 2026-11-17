@@ -116,7 +116,6 @@ function makeSet(
     teachesOnline: false,
     subjectIds: [PHYSICS],
     zoneIds: [],
-    mappedPackageCount: 0,
     ...overrides,
   };
 }

@@ -109,10 +109,14 @@ function BlobLayer({ id, blobs, viewBoxX, width, className }: BlobLayerProps) {
                 offset={t}
                 // `style`, not the attribute: only CSS resolves var()/color-mix.
                 style={{ stopColor: blob.color }}
-                stopOpacity={
-                  Math.min(1, blob.opacity * STRENGTH) *
-                  Math.exp(-0.5 * (SIGMAS * t) ** 2)
-                }
+                // Rounded: Math.exp differs in the last digit between Node and
+                // the browser, which broke hydration.
+                stopOpacity={Number(
+                  (
+                    Math.min(1, blob.opacity * STRENGTH) *
+                    Math.exp(-0.5 * (SIGMAS * t) ** 2)
+                  ).toFixed(4),
+                )}
               />
             ))}
           </radialGradient>

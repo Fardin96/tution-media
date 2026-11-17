@@ -68,6 +68,7 @@ function zone(id: string, label: string, radiusM = 2000): TutorZone {
     placeId: null,
     addressText: null,
     requirementIds: [],
+    packageIds: [],
     createdAt: "2026-11-01T00:00:00Z",
     updatedAt: "2026-11-01T00:00:00Z",
   };
@@ -128,7 +129,6 @@ const SET: TutorRequirement = {
   teachesOnline: false,
   subjectIds: [1],
   zoneIds: [],
-  mappedPackageCount: 0,
 };
 
 function renderForm(initialData?: TutorRequirement) {

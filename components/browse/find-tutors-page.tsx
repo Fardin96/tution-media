@@ -435,15 +435,15 @@ function PackagesPanel() {
       />
     );
   } else if (packages.length === 0) {
-    // Placeholder until tutors can publish packages; keep it free of sample data.
+    // Empty result for the current filters. Packages are live, so the copy points at the filters, not at a future feature.
     body = (
       <div className={cn(card, "grid gap-3 p-6")}>
         <p className="font-semibold text-[var(--color-neutral-charcoal)]">
-          No packages yet
+          No packages found
         </p>
         <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
-          Tutors will be able to publish fixed packages soon. Meanwhile, browse
-          tutors or post a requirement.
+          No packages match these filters yet. Browse tutors or post a
+          requirement instead.
         </p>
         <div className="mt-1 flex flex-wrap gap-2">
           <Link

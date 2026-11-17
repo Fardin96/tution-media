@@ -18,7 +18,6 @@ export const ERROR_CODES = {
   WhatsappInUse: "WHATSAPP_IN_USE",
   RequirementLimitReached: "REQUIREMENT_LIMIT_REACHED",
   RequirementIsDefault: "REQUIREMENT_IS_DEFAULT",
-  RequirementInUse: "REQUIREMENT_IN_USE",
   RequirementArchived: "REQUIREMENT_ARCHIVED",
   RequirementHasNoSubjects: "REQUIREMENT_NO_SUBJECTS",
   RequirementLosesLastSubject: "REQUIREMENT_LOSES_LAST_SUBJECT",
@@ -79,6 +78,10 @@ function countOf(details: ApiError["details"], key: string): number | null {
   return Array.isArray(value) ? value.length : null;
 }
 
+function countPhrase(count: number, singular: string, plural: string): string {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
+}
+
 // Keyed by the generated ErrorCode union: a new backend code needs a message or typecheck fails.
 const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   VALIDATION_ERROR: "Some fields need fixing. Check the form and try again.",
@@ -96,28 +99,22 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "You can have up to 10 active requirement sets. Archive one first.",
   REQUIREMENT_IS_DEFAULT:
     "You can't archive your default set. Make another set the default first.",
-  REQUIREMENT_IN_USE: (err) => {
-    const n = countOf(err.details, "packageIds");
-    if (!n) {
-      return "This set is used by open packages. Move them to another set first.";
-    }
-    if (n === 1) {
-      return "This set is used by 1 open package. Move it to another set first.";
-    }
-    return `This set is used by ${n} open packages. Move them to another set first.`;
-  },
   REQUIREMENT_ARCHIVED: "Restore this set before making it the default.",
   REQUIREMENT_NO_SUBJECTS:
     "Add at least one subject to this set before restoring it.",
   REQUIREMENT_LOSES_LAST_SUBJECT: (err) => {
-    const n = countOf(err.details, "requirementIds");
-    if (!n) {
-      return "Removing this subject would leave a requirement set with no subjects.";
+    const sets = countOf(err.details, "requirementIds") ?? 0;
+    const packages = countOf(err.details, "packageIds") ?? 0;
+    if (packages === 0) {
+      if (sets === 0) {
+        return "Removing this subject would leave a requirement set with no subjects.";
+      }
+      return `Removing this subject would leave ${countPhrase(sets, "requirement set", "requirement sets")} with no subjects.`;
     }
-    if (n === 1) {
-      return "Removing this subject would leave 1 requirement set with no subjects.";
+    if (sets === 0) {
+      return `Removing this subject would leave ${countPhrase(packages, "package", "packages")} with no subjects.`;
     }
-    return `Removing this subject would leave ${n} requirement sets with no subjects.`;
+    return `Removing this subject would leave ${countPhrase(sets, "requirement set", "requirement sets")} and ${countPhrase(packages, "package", "packages")} with no subjects.`;
   },
   INVALID_REQUIREMENT: "Check the level, group and time range.",
   INVALID_SUBJECT_OR_ZONE: "Pick only subjects and zones from your profile.",

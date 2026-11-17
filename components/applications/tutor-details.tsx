@@ -101,10 +101,6 @@ export function TutorSetSection({
   lookup: EducationLookup | undefined;
 }) {
   const { set, matchedBy } = tutorSet;
-  const title =
-    matchedBy === "PACKAGE"
-      ? "The set behind this package"
-      : "Their teaching set";
 
   const rows = [
     {
@@ -125,7 +121,7 @@ export function TutorSetSection({
   ].filter((row) => row.value !== "");
 
   return (
-    <Section title={title}>
+    <Section title="Their teaching set">
       <div className="grid gap-4">
         {matchedBy === "DEFAULT" && (
           <p className="text-sm text-pretty text-[var(--color-text-secondary)]">

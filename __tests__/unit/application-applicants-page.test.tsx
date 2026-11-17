@@ -45,6 +45,9 @@ function application(
       salary: 5000,
       daysPerWeek: 3,
       timeOfDay: "16:00",
+      title: null,
+      price: null,
+      durationWeeks: null,
     },
     allowedActions: ["confirm", "reject"],
   };

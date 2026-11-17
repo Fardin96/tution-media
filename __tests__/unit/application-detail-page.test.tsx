@@ -77,6 +77,9 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
       salary: 5000,
       daysPerWeek: 3,
       timeOfDay: "16:00",
+      title: null,
+      price: null,
+      durationWeeks: null,
     },
     allowedActions: [],
     counterpartContact: null,
@@ -121,6 +124,26 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
   };
 }
 
+function packageTarget(): ApplicationDetail["target"] {
+  return {
+    kind: "PACKAGE",
+    id: "p1",
+    status: "OPEN",
+    closed: false,
+    areaId: null,
+    subjectIds: [5],
+    curriculum: null,
+    levelCode: null,
+    academicGroup: null,
+    salary: null,
+    daysPerWeek: 3,
+    timeOfDay: "16:00",
+    title: "SSC Physics crash course",
+    price: 15000,
+    durationWeeks: 12,
+  };
+}
+
 function mockDetail(body: ApplicationDetail) {
   vi.mocked(apiFetch).mockImplementation(async (input) => {
     const { pathname } = new URL(input, "http://localhost");
@@ -130,13 +153,22 @@ function mockDetail(body: ApplicationDetail) {
   });
 }
 
-function renderPage(role: "TUTOR" | "STUDENT", from?: "applicants") {
+function renderPage(
+  role: "TUTOR" | "STUDENT",
+  from?: "applicants" | "package-requests",
+  packageId?: string,
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <ApplicationDetailPage id={APP_ID} role={role} from={from} />
+      <ApplicationDetailPage
+        id={APP_ID}
+        role={role}
+        from={from}
+        packageId={packageId}
+      />
     </QueryClientProvider>,
   );
 }
@@ -196,18 +228,17 @@ describe("ApplicationDetailPage for a student", () => {
     ).toBeInTheDocument();
   });
 
-  it("titles the set as the one behind a package", async () => {
+  it("omits the set section for a package, which has no tutor set", async () => {
     mockDetail(
       detail({
-        tutorSet: { ...detail().tutorSet!, matchedBy: "PACKAGE" },
+        target: packageTarget(),
+        tutorSet: null,
       }),
     );
     renderPage("STUDENT");
 
     expect(
-      await screen.findByRole("region", {
-        name: "The set behind this package",
-      }),
+      await screen.findByRole("region", { name: "Tutor" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("region", { name: "Their teaching set" }),
@@ -224,6 +255,27 @@ describe("ApplicationDetailPage for a student", () => {
     expect(
       screen.queryByRole("region", { name: "Their teaching set" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("ApplicationDetailPage for a package", () => {
+  it("titles the page with the package and shows the total price and duration", async () => {
+    mockDetail(detail({ target: packageTarget() }));
+    renderPage("STUDENT");
+
+    const heading = await screen.findByRole("heading", {
+      level: 1,
+      name: "SSC Physics crash course",
+    });
+    expect(heading.parentElement).toHaveTextContent("Rafiq Ahmed");
+
+    const tuition = screen.getByRole("region", { name: "Tuition" });
+    expect(within(tuition).getByText("Price")).toBeInTheDocument();
+    expect(within(tuition).getByText("৳15,000 total")).toBeInTheDocument();
+    expect(within(tuition).getByText("12 weeks")).toBeInTheDocument();
+    expect(within(tuition).getByText("Physics")).toBeInTheDocument();
+    expect(within(tuition).queryByText("Area")).not.toBeInTheDocument();
+    expect(within(tuition).queryByText("Salary")).not.toBeInTheDocument();
   });
 });
 
@@ -244,6 +296,24 @@ describe("ApplicationDetailPage back link", () => {
     expect(
       await screen.findByRole("link", { name: "Applicants" }),
     ).toHaveAttribute("href", "/dashboard/requirements/r1/applicants");
+    expect(
+      screen.queryByRole("link", { name: "Applications" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("returns to the package's requests when opened from there", async () => {
+    mockDetail(
+      detail({
+        target: { ...detail().target, kind: "PACKAGE", id: "p1" },
+      }),
+    );
+    renderPage("TUTOR", "package-requests", "p1");
+
+    const back = await screen.findByRole("link", { name: "Requests" });
+    expect(back).toHaveAttribute(
+      "href",
+      "/dashboard/tutor/packages/p1/requests",
+    );
     expect(
       screen.queryByRole("link", { name: "Applications" }),
     ).not.toBeInTheDocument();

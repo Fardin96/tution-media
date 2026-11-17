@@ -16,6 +16,8 @@ interface ZonePickerProps {
   onChange: (ids: string[]) => void;
   teachesOnline: boolean;
   idPrefix: string;
+  /** Shown when there is no zone and no online teaching; empty hides it. Defaults to the set wording. */
+  emptyHint?: string;
 }
 
 export function ZonePicker({
@@ -23,6 +25,7 @@ export function ZonePicker({
   onChange,
   teachesOnline,
   idPrefix,
+  emptyHint = "To make this your default for applying, pick at least one zone or turn on online teaching.",
 }: ZonePickerProps) {
   const zonesQuery = useTutorZones();
   const zones = zonesQuery.data?.zones;
@@ -84,7 +87,9 @@ export function ZonePicker({
           role="group"
           aria-label="Teaching zones"
           aria-describedby={
-            !teachesOnline && value.length === 0 ? hintId : undefined
+            !teachesOnline && value.length === 0 && emptyHint
+              ? hintId
+              : undefined
           }
           className="flex flex-wrap gap-2"
         >
@@ -108,10 +113,9 @@ export function ZonePicker({
         </div>
       )}
 
-      {!teachesOnline && value.length === 0 && (
+      {!teachesOnline && value.length === 0 && emptyHint && (
         <p id={hintId} className={hintClass}>
-          To make this your default for applying, pick at least one zone or turn
-          on online teaching.
+          {emptyHint}
         </p>
       )}
 

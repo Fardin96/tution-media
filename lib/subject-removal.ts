@@ -35,13 +35,22 @@ export function joinNames(names: string[]): string {
 
 const UNKNOWN_SET_NAME = "One of your sets";
 
-function blockedBody(sets: BlockedSet[]): string[] {
+function blockedBody(sets: BlockedSet[], packageCount = 0): string[] {
+  const packageLine =
+    packageCount === 0
+      ? []
+      : [
+          packageCount === 1
+            ? "1 open package would have no subjects left."
+            : `${packageCount} open packages would have no subjects left.`,
+        ];
   return [
     ...sets.map((s) =>
       s.name === UNKNOWN_SET_NAME
         ? `${s.name} would have no subjects left.`
         : `'${s.name}' would have no subjects left.`,
     ),
+    ...packageLine,
     BLOCKED_FOOTER,
   ];
 }
@@ -80,7 +89,7 @@ export function describeRemoval(
   return { kind: "confirm", title: "Remove from your sets too?", body };
 }
 
-/** Maps a server REQUIREMENT_LOSES_LAST_SUBJECT 409 to the blocked dialog shape. */
+/** Maps a server REQUIREMENT_LOSES_LAST_SUBJECT 409 to the blocked dialog shape. Open packages are counted, not named. */
 export function blockedFromServerError(
   err: unknown,
   sets: TutorRequirement[],
@@ -94,6 +103,8 @@ export function blockedFromServerError(
 
   const raw = err.details?.requirementIds;
   const ids = Array.isArray(raw) ? raw.map((id) => String(id)) : [];
+  const rawPackages = err.details?.packageIds;
+  const packageCount = Array.isArray(rawPackages) ? rawPackages.length : 0;
   const blocked: BlockedSet[] = ids.map((id) => {
     const known = sets.find((s) => s.id === id);
     return known
@@ -104,7 +115,7 @@ export function blockedFromServerError(
   return {
     kind: "blocked",
     title: BLOCKED_TITLE,
-    body: blockedBody(blocked),
+    body: blockedBody(blocked, packageCount),
     sets: blocked,
   };
 }

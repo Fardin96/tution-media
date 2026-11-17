@@ -41,7 +41,6 @@ function set(id: string, name: string, isDefault = false): TutorRequirement {
     teachesOnline: false,
     subjectIds: [1],
     zoneIds: [],
-    mappedPackageCount: 0,
   };
 }
 
@@ -98,6 +97,20 @@ describe("TutorRequirementsSection", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "View more" })).toBeNull();
     expect(screen.getByRole("link", { name: "New set" })).toBeInTheDocument();
+  });
+
+  it("shows the default badge, the classes description and the minimum salary", () => {
+    mockSets([{ ...set("1", "Only set", true), minSalary: 6500 }]);
+    render(<TutorRequirementsSection />);
+
+    expect(
+      screen.getByText("The classes, subjects and times you take."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Packages use/)).toBeNull();
+    expect(screen.getByText("Default")).toBeInTheDocument();
+    expect(screen.getByText("৳6,500")).toBeInTheDocument();
+    expect(screen.getByText("/ month")).toBeInTheDocument();
+    expect(screen.queryByText(/Used by/)).toBeNull();
   });
 
   it("shows the empty state when there are no sets", () => {

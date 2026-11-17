@@ -22,6 +22,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { TutorRequirementCard } from "@/components/tutor-requirements/tutor-requirement-card";
+import { accentAt } from "@/components/ui/listing-card";
 import { useSetActions } from "@/components/tutor-requirements/use-set-actions";
 
 const NEW_SET_HREF = "/dashboard/tutor/requirements/new";
@@ -31,7 +32,7 @@ const editHref = (id: string) => `/dashboard/tutor/requirements/${id}/edit`;
 
 function SkeletonCards({ count }: { count: number }) {
   return (
-    <div role="status" className="mt-5 grid gap-4">
+    <div role="status" className="mt-5 grid gap-4 sm:grid-cols-2">
       <span className="sr-only">Loading your sets</span>
       {Array.from({ length: count }, (_, i) => (
         <div
@@ -133,13 +134,14 @@ export function TutorRequirementsPage() {
       </Link>
     </EmptyBlock>
   ) : (
-    <ul className="mt-5 grid gap-4">
-      {active.map((set) => (
+    <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+      {active.map((set, index) => (
         <li key={set.id}>
           <TutorRequirementCard
             set={set}
             lookup={lookup.data}
             subjectNames={subjectNames}
+            accent={accentAt(index)}
             actions={
               <>
                 <Link
@@ -187,8 +189,8 @@ export function TutorRequirementsPage() {
           {`You have ${MAX_ACTIVE_SETS} active sets. Archive one before you restore another.`}
         </p>
       )}
-      <ul className="mt-5 grid gap-4">
-        {archived.map((set: TutorRequirement) => {
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+        {archived.map((set: TutorRequirement, index) => {
           const noSubjects = set.subjectIds.length === 0;
           return (
             <li key={set.id}>
@@ -196,6 +198,7 @@ export function TutorRequirementsPage() {
                 set={set}
                 lookup={lookup.data}
                 subjectNames={subjectNames}
+                accent={accentAt(index)}
                 actions={
                   noSubjects ? (
                     <>
@@ -242,7 +245,7 @@ export function TutorRequirementsPage() {
   return (
     <RequirementPageShell
       title="Requirement sets"
-      description="Each set says which classes, subjects and times you take. Packages use your default set unless they pick another."
+      description="Each set says which classes, subjects and times you take."
       eyebrow="Teaching"
     >
       <div className="mt-8 flex flex-col gap-2">

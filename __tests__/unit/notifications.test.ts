@@ -41,6 +41,8 @@ const KINDS: NotificationKind[] = [
   "APPLICATION_REOPENED",
   "APPLICATION_CANCELLED",
   "APPLICATION_COMPLETED",
+  "PACKAGE_UPDATED",
+  "PACKAGE_CLOSED",
 ];
 
 /** Copy from the spec, per kind: [requirement text, package text]. Kinds with one copy repeat it. */
@@ -80,6 +82,14 @@ const COPY: Record<NotificationKind, [string, string]> = {
   APPLICATION_COMPLETED: [
     "Ana marked the tuition as completed.",
     "Ana marked the tuition as completed.",
+  ],
+  PACKAGE_UPDATED: [
+    "Ana updated a package you requested.",
+    "Ana updated a package you requested.",
+  ],
+  PACKAGE_CLOSED: [
+    "Ana closed a package you requested.",
+    "Ana closed a package you requested.",
   ],
 };
 

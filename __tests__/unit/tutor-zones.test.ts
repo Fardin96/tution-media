@@ -6,6 +6,7 @@ import {
   toCreateZonePayload,
   toZonePatch,
   validateZoneForm,
+  zoneUsageText,
   type TutorZone,
   type ZoneForm,
 } from "@/lib/tutor-zones";
@@ -34,6 +35,7 @@ function zone(overrides: Partial<TutorZone> = {}): TutorZone {
     placeId: "place-1",
     addressText: "Road 27, Dhaka",
     requirementIds: [],
+    packageIds: [],
     createdAt: "2026-11-01T00:00:00.000Z",
     updatedAt: "2026-11-01T00:00:00.000Z",
     ...overrides,
@@ -204,5 +206,41 @@ describe("emptyZoneForm", () => {
     expect(form.lat).toBeNull();
     expect(form.lng).toBeNull();
     expect(form.radiusM).toBe(2000);
+  });
+});
+
+describe("zoneUsageText", () => {
+  it("says not used yet when no set or package uses the zone", () => {
+    expect(zoneUsageText(zone())).toBe("Not used yet");
+  });
+
+  it("counts one set", () => {
+    expect(zoneUsageText(zone({ requirementIds: ["r1"] }))).toBe(
+      "Used by 1 set",
+    );
+  });
+
+  it("counts several sets", () => {
+    expect(zoneUsageText(zone({ requirementIds: ["r1", "r2"] }))).toBe(
+      "Used by 2 sets",
+    );
+  });
+
+  it("counts one package", () => {
+    expect(zoneUsageText(zone({ packageIds: ["p1"] }))).toBe(
+      "Used by 1 package",
+    );
+  });
+
+  it("joins sets and packages with a dot", () => {
+    expect(
+      zoneUsageText(zone({ requirementIds: ["r1", "r2"], packageIds: ["p1"] })),
+    ).toBe("Used by 2 sets · 1 package");
+  });
+
+  it("counts several packages alone", () => {
+    expect(zoneUsageText(zone({ packageIds: ["p1", "p2"] }))).toBe(
+      "Used by 2 packages",
+    );
   });
 });

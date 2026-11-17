@@ -16,6 +16,18 @@ export default async function ApplicationRoute({
   if (user.role !== "TUTOR" && user.role !== "STUDENT") redirect("/dashboard");
 
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const from = query.from === "applicants" ? "applicants" : undefined;
-  return <ApplicationDetailPage id={id} role={user.role} from={from} />;
+  const from =
+    query.from === "applicants" || query.from === "package-requests"
+      ? query.from
+      : undefined;
+  const packageId =
+    typeof query.package === "string" ? query.package : undefined;
+  return (
+    <ApplicationDetailPage
+      id={id}
+      role={user.role}
+      from={from}
+      packageId={packageId}
+    />
+  );
 }
