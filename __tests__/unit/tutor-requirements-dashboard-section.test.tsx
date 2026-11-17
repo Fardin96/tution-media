@@ -34,6 +34,7 @@ function set(id: string, name: string, isDefault = false): TutorRequirement {
     timeFrom: "16:00",
     timeTo: "18:00",
     availableDays: 127,
+    daysPerWeek: null,
     minSalary: null,
     maxStudents: 1,
     availableFrom: "2026-11-01",

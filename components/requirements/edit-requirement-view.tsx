@@ -1,17 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { RequirementForm } from "@/components/requirements/requirement-form";
 import { requirementApi, type Requirement } from "@/lib/requirements";
-import {
-  card,
-  primaryButton,
-  secondaryButton,
-} from "@/components/profile/styles";
+import { card, primaryButton } from "@/components/profile/styles";
 
 export function EditRequirementView({ id }: { id: string }) {
   const [requirement, setRequirement] = useState<Requirement | null>(null);
@@ -74,9 +69,6 @@ export function EditRequirementView({ id }: { id: string }) {
             {error}
           </h2>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/dashboard" className={secondaryButton}>
-              Back to dashboard
-            </Link>
             <button
               type="button"
               onClick={() => {

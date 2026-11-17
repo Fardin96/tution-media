@@ -11,6 +11,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { ApplicationCard } from "@/components/applications/application-card";
+import { BackLink } from "@/components/ui/back-link";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import {
   STATUS_META,
@@ -164,7 +165,9 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
         </HeaderLink>
       }
     >
-      <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
+      <BackLink href="/dashboard">Dashboard</BackLink>
+
+      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
         Applications
       </h1>
       <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">

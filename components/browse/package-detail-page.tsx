@@ -18,13 +18,13 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import {
-  BackLink,
   EmptyCard,
   ErrorBlock,
   RatingInline,
   SkeletonCards,
   TutorInitial,
 } from "./browse-ui";
+import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
@@ -41,9 +41,7 @@ export function PackageDetailPage({ id }: { id: string }) {
   if (query.isPending) {
     return (
       <PageFrame>
-        <BackLink href="/dashboard/find-tutors?tab=packages">
-          Find tutors
-        </BackLink>
+        <BackLink href="/dashboard/find-tutors?tab=packages">Packages</BackLink>
         <div className="mt-6">
           <SkeletonCards label="Loading package" count={1} />
         </div>
@@ -54,22 +52,13 @@ export function PackageDetailPage({ id }: { id: string }) {
   if (query.isError) {
     return (
       <PageFrame>
-        <BackLink href="/dashboard/find-tutors?tab=packages">
-          Find tutors
-        </BackLink>
+        <BackLink href="/dashboard/find-tutors?tab=packages">Packages</BackLink>
         <div className="mt-6">
           {isNotFound(query.error) ? (
             <EmptyCard
               title="This package isn't available."
               body="It may have been removed, or it isn't open to students."
-            >
-              <Link
-                href="/dashboard/find-tutors?tab=packages"
-                className={cn(secondaryButton, "min-h-10 px-4")}
-              >
-                Back to packages
-              </Link>
-            </EmptyCard>
+            />
           ) : (
             <ErrorBlock
               message="Couldn't load this package."
@@ -105,9 +94,7 @@ export function PackageDetailPage({ id }: { id: string }) {
 
   return (
     <PageFrame>
-      <BackLink href="/dashboard/find-tutors?tab=packages">
-        Find tutors
-      </BackLink>
+      <BackLink href="/dashboard/find-tutors?tab=packages">Packages</BackLink>
 
       <h1 className="mt-4 text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
         {subject}

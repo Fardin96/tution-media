@@ -78,6 +78,7 @@ import {
   statusMeta,
   type Requirement,
 } from "@/lib/requirements";
+import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -1676,7 +1677,9 @@ function RequirementItem({
           )}
           {r.daysPerWeek && (
             <li className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
-              {r.daysPerWeek} {r.daysPerWeek === 1 ? "day" : "days"} a week
+              {daysPerWeekLabel(r.daysPerWeek)}
+              {r.availableDays !== EVERY_DAY &&
+                ` · ${daysLabel(r.availableDays)}`}
             </li>
           )}
           {r.timeOfDay && (

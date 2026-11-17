@@ -121,6 +121,7 @@ const SET: TutorRequirement = {
   timeFrom: "16:00",
   timeTo: "18:00",
   availableDays: 127,
+  daysPerWeek: 3,
   minSalary: null,
   maxStudents: 1,
   availableFrom: "2026-11-01",
@@ -230,6 +231,41 @@ describe("TutorRequirementForm", () => {
     expect(tutorRequirementApi.update).not.toHaveBeenCalled();
     expect(tutorRequirementApi.create).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith("/dashboard/tutor/requirements");
+  });
+
+  it("offers a days-per-week choice that defaults to 3 on create", () => {
+    renderForm();
+
+    const group = screen.getByRole("radiogroup", { name: "Days per week" });
+    expect(within(group).getByRole("radio", { name: "3" })).toBeChecked();
+  });
+
+  it("asks for a count when a saved set has none, instead of saving null", async () => {
+    const user = userEvent.setup();
+    renderForm({ ...SET, daysPerWeek: null });
+
+    expect(screen.getByText("Any number of days")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(
+      await screen.findByText("Choose how many days a week."),
+    ).toBeInTheDocument();
+    expect(tutorRequirementApi.update).not.toHaveBeenCalled();
+  });
+
+  it("sends the picked daysPerWeek when editing", async () => {
+    const user = userEvent.setup();
+    renderForm(SET);
+
+    const group = screen.getByRole("radiogroup", { name: "Days per week" });
+    await user.click(within(group).getByRole("radio", { name: "5" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(tutorRequirementApi.update).toHaveBeenCalledWith("req-1", {
+        daysPerWeek: 5,
+      }),
+    );
   });
 
   it("lists the tutor's zones as checkboxes in the Zones group", () => {

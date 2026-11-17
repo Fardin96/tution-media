@@ -167,7 +167,7 @@ describe("FindTuitionsPage", () => {
     ).toBeInTheDocument();
     expect(first.getByText("Dhanmondi")).toBeInTheDocument();
     expect(first.getByText("৳25,000 a month")).toBeInTheDocument();
-    expect(first.getByText("3 days a week")).toBeInTheDocument();
+    expect(first.getByText("3 days a week · Sat, Mon")).toBeInTheDocument();
     expect(first.getByText("2.5 km away")).toBeInTheDocument();
     expect(first.getByText(/Hire by Dec 1, 2026/)).toBeInTheDocument();
     expect(screen.getByText("2 tuitions")).toBeInTheDocument();

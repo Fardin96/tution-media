@@ -14,6 +14,7 @@ import type { ApplicationStatus } from "@/lib/applications";
 import type { BrowseRequirement } from "@/lib/browse";
 import { formatDistanceKm } from "@/lib/browse";
 import { formatTaka, formatTime } from "@/lib/requirements";
+import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
@@ -63,10 +64,13 @@ export function TuitionCard({
 }: TuitionCardProps) {
   const distance = formatDistanceKm(tuition.distanceKm);
   const time = formatTime(tuition.timeOfDay);
-  const days =
-    tuition.daysPerWeek === null
-      ? null
-      : `${tuition.daysPerWeek} ${plural(tuition.daysPerWeek, "day", "days")} a week`;
+  const dayParts = [
+    tuition.daysPerWeek === null ? null : daysPerWeekLabel(tuition.daysPerWeek),
+    tuition.availableDays !== EVERY_DAY
+      ? daysLabel(tuition.availableDays)
+      : null,
+  ].filter((part): part is string => part !== null);
+  const days = dayParts.length > 0 ? dayParts.join(" · ") : null;
   const students =
     tuition.studentCount === null
       ? null

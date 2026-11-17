@@ -1,8 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -10,6 +8,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
+import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
@@ -69,12 +68,6 @@ function NotFound() {
       <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
         It may have been removed. Check your list of applications.
       </p>
-      <Link
-        href="/dashboard/applications"
-        className={cn(secondaryButton, "min-h-10 px-4")}
-      >
-        Back to applications
-      </Link>
     </div>
   );
 }
@@ -82,22 +75,25 @@ function NotFound() {
 export function ApplicationDetailPage({
   id,
   role,
+  from,
 }: {
   id: string;
   role: "TUTOR" | "STUDENT";
+  /** "applicants" when opened from a requirement's applicants list. */
+  from?: "applicants";
 }) {
   const query = useApplication(id);
   const lookup = useEducationLookup();
 
-  const backLink = (
-    <Link
-      href="/dashboard/applications"
-      className={cn(secondaryButton, "min-h-10 self-start px-4")}
-    >
-      <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-      Applications
-    </Link>
-  );
+  // Back returns to the applicants list only when we came from there and the
+  // target is a requirement (the applicants list is keyed by requirement id).
+  const back =
+    from === "applicants" && query.data?.target.kind === "REQUIREMENT"
+      ? {
+          href: `/dashboard/requirements/${query.data.target.id}/applicants`,
+          label: "Applicants",
+        }
+      : { href: "/dashboard/applications", label: "Applications" };
 
   let body: ReactNode;
   if (query.isPending) {
@@ -261,7 +257,7 @@ export function ApplicationDetailPage({
   return (
     <PageFrame>
       <div className="grid gap-6">
-        {backLink}
+        <BackLink href={back.href}>{back.label}</BackLink>
         {body}
       </div>
     </PageFrame>

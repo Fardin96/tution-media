@@ -18,6 +18,11 @@ export default async function NewTutorRequirementPage() {
     <RequirementPageShell
       title="New requirement set"
       description="Students who match these can see your packages."
+      back={{
+        href: "/dashboard/tutor/requirements",
+        label: "Requirement sets",
+      }}
+      eyebrow="Requirement set"
     >
       <TutorRequirementForm />
     </RequirementPageShell>

@@ -1030,85 +1030,6 @@ export interface paths {
     };
     trace?: never;
   };
-  "/api/v1/students/me/verification": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Submit my ID for verification
-     * @description Not built yet. Always answers 501 until the storage module lands.
-     *
-     *     **Who:** STUDENT.
-     *
-     *     **Rate limit:** global 100/min.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Missing, invalid or expired access token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description The account's role cannot call this route */
-        403: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Rate limit hit */
-        429: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Unexpected error. In production the message is masked */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Not implemented yet */
-        501: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/api/v1/students/{id}": {
     parameters: {
       query?: never;
@@ -1785,70 +1706,7 @@ export interface paths {
       };
     };
     put?: never;
-    /**
-     * Submit a verification
-     * @description Not built yet: answers 501 until the storage module lands. Planned: the tutor uploads an ID file for review.
-     *
-     *     **Who:** TUTOR.
-     *
-     *     **Rate limit:** global 100/min.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Missing, invalid or expired access token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description The account's role cannot call this route */
-        403: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Rate limit hit */
-        429: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Unexpected error. In production the message is masked */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Not implemented yet */
-        501: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-      };
-    };
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2255,70 +2113,7 @@ export interface paths {
       };
     };
     put?: never;
-    /**
-     * Add a credential
-     * @description Not built yet: answers 501 until the storage module lands. Planned: the tutor uploads a certificate file.
-     *
-     *     **Who:** TUTOR.
-     *
-     *     **Rate limit:** global 100/min.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Missing, invalid or expired access token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description The account's role cannot call this route */
-        403: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Rate limit hit */
-        429: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Unexpected error. In production the message is masked */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Not implemented yet */
-        501: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-      };
-    };
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2503,70 +2298,7 @@ export interface paths {
       };
     };
     put?: never;
-    /**
-     * Add a video
-     * @description Not built yet: answers 501 until the storage module lands. Planned: the video is added as PENDING for moderation.
-     *
-     *     **Who:** TUTOR.
-     *
-     *     **Rate limit:** global 100/min.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Missing, invalid or expired access token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description The account's role cannot call this route */
-        403: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Rate limit hit */
-        429: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Unexpected error. In production the message is masked */
-        500: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-        /** @description Not implemented yet */
-        501: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ErrorResponse"];
-          };
-        };
-      };
-    };
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -6800,6 +6532,7 @@ export interface components {
         timeFrom: string;
         timeTo: string;
         availableDays: number;
+        daysPerWeek: number | null;
         minSalary: number | null;
         maxStudents: number;
         teachesOnline: boolean;
@@ -6896,6 +6629,8 @@ export interface components {
           levelNote?: string | null;
           timeOfDay: string;
           daysPerWeek: number;
+          /** @default 127 */
+          availableDays?: number;
           salary: number;
           /** @default 1 */
           studentCount?: number;
@@ -6950,6 +6685,7 @@ export interface components {
           levelNote?: string | null;
           timeOfDay?: string;
           daysPerWeek?: number;
+          availableDays?: number;
           salary?: number;
           /** @default 1 */
           studentCount?: number;
@@ -7037,6 +6773,7 @@ export interface components {
       timeTo: string;
       /** @default 127 */
       availableDays?: number;
+      daysPerWeek?: number | null;
       minSalary?: number | null;
       /** @default 1 */
       maxStudents?: number;
@@ -7423,6 +7160,7 @@ export interface components {
       levelNote: string | null;
       timeOfDay: string | null;
       daysPerWeek: number | null;
+      availableDays: number;
       salary: number | null;
       studentCount: number | null;
       hireByDate: string | null;
@@ -7683,6 +7421,7 @@ export interface components {
       timeFrom: string;
       timeTo: string;
       availableDays: number;
+      daysPerWeek: number | null;
       minSalary: number | null;
       maxStudents: number;
       availableFrom: string;
@@ -7801,6 +7540,7 @@ export interface components {
       levelNote?: string | null;
       timeOfDay?: string;
       daysPerWeek?: number;
+      availableDays?: number;
       salary?: number;
       studentCount?: number;
       /** Format: date */
@@ -7881,6 +7621,7 @@ export interface components {
       timeFrom?: string;
       timeTo?: string;
       availableDays?: number;
+      daysPerWeek?: number | null;
       minSalary?: number | null;
       maxStudents?: number;
       availableFrom?: string;

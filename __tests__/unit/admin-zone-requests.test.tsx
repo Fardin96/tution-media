@@ -215,6 +215,15 @@ describe("ZoneRequestsPage (admin queue)", () => {
     ).toBeInTheDocument();
   });
 
+  it("links back to the dashboard", () => {
+    mockQueue([]);
+    renderPage();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+  });
+
   it("shows an error state with a retry button", () => {
     mockQueue(undefined, { isError: true });
     renderPage();

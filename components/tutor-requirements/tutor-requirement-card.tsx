@@ -7,7 +7,7 @@ import {
   type EducationLookup,
 } from "@/lib/education";
 import {
-  daysLabel,
+  daysSummary,
   formatTimeRange,
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
@@ -100,8 +100,7 @@ export function TutorRequirementCard({
           )}
           <p>{zoneText}</p>
           <p>
-            {daysLabel(set.availableDays)} ·{" "}
-            {formatTimeRange(set.timeFrom, set.timeTo)}
+            {daysSummary(set)} · {formatTimeRange(set.timeFrom, set.timeTo)}
           </p>
           {set.mappedPackageCount > 0 && (
             <p>

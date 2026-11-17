@@ -11,6 +11,10 @@ import { TUITION_TYPES } from "@/lib/profile";
 import type { EducationFields } from "@/lib/education";
 import { EducationLevelPicker } from "@/components/requirements/education-level-picker";
 import {
+  DaysOfWeekField,
+  DaysPerWeekField,
+} from "@/components/requirements/day-fields";
+import {
   emptyRequirementForm,
   fromRequirement,
   getLocalIsoDate,
@@ -30,6 +34,8 @@ import {
   FieldError,
   SubjectPicker,
 } from "@/components/profile/profile-fields";
+import { mapServerIssuesToFields } from "@/lib/api-errors";
+import { ApiError } from "@/lib/profile";
 import {
   card,
   ghostButton,
@@ -109,6 +115,8 @@ export function RequirementForm({
       for (const k of Object.keys(patch)) {
         delete next[k as keyof FormState];
       }
+      // The days-per-week fit depends on the chosen days, so drop its stale error.
+      if ("availableDays" in patch) delete next.daysPerWeek;
       return next;
     });
   };
@@ -175,6 +183,10 @@ export function RequirementForm({
       }
     } catch (err: unknown) {
       setSavingAction(null);
+      if (err instanceof ApiError && err.issues) {
+        setErrors(mapServerIssuesToFields<keyof FormState>(err.issues));
+        focusFirstInvalid();
+      }
       const status = (err as { status?: number }).status;
       const message = (err as { message?: string }).message;
 
@@ -356,48 +368,22 @@ export function RequirementForm({
             />
           </div>
 
-          {/* Days per week & Preferred time pair */}
+          {/* Days available, then days per week & Preferred time pair */}
+          <DaysOfWeekField
+            idPrefix={idPrefix}
+            label="Days available"
+            value={form.availableDays}
+            onChange={(availableDays) => updateForm({ availableDays })}
+            error={errors.availableDays}
+          />
+
           <div className="grid gap-6 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <span
-                id={`${idPrefix}-days-label`}
-                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-              >
-                Days per week
-              </span>
-              <div
-                role="radiogroup"
-                aria-label="Days per week"
-                aria-labelledby={`${idPrefix}-days-label`}
-                className="flex items-center gap-1 rounded-full bg-[var(--color-surface-subtle)] p-1"
-              >
-                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    role="radio"
-                    aria-checked={form.daysPerWeek === d}
-                    onClick={() => updateForm({ daysPerWeek: d })}
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-full text-sm font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)]",
-                      form.daysPerWeek === d
-                        ? "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)] shadow-xs"
-                        : "text-[var(--color-text-secondary)] hover:text-[var(--color-neutral-charcoal)]",
-                    )}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-                {form.daysPerWeek} {form.daysPerWeek === 1 ? "day" : "days"} a
-                week
-              </p>
-              <FieldError
-                id={`${idPrefix}-days-error`}
-                message={errors.daysPerWeek}
-              />
-            </div>
+            <DaysPerWeekField
+              idPrefix={idPrefix}
+              value={form.daysPerWeek}
+              onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
+              error={errors.daysPerWeek}
+            />
 
             <div className="grid gap-2">
               <label

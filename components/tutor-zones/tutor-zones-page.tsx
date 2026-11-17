@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Plus } from "lucide-react";
+import { MapPin, Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
@@ -11,6 +11,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { BackLink } from "@/components/ui/back-link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ZoneLimitRequestDialog } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { ZoneMap, hasMapsKey } from "@/components/tutor-zones/zone-map";
@@ -207,16 +208,12 @@ export function TutorZonesPage() {
             className="h-10 w-auto sm:h-12"
           />
         </Link>
-        <Link
-          href="/dashboard"
-          className={cn(secondaryButton, "min-h-10 px-4")}
-        >
-          <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-          Back to dashboard
-        </Link>
       </header>
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+        <div className="mb-4 flex">
+          <BackLink href="/dashboard">Dashboard</BackLink>
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
           Teaching zones
         </h1>
