@@ -49,6 +49,14 @@ export function validatePercent(text: string, max: number): string | undefined {
   return undefined;
 }
 
+/** Whole days from 0 to `max`. Decimals, signs and blanks are refused. */
+export function validateDays(text: string, max: number): string | undefined {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return "Enter a whole number of days.";
+  if (Number(trimmed) > max) return `Use 0 to ${max} days.`;
+  return undefined;
+}
+
 /** Commission is a percent from 0 to 100. */
 export function validateCommission(text: string): string | undefined {
   return validatePercent(text, 100);

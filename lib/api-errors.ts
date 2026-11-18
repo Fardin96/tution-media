@@ -38,6 +38,8 @@ export const ERROR_CODES = {
   InvalidPaymentState: "INVALID_PAYMENT_STATE",
   PromoInvalid: "PROMO_INVALID",
   PromoCodeExists: "PROMO_CODE_EXISTS",
+  RefundNotAllowed: "REFUND_NOT_ALLOWED",
+  InvalidRefundState: "INVALID_REFUND_STATE",
   PackageAlreadyModerated: "PACKAGE_ALREADY_MODERATED",
   SubjectExists: "SUBJECT_EXISTS",
   AreaExists: "AREA_EXISTS",
@@ -157,6 +159,11 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   // The server says which rule the code broke (expired, used up, below the ৳10 minimum...).
   PROMO_INVALID: (err) => err.message || "That code can't be used on this fee.",
   PROMO_CODE_EXISTS: "A promo code with that name already exists.",
+  // The server names the rule (window closed, already open, nothing left to refund...).
+  REFUND_NOT_ALLOWED: (err) =>
+    err.message || "This payment can't be refunded right now.",
+  INVALID_REFUND_STATE: (err) =>
+    err.message || "This refund changed. Refresh to see its current status.",
   PACKAGE_ALREADY_MODERATED: "Another admin already reviewed this package.",
   SUBJECT_EXISTS: "A subject with this name or slug already exists.",
   AREA_EXISTS: "An area with this name already exists in this district.",

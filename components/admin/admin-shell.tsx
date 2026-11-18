@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   TicketPercent,
+  Undo2,
   Users,
   Wallet,
 } from "lucide-react";
@@ -65,6 +66,12 @@ export const ADMIN_NAV = [
     label: "Promo codes",
     icon: TicketPercent,
     description: "Discount codes tutors can use on their fees.",
+  },
+  {
+    href: "/dashboard/admin/refunds",
+    label: "Refunds",
+    icon: Undo2,
+    description: "Tutor refund requests and refunds in progress.",
   },
   {
     href: "/dashboard/admin/accounts",

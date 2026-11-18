@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -20,9 +21,17 @@ import {
   QueryState,
   Section,
   StatusPill,
+  inputClass,
   textareaClass,
 } from "@/components/admin/admin-ui";
-import { FEE_STATUS_META, type FeeTone } from "@/lib/admin-fees";
+import { RefundLinkRow } from "@/components/admin/refunds-page";
+import { toastRefundSent } from "@/components/admin/refund-detail-page";
+import {
+  FEE_STATUS_META,
+  parseAmount,
+  validateAmount,
+  type FeeTone,
+} from "@/lib/admin-fees";
 import {
   ATTEMPT_STATUS_META,
   NOTE_MAX,
@@ -33,6 +42,12 @@ import {
   type AdminPaymentAttemptDetail,
   type ReviewDecision,
 } from "@/lib/admin-payments";
+import {
+  REFUND_NOTE_MAX,
+  useCreateRefund,
+  validateRefundText,
+  type CreateRefundBody,
+} from "@/lib/admin-refunds";
 import { formatAmount, formatDateTime, useAdminMe } from "@/lib/admin";
 import { errorCodeMessage } from "@/lib/api-errors";
 import { ApiError } from "@/lib/profile";
@@ -61,8 +76,11 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
   const query = useAdminPaymentAttempt(tranId);
   const check = useCheckPaymentAttempt(tranId);
   const review = useReviewPaymentAttempt(tranId);
+  const createRefund = useCreateRefund();
+  const router = useRouter();
   const admin = useAdminMe();
   const [dialog, setDialog] = useState<ReviewDecision | null>(null);
+  const [refundOpen, setRefundOpen] = useState(false);
 
   const detail = query.data;
   const isSuperAdmin = admin.isSuperAdmin;
@@ -80,6 +98,22 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
       },
       onError: (err) =>
         toast.error(failureText(err, "Couldn't check the payment.")),
+    });
+  }
+
+  function submitRefund(body: CreateRefundBody) {
+    createRefund.mutate(body, {
+      onSuccess: (refund) => {
+        toastRefundSent(refund);
+        setRefundOpen(false);
+        router.push(
+          `/dashboard/admin/refunds/${encodeURIComponent(refund.id)}`,
+        );
+      },
+      onError: (err) => {
+        toast.error(failureText(err, "Couldn't start the refund."));
+        if (err instanceof ApiError && err.status === 409) setRefundOpen(false);
+      },
     });
   }
 
@@ -122,6 +156,15 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
                 )}
               >
                 {check.isPending ? "Checking…" : "Check with gateway"}
+              </button>
+            )}
+            {isSuperAdmin && Number(detail.refundable) > 0 && (
+              <button
+                type="button"
+                onClick={() => setRefundOpen(true)}
+                className={cn(secondaryButton, "min-h-11")}
+              >
+                Refund
               </button>
             )}
             {detail.canReview && isSuperAdmin && (
@@ -243,6 +286,16 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
               />
             </Section>
 
+            {detail.refunds.length > 0 && (
+              <Section title="Refunds">
+                <ul className="grid gap-3">
+                  {detail.refunds.map((refund) => (
+                    <RefundLinkRow key={refund.id} refund={refund} />
+                  ))}
+                </ul>
+              </Section>
+            )}
+
             {detail.gatewayResponse && (
               <RawResponse value={detail.gatewayResponse} />
             )}
@@ -266,6 +319,24 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
               saving={review.isPending}
               onCancel={() => setDialog(null)}
               onSubmit={(note) => submitReview("APPROVE", note)}
+            />
+          </AdminDialog>
+
+          <AdminDialog
+            open={refundOpen}
+            onOpenChange={(open) => {
+              if (!open && !createRefund.isPending) setRefundOpen(false);
+            }}
+            busy={createRefund.isPending}
+            title="Refund this payment?"
+            description={`Refunds the fee part only. Up to ${formatAmount(detail.refundable)}.`}
+          >
+            <RefundForm
+              tranId={detail.tranId}
+              refundable={detail.refundable}
+              saving={createRefund.isPending}
+              onCancel={() => setRefundOpen(false)}
+              onSubmit={submitRefund}
             />
           </AdminDialog>
 
@@ -420,6 +491,106 @@ function ReviewForm({
           )}
         >
           {saving ? "Saving…" : approve ? "Approve payment" : "Reject payment"}
+        </button>
+      </DialogActions>
+    </form>
+  );
+}
+
+function RefundForm({
+  tranId,
+  refundable,
+  saving,
+  onCancel,
+  onSubmit,
+}: {
+  tranId: string;
+  refundable: string;
+  saving: boolean;
+  onCancel: () => void;
+  onSubmit: (body: CreateRefundBody) => void;
+}) {
+  const [amount, setAmount] = useState(refundable);
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  // validateAmount's own over-limit copy says "still due", so the refund limit is checked here.
+  const amountError =
+    validateAmount(amount) ??
+    (parseAmount(amount) > Number(refundable)
+      ? `More than the ${formatAmount(refundable)} that can be refunded.`
+      : undefined);
+  const reasonError = validateRefundText(reason);
+
+  function onFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+    if (amountError || reasonError) return;
+    const parsed = parseAmount(amount);
+    // The default is the whole refundable amount, so the server gets an amount only when it changed.
+    const changed = parsed !== Number(refundable);
+    onSubmit({
+      tranId,
+      reason: reason.trim(),
+      ...(changed ? { amount: parsed.toFixed(2) } : {}),
+    });
+  }
+
+  return (
+    <form noValidate onSubmit={onFormSubmit} className="grid gap-5">
+      <Field
+        label="Amount (৳)"
+        hint={`Up to ${formatAmount(refundable)}.`}
+        error={submitted ? amountError : undefined}
+      >
+        {({ id, describedBy, invalid }) => (
+          <input
+            id={id}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            aria-describedby={describedBy}
+            aria-invalid={invalid || undefined}
+            className={cn(inputClass, "tabular-nums")}
+          />
+        )}
+      </Field>
+      <Field
+        label="Reason"
+        hint={`${reason.length}/${REFUND_NOTE_MAX}`}
+        error={submitted ? reasonError : undefined}
+      >
+        {({ id, describedBy, invalid }) => (
+          <textarea
+            id={id}
+            rows={3}
+            maxLength={REFUND_NOTE_MAX}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            aria-describedby={describedBy}
+            aria-invalid={invalid || undefined}
+            className={textareaClass}
+          />
+        )}
+      </Field>
+      <DialogActions>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          aria-busy={saving || undefined}
+          className={cn(primaryButton, "min-h-11 sm:min-w-36")}
+        >
+          {saving ? "Starting…" : "Start refund"}
         </button>
       </DialogActions>
     </form>

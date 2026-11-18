@@ -15,6 +15,7 @@ import { formatDateTime, useAdminMe } from "@/lib/admin";
 import {
   useAdminSettings,
   useUpdateSetting,
+  validateDays,
   validatePercent,
   type PlatformSetting,
   type SettingKey,
@@ -22,19 +23,21 @@ import {
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 
-/** Display order and copy for each platform setting. `max` marks a percent setting. */
+type NumberInput = { unit: "percent" | "days"; max: number; hint?: string };
+
+/** Display order and copy for each platform setting. `input` marks a number setting and its limits. */
 const SETTINGS: {
   key: SettingKey;
   title: string;
   description: string;
-  max?: number;
+  input?: NumberInput;
 }[] = [
   {
     key: "commission_percent",
     title: "Commission",
     description:
       "Percent of the monthly salary, or of the package price, charged as a placement fee when an application is confirmed.",
-    max: 100,
+    input: { unit: "percent", max: 100 },
   },
   {
     key: "online_payments_enabled",
@@ -47,7 +50,18 @@ const SETTINGS: {
     title: "Processing charge",
     description:
       "Percent added on top of every online payment to cover SSLCommerz's fee. Tutors see it before they pay. It isn't part of the placement fee and isn't refunded.",
-    max: 10,
+    input: { unit: "percent", max: 10 },
+  },
+  {
+    key: "refund_window_days",
+    title: "Refund window",
+    description:
+      "Refunds of the fee part of online payments. The processing charge is never refunded.",
+    input: {
+      unit: "days",
+      max: 90,
+      hint: "Days after an online payment that a tutor can ask for a refund. 0 turns tutor requests off.",
+    },
   },
   {
     key: "require_tutor_verification",
@@ -128,12 +142,12 @@ function SettingSection({
         {copy.description}
       </p>
 
-      {copy.max !== undefined ? (
+      {copy.input ? (
         // Keyed on the saved value so the field shows the server's number after each save.
-        <PercentForm
+        <NumberForm
           key={`${item.value}-${item.updatedAt}`}
           settingKey={item.key}
-          max={copy.max}
+          input={copy.input}
           value={Number(item.value)}
           canEdit={canEdit}
         />
@@ -153,17 +167,51 @@ function SettingSection({
   );
 }
 
-function PercentForm({
+/** How each kind of number setting reads, validates and shows. */
+const UNITS: Record<
+  NumberInput["unit"],
+  {
+    label: string;
+    suffix: string;
+    suffixPadding: string;
+    inputMode: "decimal" | "numeric";
+    step: number;
+    validate: (text: string, max: number) => string | undefined;
+    show: (value: number) => string;
+  }
+> = {
+  percent: {
+    label: "Percent",
+    suffix: "%",
+    suffixPadding: "pe-10",
+    inputMode: "decimal",
+    step: 0.01,
+    validate: validatePercent,
+    show: (value) => `${value}%`,
+  },
+  days: {
+    label: "Days",
+    suffix: "days",
+    suffixPadding: "pe-16",
+    inputMode: "numeric",
+    step: 1,
+    validate: validateDays,
+    show: (value) => `${value} ${value === 1 ? "day" : "days"}`,
+  },
+};
+
+function NumberForm({
   settingKey,
-  max,
+  input,
   value,
   canEdit,
 }: {
   settingKey: SettingKey;
-  max: number;
+  input: NumberInput;
   value: number;
   canEdit: boolean;
 }) {
+  const unit = UNITS[input.unit];
   const update = useUpdateSetting();
   const [text, setText] = useState(String(value));
   const [error, setError] = useState<string>();
@@ -171,14 +219,14 @@ function PercentForm({
   if (!canEdit) {
     return (
       <p className="text-2xl font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
-        {value}%
+        {unit.show(value)}
       </p>
     );
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = validatePercent(text, max);
+    const message = unit.validate(text, input.max);
     if (message) {
       setError(message);
       return;
@@ -202,16 +250,16 @@ function PercentForm({
   return (
     <form noValidate onSubmit={onSubmit} className="grid gap-4">
       <div className="max-w-xs">
-        <Field label="Percent" error={error}>
+        <Field label={unit.label} hint={input.hint} error={error}>
           {({ id, describedBy, invalid }) => (
             <div className="relative">
               <input
                 id={id}
                 type="number"
-                inputMode="decimal"
-                step={0.01}
+                inputMode={unit.inputMode}
+                step={unit.step}
                 min={0}
-                max={max}
+                max={input.max}
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value);
@@ -219,13 +267,13 @@ function PercentForm({
                 }}
                 aria-describedby={describedBy}
                 aria-invalid={invalid || undefined}
-                className={cn(inputClass, "pe-10 tabular-nums")}
+                className={cn(inputClass, unit.suffixPadding, "tabular-nums")}
               />
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-y-0 end-4 flex items-center text-sm text-[var(--color-text-secondary)]"
               >
-                %
+                {unit.suffix}
               </span>
             </div>
           )}

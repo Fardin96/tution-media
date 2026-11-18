@@ -7,9 +7,20 @@ import { AdminPaymentDetailPage } from "@/components/admin/payment-detail-page";
 import { apiFetch } from "@/lib/api";
 import { useAdminMe } from "@/lib/admin";
 import type { AdminPaymentAttemptDetail } from "@/lib/admin-payments";
+import type { AdminRefundDetail } from "@/lib/admin-refunds";
+
+const nav = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: nav.push }),
+}));
 
 vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => ({
@@ -62,6 +73,8 @@ function attempt(
     gatewayResponse: { status: "VALID", tran_id: TRAN_ID },
     canCheck: true,
     canReview: false,
+    refundable: "0.00",
+    refunds: [],
     ...overrides,
   };
 }
@@ -294,5 +307,181 @@ describe("AdminPaymentDetailPage", () => {
     expect(raw?.querySelector("pre")?.textContent).toContain(
       '"status": "VALID"',
     );
+  });
+});
+
+function refundDetail(
+  overrides: Partial<AdminRefundDetail> = {},
+): AdminRefundDetail {
+  return {
+    id: "ref-9",
+    status: "PROCESSING",
+    source: "ADMIN",
+    amount: "1500.00",
+    reason: "Tutor withdrew",
+    refundRefId: "RF-9",
+    failureReason: null,
+    decisionNote: null,
+    createdAt: "2026-11-18T09:00:00.000Z",
+    updatedAt: "2026-11-18T09:00:00.000Z",
+    decidedAt: "2026-11-18T09:00:00.000Z",
+    completedAt: null,
+    lastCheckedAt: null,
+    attempt: {
+      tranId: TRAN_ID,
+      status: "SUCCEEDED",
+      feeAmount: "1500.00",
+      totalAmount: "1537.50",
+      bankTranId: "BANK-7731",
+    },
+    fee: {
+      id: "fee-1",
+      status: "PAID",
+      amountDue: "1500.00",
+      amountPaid: "1500.00",
+    },
+    tutor: { id: "tutor-1", name: "Nadia Islam" },
+    requestedByName: "Super Admin",
+    decidedByName: "Super Admin",
+    reversalId: null,
+    gatewayResponse: null,
+    canApprove: false,
+    canReject: false,
+    canCheck: true,
+    canResolve: false,
+    ...overrides,
+  };
+}
+
+const PAID = {
+  status: "SUCCEEDED" as const,
+  canCheck: false,
+  refundable: "1500.00",
+};
+
+describe("AdminPaymentDetailPage refunds", () => {
+  it("shows the Refund button only to super admins when something is refundable", async () => {
+    asAdmin(true);
+    mockApi(attempt(PAID));
+    const { unmount } = renderPage();
+    expect(
+      await screen.findByRole("button", { name: "Refund" }),
+    ).toBeInTheDocument();
+    unmount();
+
+    asAdmin(false);
+    mockApi(attempt(PAID));
+    const second = renderPage();
+    await screen.findByRole("heading", { name: "Amounts" });
+    expect(
+      screen.queryByRole("button", { name: "Refund" }),
+    ).not.toBeInTheDocument();
+    second.unmount();
+
+    asAdmin(true);
+    mockApi(attempt({ ...PAID, refundable: "0.00" }));
+    renderPage();
+    await screen.findByRole("heading", { name: "Amounts" });
+    expect(
+      screen.queryByRole("button", { name: "Refund" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("starts a refund for the whole refundable amount without sending an amount", async () => {
+    asAdmin(true);
+    mockApi(attempt(PAID), () => respond(refundDetail()));
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Refund" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("Refunds the fee part only. Up to ৳1,500."),
+    ).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Reason"), "Tutor withdrew");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Start refund" }),
+    );
+
+    await waitFor(() =>
+      expect(postsTo("/api/v1/admin/refunds")).toHaveLength(1),
+    );
+    const [, init] = postsTo("/api/v1/admin/refunds")[0];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      tranId: TRAN_ID,
+      reason: "Tutor withdrew",
+    });
+    await waitFor(() =>
+      expect(nav.push).toHaveBeenCalledWith("/dashboard/admin/refunds/ref-9"),
+    );
+  });
+
+  it("sends a changed amount as a two-decimal string", async () => {
+    asAdmin(true);
+    mockApi(attempt(PAID), () => respond(refundDetail({ amount: "500.00" })));
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Refund" }));
+    const dialog = await screen.findByRole("dialog");
+    const amount = within(dialog).getByLabelText("Amount (৳)");
+    await user.clear(amount);
+    await user.type(amount, "500");
+    await user.type(within(dialog).getByLabelText("Reason"), "Partial refund");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Start refund" }),
+    );
+
+    await waitFor(() =>
+      expect(postsTo("/api/v1/admin/refunds")).toHaveLength(1),
+    );
+    const [, init] = postsTo("/api/v1/admin/refunds")[0];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      tranId: TRAN_ID,
+      amount: "500.00",
+      reason: "Partial refund",
+    });
+  });
+
+  it("blocks an amount over the refundable part with an inline error", async () => {
+    asAdmin(true);
+    mockApi(attempt(PAID), () => respond(refundDetail()));
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Refund" }));
+    const dialog = await screen.findByRole("dialog");
+    const amount = within(dialog).getByLabelText("Amount (৳)");
+    await user.clear(amount);
+    await user.type(amount, "1600");
+    await user.type(within(dialog).getByLabelText("Reason"), "Too much");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Start refund" }),
+    );
+
+    expect(
+      await within(dialog).findByText(
+        "More than the ৳1,500 that can be refunded.",
+      ),
+    ).toBeInTheDocument();
+    expect(postsTo("/api/v1/admin/refunds")).toHaveLength(0);
+  });
+
+  it("lists the attempt's refunds as links", async () => {
+    asAdmin(true);
+    mockApi(
+      attempt({
+        ...PAID,
+        refunds: [refundDetail({ id: "ref-9" })],
+      }),
+    );
+    renderPage();
+
+    const section = (
+      await screen.findByRole("heading", { name: "Refunds" })
+    ).closest("section") as HTMLElement;
+    const link = within(section).getByRole("link", { name: /1,500/ });
+    expect(link).toHaveAttribute("href", "/dashboard/admin/refunds/ref-9");
+    expect(within(section).getByText("Processing")).toBeInTheDocument();
   });
 });

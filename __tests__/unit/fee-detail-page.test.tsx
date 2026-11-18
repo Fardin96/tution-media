@@ -5,7 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FeeDetailPage } from "@/components/fees/fee-detail-page";
 import { apiFetch } from "@/lib/api";
-import type { CheckoutQuote, TutorFeeDetail } from "@/lib/fees";
+import { formatDateTime } from "@/lib/admin";
+import type {
+  CheckoutQuote,
+  TutorFeeDetail,
+  TutorFeePayment,
+  TutorRefund,
+} from "@/lib/fees";
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
@@ -62,6 +68,7 @@ function detail(overrides: Partial<TutorFeeDetail> = {}): TutorFeeDetail {
     pendingAttempt: null,
     promo: null,
     promoAllowed: true,
+    refunds: [],
     ...overrides,
   };
 }
@@ -82,6 +89,7 @@ function mockApi(
   body: TutorFeeDetail,
   checkout: () => Promise<Response> = async () => respond(SESSION, 201),
   promo: () => Promise<Response> = async () => respond(body),
+  refund: () => Promise<Response> = async () => respond(body, 201),
 ) {
   vi.mocked(apiFetch).mockImplementation(async (input, init) => {
     const { pathname } = new URL(input, "http://localhost");
@@ -93,6 +101,7 @@ function mockApi(
       return checkout();
     }
     if (pathname === `/api/v1/fees/${FEE_ID}/promo`) return promo();
+    if (pathname === `/api/v1/fees/${FEE_ID}/refunds`) return refund();
     return respond({ message: "Not mocked" }, 404);
   });
 }
@@ -358,6 +367,7 @@ describe("FeeDetailPage payments", () => {
             method: "SSLCOMMERZ",
             receivedAt: "2026-11-12T04:00:00.000Z",
             reversesPaymentId: null,
+            refundableUntil: null,
           },
           {
             id: "p2",
@@ -366,6 +376,7 @@ describe("FeeDetailPage payments", () => {
             method: "CASH",
             receivedAt: "2026-11-13T04:00:00.000Z",
             reversesPaymentId: "p1",
+            refundableUntil: null,
           },
         ],
       }),
@@ -695,5 +706,221 @@ describe("FeeDetailPage waived fees", () => {
     const summary = await screen.findByRole("region", { name: "Summary" });
     expect(summaryValue(summary, "Amount due")).toBe("৳1,500.00");
     expect(summaryValue(summary, "Remaining")).toBe("৳0.00");
+  });
+});
+
+const REFUNDABLE_UNTIL = "2026-11-19T04:00:00.000Z";
+
+function payment(overrides: Partial<TutorFeePayment> = {}): TutorFeePayment {
+  return {
+    id: "p1",
+    kind: "PAYMENT",
+    amount: "1500.00",
+    method: "SSLCOMMERZ",
+    receivedAt: "2026-11-12T04:00:00.000Z",
+    reversesPaymentId: null,
+    refundableUntil: REFUNDABLE_UNTIL,
+    ...overrides,
+  };
+}
+
+function refund(overrides: Partial<TutorRefund> = {}): TutorRefund {
+  return {
+    id: "r1",
+    paymentId: "p1",
+    amount: "1500.00",
+    status: "REQUESTED",
+    reason: "Wrong class booked",
+    createdAt: "2026-11-13T04:00:00.000Z",
+    completedAt: null,
+    decisionNote: null,
+    ...overrides,
+  };
+}
+
+/** Every request the page sent to the refunds endpoint. */
+function refundRequests() {
+  return vi
+    .mocked(apiFetch)
+    .mock.calls.filter(([url]) => String(url).includes("/refunds"));
+}
+
+async function openRefundDialog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole("button", { name: "Request a refund" }),
+  );
+  return screen.findByRole("dialog", { name: "Ask for a refund?" });
+}
+
+describe("FeeDetailPage refund request", () => {
+  it("offers a refund only for payments that are inside the refund window", async () => {
+    mockApi(
+      detail({
+        payments: [
+          payment(),
+          payment({
+            id: "p2",
+            method: "CASH",
+            amount: "200.00",
+            refundableUntil: null,
+          }),
+        ],
+      }),
+    );
+    renderPage();
+
+    const ledger = await screen.findByRole("region", { name: "Payments" });
+    expect(
+      within(ledger).getAllByRole("button", { name: "Request a refund" }),
+    ).toHaveLength(1);
+  });
+
+  it("says what is refunded and the last day to ask", async () => {
+    mockApi(detail({ payments: [payment()] }));
+    renderPage();
+    const user = userEvent.setup();
+
+    const dialog = await openRefundDialog(user);
+    expect(
+      within(dialog).getByText(
+        `We refund the fee part (৳1,500.00). The processing charge isn't refunded. You can ask until ${formatDateTime(REFUNDABLE_UNTIL)}.`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not send an empty or too-short reason", async () => {
+    mockApi(detail({ payments: [payment()] }));
+    renderPage();
+    const user = userEvent.setup();
+
+    const dialog = await openRefundDialog(user);
+    await user.click(
+      within(dialog).getByRole("button", { name: "Send request" }),
+    );
+
+    const reason = within(dialog).getByRole("textbox", { name: "Reason" });
+    expect(
+      within(dialog).getByText("Write at least 3 characters."),
+    ).toBeInTheDocument();
+    expect(reason).toHaveAccessibleDescription("Write at least 3 characters.");
+    expect(refundRequests()).toHaveLength(0);
+
+    await user.type(reason, "ab");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Send request" }),
+    );
+    expect(
+      within(dialog).getByText("Write at least 3 characters."),
+    ).toBeInTheDocument();
+    expect(refundRequests()).toHaveLength(0);
+  });
+
+  it("posts the payment and the trimmed reason, then closes and toasts", async () => {
+    mockApi(detail({ payments: [payment()] }));
+    renderPage();
+    const user = userEvent.setup();
+
+    const dialog = await openRefundDialog(user);
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "Reason" }),
+      "  Booked the wrong class  ",
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Send request" }),
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Refund requested."),
+    );
+    const [url, init] = refundRequests()[0];
+    expect(new URL(url, "http://localhost").pathname).toBe(
+      `/api/v1/fees/${FEE_ID}/refunds`,
+    );
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(init!.body as string)).toEqual({
+      paymentId: "p1",
+      reason: "Booked the wrong class",
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Ask for a refund?" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("keeps the dialog open and shows a refused request inline", async () => {
+    mockApi(detail({ payments: [payment()] }), undefined, undefined, async () =>
+      respond(
+        {
+          code: "REFUND_NOT_ALLOWED",
+          message: "A refund for this payment is already open.",
+        },
+        409,
+      ),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    const dialog = await openRefundDialog(user);
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "Reason" }),
+      "Booked the wrong class",
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Send request" }),
+    );
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "A refund for this payment is already open.",
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Ask for a refund?" }),
+    ).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+});
+
+describe("FeeDetailPage refunds", () => {
+  it("lists refunds with tutor labels, dates and the decision note", async () => {
+    mockApi(
+      detail({
+        refunds: [
+          refund({ id: "r1", status: "NEEDS_REVIEW" }),
+          refund({
+            id: "r2",
+            status: "REJECTED",
+            reason: "Asked after the lesson",
+            completedAt: "2026-11-16T04:00:00.000Z",
+            decisionNote: "The class ran as booked.",
+          }),
+        ],
+      }),
+    );
+    renderPage();
+
+    const section = await screen.findByRole("region", { name: "Refunds" });
+    expect(within(section).getByText("In progress")).toBeInTheDocument();
+    expect(within(section).getByText("Declined")).toBeInTheDocument();
+    expect(
+      within(section).getByText("Asked after the lesson"),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByText("The class ran as booked."),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByText(
+        `Asked on ${formatDateTime("2026-11-13T04:00:00.000Z")} · Done on ${formatDateTime("2026-11-16T04:00:00.000Z")}`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the section when there are no refunds", async () => {
+    mockApi(detail({ payments: [payment({ refundableUntil: null })] }));
+    renderPage();
+
+    await screen.findByRole("region", { name: "Payments" });
+    expect(
+      screen.queryByRole("region", { name: "Refunds" }),
+    ).not.toBeInTheDocument();
   });
 });

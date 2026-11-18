@@ -3,7 +3,11 @@ import { createElement } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SettingsPage } from "@/components/admin/settings-page";
-import { validateCommission, validatePercent } from "@/lib/admin-settings";
+import {
+  validateCommission,
+  validateDays,
+  validatePercent,
+} from "@/lib/admin-settings";
 
 const mocks = vi.hoisted(() => ({ mutate: vi.fn() }));
 
@@ -32,6 +36,12 @@ vi.mock("@/lib/admin-settings", async (importOriginal) => ({
         {
           key: "gateway_charge_percent",
           value: 2.5,
+          updatedAt: null,
+          updatedByName: null,
+        },
+        {
+          key: "refund_window_days",
+          value: 7,
           updatedAt: null,
           updatedByName: null,
         },
@@ -93,6 +103,24 @@ describe("validatePercent with max 10", () => {
   });
 });
 
+describe("validateDays", () => {
+  it.each(["0", "7", "30", "90", " 14 ", "007"])("accepts %j", (text) => {
+    expect(validateDays(text, 90)).toBeUndefined();
+  });
+
+  it.each(["", "   ", "1.5", "-1", "abc", "1e2", "2 days"])(
+    "asks for a whole number of days for %j",
+    (text) => {
+      expect(validateDays(text, 90)).toBe("Enter a whole number of days.");
+    },
+  );
+
+  it("asks for 0 to 90 days", () => {
+    expect(validateDays("91", 90)).toBe("Use 0 to 90 days.");
+    expect(validateDays("100", 90)).toBe("Use 0 to 90 days.");
+  });
+});
+
 describe("SettingsPage", () => {
   beforeEach(() => {
     mocks.mutate.mockClear();
@@ -108,9 +136,54 @@ describe("SettingsPage", () => {
       "Commission",
       "Online payments",
       "Processing charge",
+      "Refund window",
       "Tutor verification",
       "Phone verification",
     ]);
+  });
+
+  it("saves a refund window in whole days", async () => {
+    const user = userEvent.setup();
+    render(createElement(SettingsPage));
+
+    const section = screen
+      .getByRole("heading", { name: "Refund window" })
+      .closest("section");
+    if (!section) throw new Error("Refund window section not found");
+
+    const input = within(section).getByRole("spinbutton", { name: "Days" });
+    expect(input).toHaveAttribute("inputmode", "numeric");
+    expect(
+      within(section).getByText(
+        "Days after an online payment that a tutor can ask for a refund. 0 turns tutor requests off.",
+      ),
+    ).toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, "14");
+    await user.click(within(section).getByRole("button", { name: "Save" }));
+
+    expect(mocks.mutate).toHaveBeenCalledWith(
+      { key: "refund_window_days", value: 14 },
+      expect.anything(),
+    );
+  });
+
+  it("rejects a refund window above 90 days without saving", async () => {
+    const user = userEvent.setup();
+    render(createElement(SettingsPage));
+
+    const section = screen
+      .getByRole("heading", { name: "Refund window" })
+      .closest("section");
+    if (!section) throw new Error("Refund window section not found");
+
+    const input = within(section).getByRole("spinbutton", { name: "Days" });
+    await user.clear(input);
+    await user.type(input, "91");
+    await user.click(within(section).getByRole("button", { name: "Save" }));
+
+    expect(within(section).getByText("Use 0 to 90 days.")).toBeInTheDocument();
+    expect(mocks.mutate).not.toHaveBeenCalled();
   });
 
   it("rejects a processing charge above 10 without saving", async () => {

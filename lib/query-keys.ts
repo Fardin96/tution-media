@@ -43,6 +43,10 @@ export const queryKeys = {
     promoCodes: <F extends object>(filters: F) =>
       ["admin", "promo-codes", "list", filters] as const,
     promoCode: (id: string) => ["admin", "promo-codes", "detail", id] as const,
+    refundsAll: ["admin", "refunds"] as const,
+    refunds: <F extends object>(filters: F) =>
+      ["admin", "refunds", "list", filters] as const,
+    refund: (id: string) => ["admin", "refunds", "detail", id] as const,
     packagesAll: ["admin", "packages"] as const,
     packages: <F extends object>(filters: F) =>
       ["admin", "packages", "list", filters] as const,

@@ -21,6 +21,7 @@ import {
   inputClass,
   textareaClass,
 } from "@/components/admin/admin-ui";
+import { RefundLinkRow } from "@/components/admin/refunds-page";
 import { formatAmount, formatDateTime } from "@/lib/admin";
 import {
   ATTEMPT_STATUS_META,
@@ -56,12 +57,13 @@ type Dialog =
   | { kind: "waive" }
   | { kind: "void" };
 
-/** A payment can be reversed while some of it is left and the fee still takes payments. */
+/** A payment can be reversed while some of it is left and the fee still takes payments. Online payments are refunded from Refunds. */
 function reversibleAmount(
   fee: AdminFeeDetail,
   payment: AdminFeePayment,
 ): string | null {
   if (payment.kind !== "PAYMENT") return null;
+  if (payment.method === "SSLCOMMERZ") return null;
   if (fee.status === "WAIVED" || fee.status === "VOID") return null;
   const left = Number(payment.amount) - Number(payment.reversedAmount);
   return left > 0 ? left.toFixed(2) : null;
@@ -199,10 +201,22 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
                     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
                     .map((payment) => {
                       const reversible = reversibleAmount(fee, payment);
+                      // The attempt's tranId is the payment's txnReference for online payments.
+                      const attempt =
+                        payment.method === "SSLCOMMERZ"
+                          ? fee.attempts.find(
+                              (a) => a.tranId === payment.txnReference,
+                            )
+                          : undefined;
                       return (
                         <PaymentRow
                           key={payment.id}
                           payment={payment}
+                          attemptHref={
+                            attempt
+                              ? `/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`
+                              : undefined
+                          }
                           onReverse={
                             reversible
                               ? () => setDialog({ kind: "reverse", payment })
@@ -220,6 +234,16 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
                 <ul className="grid gap-3">
                   {fee.attempts.map((attempt) => (
                     <AttemptRow key={attempt.tranId} attempt={attempt} />
+                  ))}
+                </ul>
+              </Section>
+            )}
+
+            {fee.refunds.length > 0 && (
+              <Section title="Refunds">
+                <ul className="grid gap-3">
+                  {fee.refunds.map((refund) => (
+                    <RefundLinkRow key={refund.id} refund={refund} />
                   ))}
                 </ul>
               </Section>
@@ -367,13 +391,17 @@ function FeeSection({ fee }: { fee: AdminFeeDetail }) {
 
 function PaymentRow({
   payment,
+  attemptHref,
   onReverse,
 }: {
   payment: AdminFeePayment;
+  /** The online attempt behind an SSLCommerz payment, when it is on this fee. */
+  attemptHref?: string;
   onReverse?: () => void;
 }) {
   const isReversal = payment.kind === "REVERSAL";
   const reversedSome = !isReversal && Number(payment.reversedAmount) > 0;
+  const online = !isReversal && payment.method === "SSLCOMMERZ";
   return (
     <li className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -415,6 +443,22 @@ function PaymentRow({
           {formatAmount(payment.reversedAmount)} reversed
         </p>
       )}
+      {online &&
+        (attemptHref ? (
+          <Link
+            href={attemptHref}
+            className={cn(
+              "w-fit rounded-md text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline",
+              focusRing,
+            )}
+          >
+            Refund it from the payment.
+          </Link>
+        ) : (
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Refund it from the payment.
+          </p>
+        ))}
     </li>
   );
 }

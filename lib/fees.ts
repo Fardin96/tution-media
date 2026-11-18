@@ -17,6 +17,7 @@ export type CheckoutSession = Schemas["CheckoutSession"];
 export type PaymentAttemptView = Schemas["PaymentAttemptView"];
 export type PaymentAttemptStatus = PaymentAttemptView["status"];
 export type FeePromo = Schemas["FeePromo"];
+export type TutorRefund = Schemas["TutorRefund"];
 
 export const feeApi = {
   mine: (cursor?: string) =>
@@ -37,6 +38,13 @@ export const feeApi = {
   removePromo: (id: string) =>
     unwrap(
       client.DELETE("/api/v1/fees/{id}/promo", { params: { path: { id } } }),
+    ),
+  requestRefund: (id: string, paymentId: string, reason: string) =>
+    unwrap(
+      client.POST("/api/v1/fees/{id}/refunds", {
+        params: { path: { id } },
+        body: { paymentId, reason },
+      }),
     ),
   attempt: (id: string, tranId: string) =>
     unwrap(
@@ -111,6 +119,14 @@ export function useApplyPromo(feeId: string) {
 
 export function useRemovePromo(feeId: string) {
   return usePromoWrite<void>(feeId, () => feeApi.removePromo(feeId));
+}
+
+/** Asks for a refund of one online payment. Same cache handling as the promo writes. */
+export function useRequestRefund(feeId: string) {
+  return usePromoWrite<{ paymentId: string; reason: string }>(
+    feeId,
+    ({ paymentId, reason }) => feeApi.requestRefund(feeId, paymentId, reason),
+  );
 }
 
 /** Attempt states the gateway can still change. Every other state is final for the tutor. */
