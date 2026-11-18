@@ -257,6 +257,43 @@ test.describe("Pay online", () => {
     await expect(pay.getByRole("button")).toHaveCount(0);
   });
 
+  test("a payment in review is listed and pauses online payment", async ({
+    page,
+    context,
+  }) => {
+    await setUp(context, {
+      fees: [
+        {
+          id: "fee_1",
+          heldPayments: [
+            {
+              tranId: "TR_REVIEW",
+              status: "REVIEW",
+              feeAmount: "1500.00",
+              totalAmount: "1537.50",
+              createdAt: "2026-11-18T08:00:00.000Z",
+            },
+          ],
+        },
+      ],
+    });
+    await page.goto("/dashboard/fees/fee_1");
+
+    const held = page.getByRole("region", { name: "Payments on hold" });
+    await expect(held.getByText("Being checked")).toBeVisible();
+    await expect(
+      held.getByRole("link", { name: "See this payment" }),
+    ).toHaveAttribute("href", "/dashboard/fees/fee_1/payment?tran=TR_REVIEW");
+    const pay = page.getByRole("region", { name: "Pay online" });
+    await expect(
+      pay.getByText(/paused while we check your earlier payment/),
+    ).toBeVisible();
+    await expect(pay.getByRole("button")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Promo code" })).toHaveCount(
+      0,
+    );
+  });
+
   test("a payment still open links to its result page", async ({
     page,
     context,

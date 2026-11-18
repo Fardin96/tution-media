@@ -47,6 +47,8 @@ export interface FeeSeed {
   pendingAttempt?: Detail["pendingAttempt"];
   /** The gateway is switched off, so the checkout quote says PAYMENTS_OFF. */
   paymentsOff?: boolean;
+  /** Online payments held off the ledger. A REVIEW one pauses checkout (IN_REVIEW). */
+  heldPayments?: Detail["heldPayments"];
 }
 
 export interface AttemptSeed {
@@ -79,6 +81,7 @@ interface FeeState {
   refunds: Refund[];
   pendingAttempt: Detail["pendingAttempt"];
   paymentsOff: boolean;
+  heldPayments: Detail["heldPayments"];
   promo: { code: string; percent: number } | null;
 }
 
@@ -93,15 +96,25 @@ function toState(seed: FeeSeed): FeeState {
     refunds: seed.refunds ?? [],
     pendingAttempt: seed.pendingAttempt ?? null,
     paymentsOff: seed.paymentsOff ?? false,
+    heldPayments: seed.heldPayments ?? [],
     promo: null,
   };
 }
 
-function quoteOf(remaining: number, paymentsOff: boolean): Quote {
+function quoteOf(
+  remaining: number,
+  paymentsOff: boolean,
+  inReview: boolean,
+): Quote {
   const charge = chargeOn(remaining);
+  const unavailableReason = inReview
+    ? "IN_REVIEW"
+    : paymentsOff
+      ? "PAYMENTS_OFF"
+      : null;
   return {
-    enabled: !paymentsOff,
-    unavailableReason: paymentsOff ? "PAYMENTS_OFF" : null,
+    enabled: unavailableReason === null,
+    unavailableReason,
     feeAmount: toMoney(remaining),
     chargePercent: CHARGE_PERCENT.toFixed(2),
     chargeAmount: toMoney(charge),
@@ -124,7 +137,8 @@ function detailOf(fee: FeeState): Detail {
   const remaining = due - paid;
   const status: FeeStatus = waived ? "WAIVED" : fee.status;
   const open = (status === "DUE" || status === "PARTIAL") && remaining > 0;
-  const promoAllowed = open && fee.promo === null && paid === 0;
+  const inReview = fee.heldPayments.some((h) => h.status === "REVIEW");
+  const promoAllowed = open && fee.promo === null && paid === 0 && !inReview;
 
   return {
     id: fee.id,
@@ -146,7 +160,7 @@ function detailOf(fee: FeeState): Detail {
     },
     payments: fee.payments,
     refunds: fee.refunds,
-    checkout: open ? quoteOf(remaining, fee.paymentsOff) : null,
+    checkout: open ? quoteOf(remaining, fee.paymentsOff, inReview) : null,
     pendingAttempt: fee.pendingAttempt,
     promo: fee.promo
       ? {
@@ -157,6 +171,7 @@ function detailOf(fee: FeeState): Detail {
         }
       : null,
     promoAllowed,
+    heldPayments: fee.heldPayments,
   } satisfies Detail;
 }
 

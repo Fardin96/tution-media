@@ -69,6 +69,7 @@ function detail(overrides: Partial<TutorFeeDetail> = {}): TutorFeeDetail {
     promo: null,
     promoAllowed: true,
     refunds: [],
+    heldPayments: [],
     ...overrides,
   };
 }
@@ -351,6 +352,87 @@ describe("FeeDetailPage pay online", () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("region", { name: "Pay online" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("FeeDetailPage payments on hold", () => {
+  it("lists a payment being checked and pauses online payment", async () => {
+    mockApi(
+      detail({
+        heldPayments: [
+          {
+            tranId: "TM-REVIEW1",
+            status: "REVIEW",
+            feeAmount: "1500.00",
+            totalAmount: "1537.50",
+            createdAt: "2026-11-18T04:00:00.000Z",
+          },
+        ],
+        checkout: enabledQuote({
+          enabled: false,
+          unavailableReason: "IN_REVIEW",
+        }),
+        promoAllowed: false,
+      }),
+    );
+    renderPage();
+
+    const held = await screen.findByRole("region", {
+      name: "Payments on hold",
+    });
+    expect(within(held).getByText("৳1,537.50")).toBeInTheDocument();
+    expect(within(held).getByText("Being checked")).toBeInTheDocument();
+    expect(within(held).getByText(/so don't pay again/)).toBeInTheDocument();
+    expect(
+      within(held).getByRole("link", { name: "See this payment" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/fees/${FEE_ID}/payment?tran=TM-REVIEW1`,
+    );
+
+    const pay = screen.getByRole("region", { name: "Pay online" });
+    expect(
+      within(pay).getByText(/paused while we check your earlier payment/),
+    ).toBeInTheDocument();
+    expect(within(pay).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("says an unapplied payment will be refunded, fee part only", async () => {
+    mockApi(
+      detail({
+        status: "WAIVED",
+        checkout: null,
+        promoAllowed: false,
+        heldPayments: [
+          {
+            tranId: "TM-UNAPPLIED1",
+            status: "UNAPPLIED",
+            feeAmount: "1500.00",
+            totalAmount: "1537.50",
+            createdAt: "2026-11-18T04:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    renderPage();
+
+    const held = await screen.findByRole("region", {
+      name: "Payments on hold",
+    });
+    expect(within(held).getByText("To be refunded")).toBeInTheDocument();
+    expect(
+      within(held).getByText(/We'll refund the fee part \(৳1,500\.00\)/),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the section when nothing is on hold", async () => {
+    mockApi(detail());
+    renderPage();
+
+    await screen.findByRole("region", { name: "Summary" });
+    expect(
+      screen.queryByRole("region", { name: "Payments on hold" }),
     ).not.toBeInTheDocument();
   });
 });

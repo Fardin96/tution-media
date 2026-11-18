@@ -107,6 +107,8 @@ const UNAVAILABLE_COPY: Record<
   NonNullable<CheckoutQuote["unavailableReason"]> | "DEFAULT",
   string
 > = {
+  IN_REVIEW:
+    "Online payment is paused while we check your earlier payment, listed above.",
   PAYMENTS_OFF:
     "Online payment is turned off right now. You can still pay the Tuition Media team in cash.",
   BELOW_MINIMUM: "Online payments start at ৳10. Pay the rest in cash.",
@@ -580,6 +582,56 @@ function RefundsSection({ refunds }: { refunds: TutorRefund[] }) {
   );
 }
 
+/**
+ * Money the gateway took that isn't on the fee yet: a payment being checked (REVIEW), or one that
+ * couldn't be added and is waiting for its refund (UNAPPLIED). Shown so the tutor doesn't pay twice.
+ */
+function HeldPaymentsSection({
+  feeId,
+  held,
+}: {
+  feeId: string;
+  held: TutorFeeDetail["heldPayments"];
+}) {
+  return (
+    <Section title="Payments on hold">
+      <ul className="grid gap-3">
+        {held.map((payment) => (
+          <li
+            key={payment.tranId}
+            className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <p className="text-sm font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
+                {formatMoney(payment.totalAmount)}
+              </p>
+              <TonePill tone={payment.status === "REVIEW" ? "warning" : "info"}>
+                {payment.status === "REVIEW"
+                  ? "Being checked"
+                  : "To be refunded"}
+              </TonePill>
+            </div>
+            <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
+              {payment.status === "REVIEW"
+                ? "We're checking this payment. We'll add it to this fee or refund it, so don't pay again."
+                : `This payment couldn't be added to this fee. We'll refund the fee part (${formatMoney(payment.feeAmount)}); the processing charge isn't refunded.`}
+            </p>
+            <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+              Paid on {formatDateTime(payment.createdAt)}
+            </p>
+            <Link
+              href={`/dashboard/fees/${encodeURIComponent(feeId)}/payment?tran=${encodeURIComponent(payment.tranId)}`}
+              className="text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline"
+            >
+              See this payment
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 /** A waived or void fee is no longer owed, whether or not a promo code is involved. */
 function owesNothing(fee: Pick<TutorFeeDetail, "status">): boolean {
   return fee.status === "WAIVED" || fee.status === "VOID";
@@ -665,6 +717,10 @@ function FeeBody({ fee }: { fee: TutorFeeDetail }) {
           </Link>
         </div>
       </Section>
+
+      {fee.heldPayments.length > 0 && (
+        <HeldPaymentsSection feeId={fee.id} held={fee.heldPayments} />
+      )}
 
       <PromoSection fee={fee} />
 

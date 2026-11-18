@@ -12809,7 +12809,8 @@ export interface components {
     };
     CheckoutQuote: {
       enabled: boolean;
-      unavailableReason: ("PAYMENTS_OFF" | "BELOW_MINIMUM") | null;
+      unavailableReason:
+        ("IN_REVIEW" | "PAYMENTS_OFF" | "BELOW_MINIMUM") | null;
       feeAmount: string;
       chargePercent: string;
       chargeAmount: string;
@@ -13929,6 +13930,7 @@ export interface components {
         /** Format: date-time */
         createdAt: string;
       } | null;
+      heldPayments: components["schemas"]["TutorHeldPayment"][];
       promo: components["schemas"]["FeePromo"] | null;
       promoAllowed: boolean;
     };
@@ -13948,6 +13950,15 @@ export interface components {
       receivedAt: string;
       reversesPaymentId: string | null;
       refundableUntil: string | null;
+    };
+    TutorHeldPayment: {
+      tranId: string;
+      /** @enum {string} */
+      status: "REVIEW" | "UNAPPLIED";
+      feeAmount: string;
+      totalAmount: string;
+      /** Format: date-time */
+      createdAt: string;
     };
     TutorNearbyList: {
       tutors: components["schemas"]["TutorNearbyResult"][];
