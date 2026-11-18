@@ -9,7 +9,10 @@ import {
   validatePercent,
 } from "@/lib/admin-settings";
 
-const mocks = vi.hoisted(() => ({ mutate: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock("@/lib/admin", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin")>()),
@@ -63,7 +66,11 @@ vi.mock("@/lib/admin-settings", async (importOriginal) => ({
     isError: false,
     refetch: vi.fn(),
   }),
-  useUpdateSetting: () => ({ mutate: mocks.mutate, isPending: false }),
+  useUpdateSetting: () => ({
+    mutate: mocks.mutate,
+    mutateAsync: mocks.mutateAsync,
+    isPending: false,
+  }),
 }));
 
 describe("validateCommission", () => {
@@ -124,6 +131,7 @@ describe("validateDays", () => {
 describe("SettingsPage", () => {
   beforeEach(() => {
     mocks.mutate.mockClear();
+    mocks.mutateAsync.mockClear();
   });
 
   it("renders the online payments and processing charge sections after commission", () => {
@@ -162,10 +170,10 @@ describe("SettingsPage", () => {
     await user.type(input, "14");
     await user.click(within(section).getByRole("button", { name: "Save" }));
 
-    expect(mocks.mutate).toHaveBeenCalledWith(
-      { key: "refund_window_days", value: 14 },
-      expect.anything(),
-    );
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({
+      key: "refund_window_days",
+      value: 14,
+    });
   });
 
   it("rejects a refund window above 90 days without saving", async () => {
@@ -183,7 +191,7 @@ describe("SettingsPage", () => {
     await user.click(within(section).getByRole("button", { name: "Save" }));
 
     expect(within(section).getByText("Use 0 to 90 days.")).toBeInTheDocument();
-    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 
   it("rejects a processing charge above 10 without saving", async () => {
@@ -203,6 +211,6 @@ describe("SettingsPage", () => {
     expect(
       within(section).getByText("Enter a number from 0 to 10."),
     ).toBeInTheDocument();
-    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 });

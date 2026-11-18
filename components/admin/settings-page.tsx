@@ -231,20 +231,22 @@ function NumberForm({
       setError(message);
       return;
     }
-    update.mutate(
-      { key: settingKey, value: Number(text.trim()) },
-      {
-        onSuccess: () => toastSuccess("Setting saved"),
-        onError: (err) => {
+    // mutateAsync, not mutate with per-call callbacks: a save refetches the settings, which changes
+    // this form's key and remounts it, and per-call callbacks don't run for an unmounted observer.
+    void update
+      .mutateAsync({ key: settingKey, value: Number(text.trim()) })
+      .then(
+        () => toastSuccess("Setting saved"),
+        (err: unknown) => {
           const issue =
             err instanceof ApiError
               ? err.issues?.find((i) => i.path[0] === "value")?.message
               : undefined;
+          // A failed save doesn't refetch, so the form is still mounted to show the inline issue.
           if (issue) setError(issue);
           else toastError("Couldn't save the setting.", err);
         },
-      },
-    );
+      );
   }
 
   return (

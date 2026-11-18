@@ -145,9 +145,9 @@ describe("AdminPaymentDetailPage", () => {
 
     const amounts = sectionOf("Amounts");
     // formatAmount drops trailing zeros, as the rest of the admin area does.
-    expect(within(amounts).getByText("৳1,537.5")).toBeInTheDocument();
+    expect(within(amounts).getByText("৳1,537.50")).toBeInTheDocument();
     expect(within(amounts).getByText("৳1,500")).toBeInTheDocument();
-    expect(within(amounts).getByText("৳37.5")).toBeInTheDocument();
+    expect(within(amounts).getByText("৳37.50")).toBeInTheDocument();
 
     const fee = sectionOf("Fee");
     expect(within(fee).getByText("Nadia Islam")).toBeInTheDocument();

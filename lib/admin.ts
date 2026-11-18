@@ -34,9 +34,16 @@ export function formatDateTime(value: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? value : DATE_TIME_FORMAT.format(date);
 }
 
-/** Money fields arrive as decimal strings ("1500.00"). */
+/**
+ * Money fields arrive as decimal strings ("1500.00"). Whole amounts drop the decimals ("৳1,500");
+ * anything with paisa shows both digits ("৳1,537.50", never "৳1,537.5").
+ */
 export function formatAmount(value: string | number): string {
   const amount = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(amount)) return String(value);
-  return `৳${new Intl.NumberFormat("en-BD", { maximumFractionDigits: 2 }).format(amount)}`;
+  const digits = Number.isInteger(amount) ? 0 : 2;
+  return `৳${new Intl.NumberFormat("en-BD", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
 }
