@@ -489,6 +489,9 @@ export type TutorExtras = Pick<
 export type Credential = Schemas["TutorCredential"];
 export type Video = Schemas["TutorVideo"];
 export type Verification = Schemas["TutorVerification"];
+export type SubmitVerificationInput = Schemas["SubmitVerificationInput"];
+export type CreateCredentialInput = Schemas["CreateCredentialInput"];
+export type CreateVideoInput = Schemas["CreateVideoInput"];
 
 type ProfileResponse = StudentProfile | TutorProfile;
 
@@ -549,8 +552,27 @@ export const profileApi = {
       )
     ).tutor,
 
+  /** Sends an uploaded ID for review. Returns the updated student profile. */
+  submitStudentVerification: async (fileId: string) =>
+    unwrap(
+      client.POST("/api/v1/students/me/verification", {
+        body: { fileId } satisfies SubmitVerificationInput,
+      }),
+    ),
+
+  /** Sends an uploaded ID for review. The tutor needs a studentIdNumber on file first. */
+  submitTutorVerification: async (fileId: string) =>
+    unwrap(
+      client.POST("/api/v1/tutors/me/verifications", {
+        body: { fileId } satisfies SubmitVerificationInput,
+      }),
+    ),
+
   credentials: async () =>
     (await unwrap(client.GET("/api/v1/tutors/me/credentials"))).credentials,
+
+  addCredential: async (body: CreateCredentialInput) =>
+    unwrap(client.POST("/api/v1/tutors/me/credentials", { body })),
 
   deleteCredential: async (id: string) =>
     unwrap(
@@ -561,6 +583,9 @@ export const profileApi = {
 
   videos: async () =>
     (await unwrap(client.GET("/api/v1/tutors/me/videos"))).videos,
+
+  addVideo: async (body: CreateVideoInput) =>
+    unwrap(client.POST("/api/v1/tutors/me/videos", { body })),
 
   deleteVideo: async (id: string) =>
     unwrap(

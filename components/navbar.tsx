@@ -19,7 +19,7 @@ const navLinks = [
   { href: "/#testimonials", label: "Testimonials" },
   { href: "/#tutors", label: "Tutors" },
   { href: "/about-us", label: "About Us" },
-  { href: "/blogs", label: "Blogs" },
+  { href: "/blog", label: "Blogs" },
 ];
 
 // Next skips scrolling when the URL hash is unchanged, so a second click on

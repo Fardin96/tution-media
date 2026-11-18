@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { client, unwrap, type Schemas } from "./api-client";
 import { errorCodeMessage } from "./api-errors";
 import { ApiError } from "./profile";
@@ -153,6 +153,9 @@ export type UploadState =
 export function useFileUpload(purpose: FilePurpose) {
   const [state, setState] = useState<UploadState>({ status: "idle" });
   const controller = useRef<AbortController | null>(null);
+
+  // Closing the dialog mid-upload stops the transfer; the unfinished file row is swept later.
+  useEffect(() => () => controller.current?.abort(), []);
 
   const start = useCallback(
     async (file: File): Promise<FileAsset | null> => {

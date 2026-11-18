@@ -46,7 +46,7 @@ const tutorLinks = [
 
 const legalLinks = [
   { label: "About Us", href: "/about-us" },
-  { label: "Blogs & Guidance", href: "/blogs" },
+  { label: "Blogs & Guidance", href: "/blog" },
   { label: "Terms and Conditions", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Contact Support", href: "/contact" },

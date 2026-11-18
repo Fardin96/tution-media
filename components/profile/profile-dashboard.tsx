@@ -46,6 +46,13 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { openFile } from "@/lib/files";
+import {
+  credentialLimitReached,
+  MAX_TUTOR_CREDENTIALS,
+  MAX_TUTOR_VIDEOS,
+  videoLimitReached,
+} from "@/lib/upload-forms";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import {
@@ -90,6 +97,12 @@ import {
 import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
+import { CredentialDialog } from "./credential-dialog";
+import {
+  VerificationUploadDialog,
+  type SubmittedVerification,
+} from "./verification-upload-dialog";
+import { VideoDialog } from "./video-dialog";
 import {
   card,
   focusRing,
@@ -121,13 +134,13 @@ const TONE: Record<Tone, string> = {
 const VERIFICATION: Record<VerificationStatus, { tone: Tone; label: string }> =
   {
     NOT_SUBMITTED: { tone: "neutral", label: "Not verified" },
-    PENDING: { tone: "warning", label: "Under review" },
+    PENDING: { tone: "warning", label: "In review" },
     APPROVED: { tone: "success", label: "Verified" },
     REJECTED: { tone: "error", label: "Rejected" },
   };
 
 const VIDEO_STATUS: Record<Video["status"], { tone: Tone; label: string }> = {
-  PENDING: { tone: "warning", label: "In review" },
+  PENDING: { tone: "warning", label: "Pending review" },
   APPROVED: { tone: "success", label: "Live" },
   REJECTED: { tone: "error", label: "Rejected" },
 };
@@ -429,6 +442,48 @@ export function ProfileDashboard({
     }));
   };
 
+  const addCredential = (credential: Credential) => {
+    setTutorData((d) => ({
+      ...d,
+      credentials:
+        d.credentials &&
+        [...d.credentials, credential].sort((a, b) =>
+          a.examLabel.localeCompare(b.examLabel),
+        ),
+    }));
+  };
+
+  const addVideo = (video: Video) => {
+    setTutorData((d) => ({
+      ...d,
+      videos: d.videos && [...d.videos, video],
+    }));
+  };
+
+  const verificationSent = (result: SubmittedVerification) => {
+    if (result.role === "STUDENT") {
+      setMe(
+        (m) => m && { ...m, student: { ...m.student!, ...result.profile } },
+      );
+    } else {
+      setMe(
+        (m) =>
+          m && {
+            ...m,
+            tutor: { ...m.tutor!, verificationStatus: "PENDING" },
+          },
+      );
+      setTutorData((d) => ({
+        ...d,
+        verifications: d.verifications && [
+          result.verification,
+          ...d.verifications,
+        ],
+      }));
+    }
+    void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+  };
+
   const displayName = profile?.name || session.name || "there";
 
   return (
@@ -520,10 +575,12 @@ export function ProfileDashboard({
                     <CredentialsSection
                       credentials={tutorData.credentials}
                       onRemove={removeCredential}
+                      onAdded={addCredential}
                     />
                     <VideosSection
                       videos={tutorData.videos}
                       onRemove={removeVideo}
+                      onAdded={addVideo}
                     />
                     <TutorPackagesSection />
                     <TeachingZonesCard />
@@ -556,7 +613,18 @@ export function ProfileDashboard({
                 <VerificationCard
                   role={role}
                   status={profile.verificationStatus}
-                  latest={tutorData.verifications?.[0] ?? null}
+                  note={
+                    me.student
+                      ? me.student.verificationNote
+                      : (tutorData.verifications?.[0]?.note ?? null)
+                  }
+                  submittedAt={
+                    me.student
+                      ? me.student.verificationSubmittedAt
+                      : (tutorData.verifications?.[0]?.submittedAt ?? null)
+                  }
+                  hasStudentIdNumber={Boolean(profile.studentIdNumber?.trim())}
+                  onSubmitted={verificationSent}
                 />
                 <AccountCard
                   email={me.email}
@@ -764,10 +832,7 @@ function checklist(
     {
       label: role === "TUTOR" ? "Identity verified" : "Student ID verified",
       done: profile.verificationStatus === "APPROVED",
-      note:
-        profile.verificationStatus === "PENDING"
-          ? "Under review"
-          : "Coming soon",
+      note: profile.verificationStatus === "PENDING" ? "In review" : undefined,
     },
   ];
   if (role === "TUTOR")
@@ -781,7 +846,6 @@ function checklist(
       {
         label: "Exam credentials",
         done: (data.credentials?.length ?? 0) > 0,
-        note: "Coming soon",
       },
     );
   return items;
@@ -1066,12 +1130,17 @@ function RemovableRow({
   title,
   meta,
   badge,
+  action,
+  preview,
   onRemove,
 }: {
   icon: React.ReactNode;
   title: string;
   meta?: string;
   badge?: React.ReactNode;
+  action?: React.ReactNode;
+  /** Full-width content under the title row, e.g. a video player. */
+  preview?: React.ReactNode;
   onRemove: () => Promise<void>;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -1093,6 +1162,10 @@ function RemovableRow({
         )}
       </span>
       {badge}
+      {action}
+      {preview && (
+        <div className="grid min-w-0 basis-full gap-3 ps-14">{preview}</div>
+      )}
       {confirming ? (
         <span className="flex gap-2">
           <button
@@ -1143,14 +1216,57 @@ function RemovableRow({
   );
 }
 
-function UploadSoon({ label }: { label: string }) {
+function ViewFileButton({ fileId, label }: { fileId: string; label: string }) {
   return (
-    <button type="button" disabled className={cn(secondaryButton, "min-h-10")}>
-      <Upload aria-hidden="true" className="size-4" />
+    <button
+      type="button"
+      onClick={() => {
+        openFile(fileId).catch((err) =>
+          toastError("Couldn't open the file.", err),
+        );
+      }}
+      className={cn(ghostButton, "min-h-10 px-3")}
+    >
+      <Eye aria-hidden="true" className="size-4" />
+      View<span className="sr-only"> {label}</span>
+    </button>
+  );
+}
+
+function VideoPreview({ video }: { video: Video }) {
+  return (
+    <>
+      {video.status === "REJECTED" && video.moderationNote && (
+        <p className="rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-[var(--color-semantic-error-text)]">
+          Admin note: {video.moderationNote}
+        </p>
+      )}
+      {video.url ? (
+        <video
+          controls
+          preload="metadata"
+          src={video.url}
+          aria-label={video.title}
+          className="aspect-video w-full rounded-[12px] bg-black outline outline-1 -outline-offset-1 outline-black/10"
+        />
+      ) : (
+        <p className="rounded-[12px] bg-[var(--color-surface-subtle)] px-3 py-2 text-sm text-[var(--color-text-secondary)]">
+          Preview unavailable
+        </p>
+      )}
+    </>
+  );
+}
+
+function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(secondaryButton, "min-h-10")}
+    >
+      <Plus aria-hidden="true" className="size-4" />
       {label}
-      <span className="rounded-full bg-[var(--color-surface-subtle)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]">
-        Soon
-      </span>
     </button>
   );
 }
@@ -1188,10 +1304,16 @@ const loadFailed = (
 function CredentialsSection({
   credentials,
   onRemove,
+  onAdded,
 }: {
   credentials: Credential[] | null;
   onRemove: (id: string) => Promise<void>;
+  onAdded: (credential: Credential) => void;
 }) {
+  const [adding, setAdding] = useState(false);
+  // Without the list the count is unknown, so the add button waits for a reload.
+  const full =
+    credentials !== null && credentialLimitReached(credentials.length);
   return (
     <section
       id="credentials"
@@ -1202,7 +1324,11 @@ function CredentialsSection({
         id="credentials-heading"
         title="Exam credentials"
         description="SSC, HSC and university results. Verified tutors get listed first."
-        action={<UploadSoon label="Add credential" />}
+        action={
+          credentials !== null && !full ? (
+            <AddButton label="Add credential" onClick={() => setAdding(true)} />
+          ) : undefined
+        }
       />
       <div className={cn(card, "mt-5 overflow-hidden")}>
         {credentials === null ? (
@@ -1211,7 +1337,7 @@ function CredentialsSection({
           <EmptyState
             icon={<FileText aria-hidden="true" className="size-5" />}
             title="No credentials yet"
-            body="Uploading result sheets is coming soon. You'll be able to add them here."
+            body="Add a result sheet from SSC, HSC or university."
           />
         ) : (
           <ul className="divide-y divide-[var(--color-neutral-border)]">
@@ -1221,12 +1347,26 @@ function CredentialsSection({
                 icon={<FileText aria-hidden="true" className="size-5" />}
                 title={c.examLabel}
                 meta={`Result: ${c.result}`}
+                action={
+                  <ViewFileButton fileId={c.file.id} label={c.examLabel} />
+                }
                 onRemove={() => onRemove(c.id)}
               />
             ))}
           </ul>
         )}
       </div>
+      {full && (
+        <p className="mt-3 text-sm text-pretty text-[var(--color-text-secondary)]">
+          You have {MAX_TUTOR_CREDENTIALS} credentials, the most allowed. Remove
+          one to add another.
+        </p>
+      )}
+      <CredentialDialog
+        open={adding}
+        onOpenChange={setAdding}
+        onAdded={onAdded}
+      />
     </section>
   );
 }
@@ -1234,10 +1374,15 @@ function CredentialsSection({
 function VideosSection({
   videos,
   onRemove,
+  onAdded,
 }: {
   videos: Video[] | null;
   onRemove: (id: string) => Promise<void>;
+  onAdded: (video: Video) => void;
 }) {
+  const [adding, setAdding] = useState(false);
+  // Without the list the count is unknown, so the add button waits for a reload.
+  const full = videos !== null && videoLimitReached(videos.length);
   return (
     <section
       id="videos"
@@ -1248,7 +1393,11 @@ function VideosSection({
         id="videos-heading"
         title="Teaching videos"
         description="A short demo lesson. Admins review each video before it goes live."
-        action={<UploadSoon label="Add video" />}
+        action={
+          videos !== null && !full ? (
+            <AddButton label="Add video" onClick={() => setAdding(true)} />
+          ) : undefined
+        }
       />
       <div className={cn(card, "mt-5 overflow-hidden")}>
         {videos === null ? (
@@ -1257,7 +1406,7 @@ function VideosSection({
           <EmptyState
             icon={<PlayCircle aria-hidden="true" className="size-5" />}
             title="No videos yet"
-            body="Video uploads are coming soon. Tutors with a demo lesson get more requests."
+            body="Tutors with a demo lesson get more requests."
           />
         ) : (
           <ul className="divide-y divide-[var(--color-neutral-border)]">
@@ -1270,6 +1419,7 @@ function VideosSection({
                   title={v.title}
                   meta={`Added ${monthYear(v.createdAt)}`}
                   badge={<Pill tone={s.tone}>{s.label}</Pill>}
+                  preview={<VideoPreview video={v} />}
                   onRemove={() => onRemove(v.id)}
                 />
               );
@@ -1277,6 +1427,13 @@ function VideosSection({
           </ul>
         )}
       </div>
+      {full && (
+        <p className="mt-3 text-sm text-pretty text-[var(--color-text-secondary)]">
+          You have {MAX_TUTOR_VIDEOS} videos, the most allowed. Remove one to
+          add another.
+        </p>
+      )}
+      <VideoDialog open={adding} onOpenChange={setAdding} onAdded={onAdded} />
     </section>
   );
 }
@@ -1850,13 +2007,34 @@ function RecommendedTutors() {
 function VerificationCard({
   role,
   status,
-  latest,
+  note,
+  submittedAt,
+  hasStudentIdNumber,
+  onSubmitted,
 }: {
   role: ProfileRole;
   status: VerificationStatus;
-  latest: Verification | null;
+  /** The reviewer's note on the latest submission. Shown when rejected. */
+  note: string | null;
+  submittedAt: string | null;
+  hasStudentIdNumber: boolean;
+  onSubmitted: (result: SubmittedVerification) => void;
 }) {
+  const [uploading, setUploading] = useState(false);
   const v = VERIFICATION[status];
+  const canUpload = status === "NOT_SUBMITTED" || status === "REJECTED";
+
+  const copy =
+    status === "APPROVED"
+      ? "You're verified. Your badge shows on your profile."
+      : status === "PENDING"
+        ? `${submittedAt ? `Sent ${formatShortDate(submittedAt)}. ` : ""}We're reviewing it. This usually takes a day or two.`
+        : status === "REJECTED"
+          ? "We couldn't accept this ID. Send a new copy to try again."
+          : role === "TUTOR"
+            ? "Verified tutors appear in the directory. Upload your university ID to get verified."
+            : "A verified ID builds trust with tutors. Upload a clear photo or scan of your student ID.";
+
   return (
     <section
       id="verification"
@@ -1876,22 +2054,32 @@ function VerificationCard({
         {role === "TUTOR" ? "Identity verification" : "Student ID verification"}
       </h2>
       <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
-        {status === "APPROVED"
-          ? "You're verified. Your badge shows on your profile."
-          : status === "PENDING"
-            ? "We're reviewing your ID. This usually takes a day or two."
-            : role === "TUTOR"
-              ? "Verified tutors appear in the directory. ID upload is coming soon."
-              : "A verified ID builds trust with tutors. ID upload is coming soon."}
+        {copy}
       </p>
-      {latest?.status === "REJECTED" && latest.note && (
+      {status === "REJECTED" && note && (
         <p className="mt-3 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-[var(--color-semantic-error-text)]">
-          Reviewer note: {latest.note}
+          Reviewer note: {note}
         </p>
       )}
-      <div className="mt-4">
-        <UploadSoon label="Upload ID card" />
-      </div>
+      {canUpload && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setUploading(true)}
+            className={primaryButton}
+          >
+            <Upload aria-hidden="true" className="size-4" />
+            Upload ID
+          </button>
+        </div>
+      )}
+      <VerificationUploadDialog
+        open={uploading}
+        onOpenChange={setUploading}
+        role={role}
+        hasStudentIdNumber={hasStudentIdNumber}
+        onSubmitted={onSubmitted}
+      />
     </section>
   );
 }
