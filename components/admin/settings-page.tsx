@@ -15,24 +15,39 @@ import { formatDateTime, useAdminMe } from "@/lib/admin";
 import {
   useAdminSettings,
   useUpdateSetting,
-  validateCommission,
+  validatePercent,
   type PlatformSetting,
   type SettingKey,
 } from "@/lib/admin-settings";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 
-/** Display order and copy for each platform setting. */
+/** Display order and copy for each platform setting. `max` marks a percent setting. */
 const SETTINGS: {
   key: SettingKey;
   title: string;
   description: string;
+  max?: number;
 }[] = [
   {
     key: "commission_percent",
     title: "Commission",
     description:
       "Percent of the monthly salary, or of the package price, charged as a placement fee when an application is confirmed.",
+    max: 100,
+  },
+  {
+    key: "online_payments_enabled",
+    title: "Online payments",
+    description:
+      "Lets tutors pay placement fees through SSLCommerz. Turn it off to stop new checkouts. Payments already started still finish.",
+  },
+  {
+    key: "gateway_charge_percent",
+    title: "Processing charge",
+    description:
+      "Percent added on top of every online payment to cover SSLCommerz's fee. Tutors see it before they pay. It isn't part of the placement fee and isn't refunded.",
+    max: 10,
   },
   {
     key: "require_tutor_verification",
@@ -113,10 +128,12 @@ function SettingSection({
         {copy.description}
       </p>
 
-      {item.key === "commission_percent" ? (
+      {copy.max !== undefined ? (
         // Keyed on the saved value so the field shows the server's number after each save.
-        <CommissionForm
+        <PercentForm
           key={`${item.value}-${item.updatedAt}`}
+          settingKey={item.key}
+          max={copy.max}
           value={Number(item.value)}
           canEdit={canEdit}
         />
@@ -136,10 +153,14 @@ function SettingSection({
   );
 }
 
-function CommissionForm({
+function PercentForm({
+  settingKey,
+  max,
   value,
   canEdit,
 }: {
+  settingKey: SettingKey;
+  max: number;
   value: number;
   canEdit: boolean;
 }) {
@@ -157,13 +178,13 @@ function CommissionForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = validateCommission(text);
+    const message = validatePercent(text, max);
     if (message) {
       setError(message);
       return;
     }
     update.mutate(
-      { key: "commission_percent", value: Number(text.trim()) },
+      { key: settingKey, value: Number(text.trim()) },
       {
         onSuccess: () => toastSuccess("Setting saved"),
         onError: (err) => {
@@ -190,7 +211,7 @@ function CommissionForm({
                 inputMode="decimal"
                 step={0.01}
                 min={0}
-                max={100}
+                max={max}
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value);

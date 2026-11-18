@@ -50,6 +50,13 @@ export const queryKeys = {
   /** Public GET /areas: the live area list for pickers and labels. */
   areas: ["areas"] as const,
   packages: { mine: ["packages", "mine"] as const },
+  fees: {
+    all: ["fees"] as const,
+    mine: ["fees", "mine"] as const,
+    detail: (id: string) => ["fees", "detail", id] as const,
+    attempt: (feeId: string, tranId: string) =>
+      ["fees", "attempt", feeId, tranId] as const,
+  },
   lookups: { education: ["lookups", "education"] as const },
   applications: {
     all: ["applications"] as const,
@@ -86,6 +93,14 @@ export function invalidateApplications(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
     invalidateNotifications(queryClient),
+  ]);
+}
+
+/** A settled or refused payment moves the tutor's fee list, the fee detail and the application's fee summary. */
+export function invalidateFees(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.fees.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
   ]);
 }
 

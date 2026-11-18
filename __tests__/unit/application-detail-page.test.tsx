@@ -399,3 +399,42 @@ describe("ApplicationDetailPage for a tutor", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("ApplicationDetailPage placement fee for a tutor", () => {
+  const openFee = (
+    overrides: Partial<NonNullable<ApplicationDetail["fee"]>> = {},
+  ) => ({
+    id: "fee-1",
+    amountDue: "1500.00",
+    amountPaid: "0.00",
+    status: "DUE" as const,
+    dueDate: "2026-11-30",
+    unpaid: false,
+    ...overrides,
+  });
+
+  it("links an open fee to its payment page instead of the disabled placeholder", async () => {
+    mockDetail(detail({ fee: openFee() }));
+    renderPage("TUTOR");
+
+    const pay = await screen.findByRole("link", { name: "Pay now" });
+    expect(pay).toHaveAttribute("href", "/dashboard/fees/fee-1");
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+  });
+
+  it("shows no pay link once the fee is paid", async () => {
+    mockDetail(
+      detail({
+        fee: openFee({ status: "PAID", amountPaid: "1500.00" }),
+      }),
+    );
+    renderPage("TUTOR");
+
+    expect(
+      await screen.findByRole("heading", { name: "Placement fee" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Pay now" }),
+    ).not.toBeInTheDocument();
+  });
+});

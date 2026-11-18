@@ -39,12 +39,17 @@ export function useUpdateSetting() {
   });
 }
 
-/** Commission is a percent from 0 to 100 with at most two decimal places. */
-export function validateCommission(text: string): string | undefined {
+/** A percent from 0 to `max` with at most two decimal places. */
+export function validatePercent(text: string, max: number): string | undefined {
   const trimmed = text.trim();
-  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(trimmed) || Number(trimmed) > 100)
-    return "Enter a number from 0 to 100.";
+  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(trimmed) || Number(trimmed) > max)
+    return `Enter a number from 0 to ${max}.`;
   const fraction = trimmed.split(".")[1] ?? "";
   if (fraction.length > 2) return "Use at most 2 decimal places.";
   return undefined;
+}
+
+/** Commission is a percent from 0 to 100. */
+export function validateCommission(text: string): string | undefined {
+  return validatePercent(text, 100);
 }

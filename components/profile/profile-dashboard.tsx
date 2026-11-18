@@ -21,6 +21,7 @@ import {
   Pencil,
   PlayCircle,
   Plus,
+  Receipt,
   RotateCw,
   ShieldCheck,
   Star,
@@ -527,6 +528,7 @@ export function ProfileDashboard({
                     <TutorPackagesSection />
                     <TeachingZonesCard />
                     <FindWorkCard />
+                    <PlacementFeesCard />
                     <TutorRequirementsSection />
                   </>
                 ) : (
@@ -1339,6 +1341,36 @@ function FindWorkCard() {
             My applications
           </Link>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function PlacementFeesCard() {
+  return (
+    <section
+      id="placement-fees"
+      aria-labelledby="placement-fees-heading"
+      className="scroll-mt-24"
+    >
+      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+        <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
+          <Receipt aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            id="placement-fees-heading"
+            className="font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            Placement fees
+          </h2>
+          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            See what you owe and pay online.
+          </p>
+        </div>
+        <Link href="/dashboard/fees" className={secondaryButton}>
+          View fees
+        </Link>
       </div>
     </section>
   );

@@ -38,6 +38,8 @@ export const ERROR_CODES = {
   PackageAlreadyModerated: "PACKAGE_ALREADY_MODERATED",
   SubjectExists: "SUBJECT_EXISTS",
   AreaExists: "AREA_EXISTS",
+  PaymentsDisabled: "PAYMENTS_DISABLED",
+  GatewayUnavailable: "GATEWAY_UNAVAILABLE",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -150,6 +152,10 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   PACKAGE_ALREADY_MODERATED: "Another admin already reviewed this package.",
   SUBJECT_EXISTS: "A subject with this name or slug already exists.",
   AREA_EXISTS: "An area with this name already exists in this district.",
+  PAYMENTS_DISABLED:
+    "Online payments are turned off right now. Try again later.",
+  GATEWAY_UNAVAILABLE:
+    "The payment gateway isn't responding. Try again in a few minutes.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

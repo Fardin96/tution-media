@@ -367,7 +367,8 @@ function PaymentRow({
           </p>
           <p className="mt-0.5 text-xs text-[var(--color-text-secondary)] tabular-nums">
             {formatDateTime(payment.receivedAt)} ·{" "}
-            {PAYMENT_METHOD_LABEL[payment.method]} · {payment.recordedByName}
+            {PAYMENT_METHOD_LABEL[payment.method]} ·{" "}
+            {payment.recordedByName ?? "SSLCommerz (online)"}
           </p>
         </div>
         {onReverse && (

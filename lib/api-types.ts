@@ -6367,6 +6367,421 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/fees/mine": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my fees
+     * @description The signed-in tutor's placement and other fees, newest first. Cursor-paginated, 50 per page: pass nextCursor back as cursor until it is null.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          cursor?: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorFeePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/fees/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get one of my fees
+     * @description One fee with its payments, the online checkout quote (null when nothing can be paid online) and the pending gateway attempt, if any. A fee that belongs to another tutor is 404.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorFeeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/fees/{id}/checkout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start an online payment for a fee
+     * @description Opens an SSLCommerz checkout for the fee's remaining amount, plus the gateway charge when the platform sets one. Returns the gateway page to send the tutor to. Only one checkout can be in progress per fee. A checkout still in progress is checked with the gateway first. A fee that the gateway already paid is refused. The amounts are computed on the server.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["CheckoutSession"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/fees/{id}/attempts/{tranId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the status of an online payment
+     * @description Returns one checkout of this fee and the fee's current balance. A payment still PENDING after a few seconds is checked with the gateway first. If the gateway is unreachable, the current status is returned.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+          tranId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["PaymentAttemptView"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/videos": {
     parameters: {
       query?: never;
@@ -9172,7 +9587,7 @@ export interface paths {
     };
     /**
      * List platform settings
-     * @description The three known settings in a fixed order. A key with no row yet shows its default (commission_percent 0, the two switches false).
+     * @description The known settings in a fixed order. A key with no row yet shows its default (the two percentages 0, the switches false).
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -9252,7 +9667,7 @@ export interface paths {
     get?: never;
     /**
      * Update a platform setting
-     * @description Super admin only. commission_percent takes 0 to 100 with at most 2 decimals. The switches take true or false. Changing require_tutor_verification re-evaluates every tutor's listing.
+     * @description Super admin only. commission_percent takes 0 to 100 and gateway_charge_percent takes 0 to 10, each with at most 2 decimals. The switches take true or false. Changing require_tutor_verification re-evaluates every tutor's listing.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -9265,6 +9680,8 @@ export interface paths {
         path: {
           key:
             | "commission_percent"
+            | "gateway_charge_percent"
+            | "online_payments_enabled"
             | "require_tutor_verification"
             | "require_phone_verification";
         };
@@ -9697,7 +10114,7 @@ export interface components {
       receivedAt: string;
       /** Format: date-time */
       createdAt: string;
-      recordedByName: string;
+      recordedByName: string | null;
       reversesPaymentId: string | null;
       reversedAmount: string;
     };
@@ -10115,6 +10532,21 @@ export interface components {
       requirements: components["schemas"]["BrowseRequirement"][];
       nextCursor: string | null;
       noServiceArea: boolean;
+    };
+    CheckoutQuote: {
+      enabled: boolean;
+      unavailableReason: ("PAYMENTS_OFF" | "BELOW_MINIMUM") | null;
+      feeAmount: string;
+      chargePercent: string;
+      chargeAmount: string;
+      totalAmount: string;
+    };
+    CheckoutSession: {
+      tranId: string;
+      gatewayUrl: string;
+      feeAmount: string;
+      chargeAmount: string;
+      totalAmount: string;
     };
     ConsentInput: {
       version: string;
@@ -10556,7 +10988,9 @@ export interface components {
       | "INVALID_FEE_STATE"
       | "PACKAGE_ALREADY_MODERATED"
       | "SUBJECT_EXISTS"
-      | "AREA_EXISTS";
+      | "AREA_EXISTS"
+      | "PAYMENTS_DISABLED"
+      | "GATEWAY_UNAVAILABLE";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -10862,10 +11296,38 @@ export interface components {
       nextCursor: string | null;
       locationMissing: boolean;
     };
+    PaymentAttemptView: {
+      tranId: string;
+      /** @enum {string} */
+      status:
+        | "PENDING"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "REVIEW"
+        | "UNAPPLIED";
+      feeAmount: string;
+      chargeAmount: string;
+      totalAmount: string;
+      failureReason: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      settledAt: string | null;
+      fee: {
+        /** @enum {string} */
+        status: "DUE" | "PARTIAL" | "PAID" | "WAIVED" | "VOID";
+        amountDue: string;
+        amountPaid: string;
+        remaining: string;
+      };
+    };
     PlatformSettingItem: {
       /** @enum {string} */
       key:
         | "commission_percent"
+        | "gateway_charge_percent"
+        | "online_payments_enabled"
         | "require_tutor_verification"
         | "require_phone_verification";
       value: number | boolean;
@@ -11087,6 +11549,75 @@ export interface components {
     };
     TutorCredentialList: {
       credentials: components["schemas"]["TutorCredential"][];
+    };
+    TutorFee: {
+      id: string;
+      /** @enum {string} */
+      feeType: "PLACEMENT" | "RECURRING" | "OTHER";
+      /** @enum {string} */
+      status: "DUE" | "PARTIAL" | "PAID" | "WAIVED" | "VOID";
+      amountDue: string;
+      amountPaid: string;
+      remaining: string;
+      dueDate: string;
+      overdue: boolean;
+      unpaid: boolean;
+      /** Format: date-time */
+      createdAt: string;
+      application: {
+        id: string;
+        /** @enum {string} */
+        kind: "REQUIREMENT" | "PACKAGE";
+        confirmedAt: string | null;
+        packageTitle: string | null;
+        studentName: string;
+      };
+    };
+    TutorFeeDetail: {
+      id: string;
+      /** @enum {string} */
+      feeType: "PLACEMENT" | "RECURRING" | "OTHER";
+      /** @enum {string} */
+      status: "DUE" | "PARTIAL" | "PAID" | "WAIVED" | "VOID";
+      amountDue: string;
+      amountPaid: string;
+      remaining: string;
+      dueDate: string;
+      overdue: boolean;
+      unpaid: boolean;
+      /** Format: date-time */
+      createdAt: string;
+      application: {
+        id: string;
+        /** @enum {string} */
+        kind: "REQUIREMENT" | "PACKAGE";
+        confirmedAt: string | null;
+        packageTitle: string | null;
+        studentName: string;
+      };
+      payments: components["schemas"]["TutorFeePayment"][];
+      checkout: components["schemas"]["CheckoutQuote"] | null;
+      pendingAttempt: {
+        tranId: string;
+        /** Format: date-time */
+        createdAt: string;
+      } | null;
+    };
+    TutorFeePage: {
+      fees: components["schemas"]["TutorFee"][];
+      nextCursor: string | null;
+    };
+    TutorFeePayment: {
+      id: string;
+      /** @enum {string} */
+      kind: "PAYMENT" | "REVERSAL";
+      amount: string;
+      /** @enum {string} */
+      method:
+        "BKASH" | "NAGAD" | "ROCKET" | "BANK" | "CASH" | "SSLCOMMERZ" | "OTHER";
+      /** Format: date-time */
+      receivedAt: string;
+      reversesPaymentId: string | null;
     };
     TutorNearbyList: {
       tutors: components["schemas"]["TutorNearbyResult"][];
