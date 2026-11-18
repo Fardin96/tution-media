@@ -6,10 +6,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  Clapperboard,
   CreditCard,
   FileText,
+  HardDrive,
+  IdCard,
   LayoutGrid,
   MapPin,
+  Newspaper,
   Package,
   ScrollText,
   Settings,
@@ -36,6 +40,18 @@ export const ADMIN_NAV = [
     label: "Packages",
     icon: Package,
     description: "Approve new packages before students can see them.",
+  },
+  {
+    href: "/dashboard/admin/verifications",
+    label: "Verifications",
+    icon: IdCard,
+    description: "Check ID documents from tutors and students.",
+  },
+  {
+    href: "/dashboard/admin/videos",
+    label: "Videos",
+    icon: Clapperboard,
+    description: "Approve teaching videos before they go public.",
   },
   {
     href: "/dashboard/admin/zone-requests",
@@ -96,6 +112,18 @@ export const ADMIN_NAV = [
     label: "Areas",
     icon: MapPin,
     description: "Add, rename or retire the areas people pick.",
+  },
+  {
+    href: "/dashboard/admin/blog",
+    label: "Blog",
+    icon: Newspaper,
+    description: "Write, publish and archive blog posts.",
+  },
+  {
+    href: "/dashboard/admin/files",
+    label: "Files",
+    icon: HardDrive,
+    description: "Uploaded files, storage use and leftovers.",
   },
   {
     href: "/dashboard/admin/settings",

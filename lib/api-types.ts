@@ -1030,6 +1030,116 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/students/me/verification": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Submit my ID for verification
+     * @description Sends an uploaded ID file for review. Allowed when no ID is pending or approved; a rejected ID can be sent again. The file must be yours, purpose STUDENT_ID and finished uploading. Clears the previous review note. Returns the profile.
+     *
+     *     **Who:** STUDENT.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SubmitVerificationInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["StudentProfile"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/students/{id}": {
     parameters: {
       query?: never;
@@ -1706,7 +1816,101 @@ export interface paths {
       };
     };
     put?: never;
-    post?: never;
+    /**
+     * Submit a verification
+     * @description Sends an uploaded student ID file for review. Your profile needs a student ID number first (400). Refused while a submission is under review or once you are verified (409). The file must be yours, purpose TUTOR_ID and finished uploading. Returns the new submission.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SubmitVerificationInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorVerification"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     delete?: never;
     options?: never;
     head?: never;
@@ -2113,7 +2317,101 @@ export interface paths {
       };
     };
     put?: never;
-    post?: never;
+    /**
+     * Add a credential
+     * @description Adds a certificate file with its exam label and result. The file must be yours, purpose CREDENTIAL and finished uploading. A tutor can keep at most 20 credentials (409 UPLOAD_LIMIT_REACHED).
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateCredentialInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorCredential"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     delete?: never;
     options?: never;
     head?: never;
@@ -2132,7 +2430,7 @@ export interface paths {
     post?: never;
     /**
      * Remove a credential
-     * @description Removes one of your credentials. Replies 204 with no body.
+     * @description Removes one of your credentials and its file. Replies 204 with no body.
      *
      *     **Who:** TUTOR.
      *
@@ -2298,7 +2596,101 @@ export interface paths {
       };
     };
     put?: never;
-    post?: never;
+    /**
+     * Add a video
+     * @description Adds an uploaded video as PENDING. It appears publicly only after an admin approves it. The file must be yours, purpose TUTOR_VIDEO and finished uploading. A tutor can keep at most 3 videos (409 UPLOAD_LIMIT_REACHED).
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateVideoInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorVideo"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     delete?: never;
     options?: never;
     head?: never;
@@ -2317,7 +2709,7 @@ export interface paths {
     post?: never;
     /**
      * Remove a video
-     * @description Removes one of your videos. Replies 204 with no body.
+     * @description Removes one of your videos and its file, public copy included. Replies 204 with no body.
      *
      *     **Who:** TUTOR.
      *
@@ -7177,6 +7569,565 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/files/upload-url": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start a file upload
+     * @description Reserves a file and returns a signed PUT URL valid for 10 minutes. Send the bytes to uploadUrl with the same Content-Type header, then call complete. Admin-only purposes need an active admin account.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateUploadUrlInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UploadUrl"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/files/{id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm an upload
+     * @description Call after the PUT to uploadUrl succeeded. Checks the stored size and file signature, then marks the file ready. Calling it again on a finished upload returns the same file.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["FileAsset"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/files/{id}/download-url": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a read link for a file
+     * @description A short-lived link (5 minutes) for the file's owner or an active admin. Admin views of personal documents are recorded in the audit log.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["DownloadUrl"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/files/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete a file
+     * @description Deletes a file that belongs to you (or any file, for an active admin). A file that a verification, credential, video or blog cover still uses cannot be deleted; remove it there first.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/blog": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List blog posts
+     * @description Published posts only, newest first. Cursor-paginated (limit 1 to 100, default 20).
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["BlogPostPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/blog/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a blog post
+     * @description One published post by slug. Drafts and archived posts answer 404.
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          slug: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["BlogPost"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/lookups/education": {
     parameters: {
       query?: never;
@@ -11823,6 +12774,1468 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/verifications/tutors": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List tutor ID submissions
+     * @description status defaults to PENDING, the work queue, oldest first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "PENDING" | "APPROVED" | "REJECTED";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminTutorVerificationPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/verifications/tutors/{id}/decide": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve or reject a tutor ID submission
+     * @description The id is the verification (submission) id from the list. APPROVE makes the tutor's verification APPROVED. REJECT needs a note that tells the tutor why. 409 INVALID_VERIFICATION_STATE when the submission was already reviewed.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["DecideVerificationInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminTutorVerification"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/verifications/students": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List student ID submissions
+     * @description status defaults to PENDING, the work queue, oldest submission first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "PENDING" | "APPROVED" | "REJECTED";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminStudentVerificationPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/verifications/students/{id}/decide": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve or reject a student ID submission
+     * @description The id is the student id. APPROVE makes the student verified. REJECT needs a note that tells the student why. 409 INVALID_VERIFICATION_STATE when the submission was already reviewed.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["DecideVerificationInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminStudentVerification"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/videos": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List tutor videos for review
+     * @description status defaults to PENDING, the work queue, oldest first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "PENDING" | "APPROVED" | "REJECTED";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminVideoPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/videos/{id}/moderate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve or reject a tutor video
+     * @description APPROVE publishes the video to students. REJECT needs a note that tells the tutor why, and takes an approved video down. 409 VIDEO_ALREADY_MODERATED when the video already has that decision.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ModerateVideoInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminVideo"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/videos/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Set a tutor video's display order
+     * @description Lower sortOrder shows first.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateVideoInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminVideo"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  "/api/v1/admin/files": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List uploaded files
+     * @description Every upload, newest first. Filters: purpose, status, ownerAccountId, unattached=true for files no record uses (unattached=false for files in use). Each file says whether it is published and whether a record uses it. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          purpose?:
+            | "STUDENT_ID"
+            | "TUTOR_ID"
+            | "CREDENTIAL"
+            | "TUTOR_VIDEO"
+            | "BLOG_COVER";
+          status?: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
+          ownerAccountId?: string;
+          unattached?: "true" | "false";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminFilePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/files/stats": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Count uploaded files and their size
+     * @description Count and total bytes for each purpose and status.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminFileStats"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/files/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete an uploaded file
+     * @description Deletes any file and its stored copies. 409 FILE_IN_USE while a record uses it: remove the record first. Audited. Replies 204 with no body.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/blog": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List blog posts
+     * @description Drafts, published and archived posts, most recently updated first. Optional status filter. Cursor-paginated (limit 1 to 100, default 20).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminBlogPostPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Create a blog post
+     * @description Starts as a draft unless status is PUBLISHED. The slug comes from the title when omitted. coverFileId must be a cover image you uploaded (purpose BLOG_COVER). 409 BLOG_SLUG_EXISTS when the slug is taken.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateBlogPostInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminBlogPost"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/blog/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get one blog post
+     * @description Any post, whatever its status.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminBlogPost"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    /**
+     * Delete a draft blog post
+     * @description Drafts only. Archive a published post instead. The cover file is deleted with the draft. Replies 204 with no body.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    /**
+     * Update a blog post
+     * @description Any field can change. The first move to PUBLISHED sets publishedAt, which later edits keep. coverFileId null removes the cover; the old file is cleaned up later. 409 BLOG_SLUG_EXISTS when a new slug is taken.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateBlogPostInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminBlogPost"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -11983,6 +14396,30 @@ export interface components {
       areas: components["schemas"]["AdminArea"][];
       districts: components["schemas"]["AdminAreaDistrict"][];
     };
+    AdminBlogPost: {
+      id: string;
+      slug: string;
+      title: string;
+      excerpt: string | null;
+      body: string;
+      /** @enum {string} */
+      status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+      publishedAt: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      authorId: string;
+      authorName: string;
+      cover: {
+        fileId: string;
+        url: string | null;
+      } | null;
+    };
+    AdminBlogPostPage: {
+      posts: components["schemas"]["AdminBlogPost"][];
+      nextCursor: string | null;
+    };
     AdminFee: {
       id: string;
       /** @enum {string} */
@@ -12109,6 +14546,43 @@ export interface components {
       recordedByName: string | null;
       reversesPaymentId: string | null;
       reversedAmount: string;
+    };
+    AdminFile: {
+      id: string;
+      /** @enum {string} */
+      purpose:
+        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+      contentType: string;
+      sizeBytes: number;
+      /** @enum {string} */
+      status: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
+      fileName: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      uploadedAt: string | null;
+      ownerAccountId: string;
+      ownerEmail: string;
+      published: boolean;
+      inUse: boolean;
+    };
+    AdminFilePage: {
+      files: components["schemas"]["AdminFile"][];
+      nextCursor: string | null;
+    };
+    AdminFileStats: {
+      groups: {
+        /** @enum {string} */
+        purpose:
+          | "STUDENT_ID"
+          | "TUTOR_ID"
+          | "CREDENTIAL"
+          | "TUTOR_VIDEO"
+          | "BLOG_COVER";
+        /** @enum {string} */
+        status: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
+        count: number;
+        totalBytes: number;
+      }[];
     };
     AdminPackage: {
       id: string;
@@ -12455,6 +14929,26 @@ export interface components {
       refunds: components["schemas"]["AdminRefund"][];
       nextCursor: string | null;
     };
+    AdminStudentVerification: {
+      studentId: string;
+      /** @enum {string} */
+      status: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      submittedAt: string | null;
+      decidedAt: string | null;
+      note: string | null;
+      reviewedById: string | null;
+      file: components["schemas"]["FileAsset"] | null;
+      student: {
+        id: string;
+        accountId: string;
+        name: string;
+        studentIdNumber: string;
+      };
+    };
+    AdminStudentVerificationPage: {
+      verifications: components["schemas"]["AdminStudentVerification"][];
+      nextCursor: string | null;
+    };
     AdminSubject: {
       id: number;
       name: string;
@@ -12485,6 +14979,54 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
       lastLoginAt: string | null;
+    };
+    AdminTutorVerification: {
+      id: string;
+      /** @enum {string} */
+      status: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      /** Format: date-time */
+      submittedAt: string;
+      decidedAt: string | null;
+      note: string | null;
+      reviewedById: string | null;
+      file: components["schemas"]["FileAsset"];
+      tutor: {
+        id: string;
+        accountId: string;
+        name: string;
+        instituteName: string | null;
+        studentIdNumber: string | null;
+        /** @enum {string} */
+        verificationStatus:
+          "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      };
+    };
+    AdminTutorVerificationPage: {
+      verifications: components["schemas"]["AdminTutorVerification"][];
+      nextCursor: string | null;
+    };
+    AdminVideo: {
+      id: string;
+      title: string;
+      /** @enum {string} */
+      status: "PENDING" | "APPROVED" | "REJECTED";
+      moderationNote: string | null;
+      sortOrder: number;
+      /** Format: date-time */
+      createdAt: string;
+      url: string | null;
+      file: components["schemas"]["FileAsset"];
+      tutor: {
+        id: string;
+        name: string;
+        /** @enum {string} */
+        verificationStatus:
+          "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      };
+    };
+    AdminVideoPage: {
+      videos: components["schemas"]["AdminVideo"][];
+      nextCursor: string | null;
     };
     AdminZoneRequest: {
       /** Format: uuid */
@@ -12755,6 +15297,29 @@ export interface components {
     BlockAccountInput: {
       reason: string;
     };
+    BlogPost: {
+      slug: string;
+      title: string;
+      excerpt: string | null;
+      body: string;
+      /** Format: date-time */
+      publishedAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      coverUrl: string | null;
+    };
+    BlogPostPage: {
+      posts: components["schemas"]["BlogPostSummary"][];
+      nextCursor: string | null;
+    };
+    BlogPostSummary: {
+      slug: string;
+      title: string;
+      excerpt: string | null;
+      /** Format: date-time */
+      publishedAt: string;
+      coverUrl: string | null;
+    };
     BrowseRequirement: {
       id: string;
       areaId: number | null;
@@ -12898,6 +15463,21 @@ export interface components {
         | "sunamganj"
         | "sylhet";
       name: string;
+    };
+    CreateBlogPostInput: {
+      title: string;
+      slug?: string;
+      excerpt?: string | null;
+      body: string;
+      coverFileId?: string | null;
+      /** @enum {string} */
+      status?: "DRAFT" | "PUBLISHED";
+    };
+    CreateCredentialInput: {
+      examLabel: string;
+      result: string;
+      /** Format: uuid */
+      fileId: string;
     };
     CreateFeeInput: {
       /** Format: uuid */
@@ -13175,6 +15755,19 @@ export interface components {
       zoneIds?: string[];
       syncProfileSubjects?: boolean;
     };
+    CreateUploadUrlInput: {
+      /** @enum {string} */
+      purpose:
+        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+      contentType: string;
+      sizeBytes: number;
+      fileName?: string;
+    };
+    CreateVideoInput: {
+      title: string;
+      /** Format: uuid */
+      fileId: string;
+    };
     CreateZoneInput: {
       label: string;
       lat: number;
@@ -13187,11 +15780,21 @@ export interface components {
       requestedLimit: number;
       reason: string;
     };
+    DecideVerificationInput: {
+      /** @enum {string} */
+      decision: "APPROVE" | "REJECT";
+      note?: string;
+    };
     DecideZoneRequestInput: {
       /** @enum {string} */
       decision: "APPROVE" | "DENY";
       approvedLimit?: number;
       note?: string;
+    };
+    DownloadUrl: {
+      url: string;
+      /** Format: date-time */
+      expiresAt: string;
     };
     EducationLookup: {
       version: number;
@@ -13290,7 +15893,18 @@ export interface components {
       | "PROMO_INVALID"
       | "PROMO_CODE_EXISTS"
       | "REFUND_NOT_ALLOWED"
-      | "INVALID_REFUND_STATE";
+      | "INVALID_REFUND_STATE"
+      | "STORAGE_UNAVAILABLE"
+      | "FILE_TOO_LARGE"
+      | "UNSUPPORTED_FILE_TYPE"
+      | "UPLOAD_NOT_FOUND"
+      | "INVALID_FILE"
+      | "FILE_IN_USE"
+      | "UPLOAD_LIMIT_REACHED"
+      | "INVALID_VERIFICATION_STATE"
+      | "VIDEO_ALREADY_MODERATED"
+      | "BLOG_SLUG_EXISTS"
+      | "INVALID_POST_STATE";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -13314,6 +15928,20 @@ export interface components {
       originalAmount: string;
       /** Format: date-time */
       appliedAt: string;
+    };
+    FileAsset: {
+      id: string;
+      /** @enum {string} */
+      purpose:
+        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+      contentType: string;
+      sizeBytes: number;
+      /** @enum {string} */
+      status: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
+      fileName: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      uploadedAt: string | null;
     };
     GoogleSignInInput: {
       idToken: string;
@@ -13394,6 +16022,9 @@ export interface components {
       verificationFileId: string | null;
       /** @enum {string} */
       verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      verificationNote: string | null;
+      verificationSubmittedAt: string | null;
+      verificationDecidedAt: string | null;
       /** @description Decimal, serialized as a string */
       ratingAvg: string;
       ratingCount: number;
@@ -13452,6 +16083,11 @@ export interface components {
       needsReaddress: boolean;
     };
     ModeratePackageInput: {
+      /** @enum {string} */
+      decision: "APPROVE" | "REJECT";
+      note?: string;
+    };
+    ModerateVideoInput: {
       /** @enum {string} */
       decision: "APPROVE" | "REJECT";
       note?: string;
@@ -13769,6 +16405,9 @@ export interface components {
       whatsappVerifiedAt?: string | null;
       /** @enum {string} */
       verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      verificationNote: string | null;
+      verificationSubmittedAt: string | null;
+      verificationDecidedAt: string | null;
       ratingAvg: number;
       ratingCount: number;
       location: {
@@ -13812,6 +16451,10 @@ export interface components {
     };
     SubjectList: {
       subjects: components["schemas"]["Subject"][];
+    };
+    SubmitVerificationInput: {
+      /** Format: uuid */
+      fileId: string;
     };
     TokenResponse: {
       accessToken: string;
@@ -14009,6 +16652,7 @@ export interface components {
         title: string;
         sortOrder: number;
         createdAt: string;
+        url: string | null;
         file: {
           id: string;
           /** @enum {string} */
@@ -14024,6 +16668,7 @@ export interface components {
       title: string;
       sortOrder: number;
       createdAt: string;
+      url: string | null;
       tutor: {
         id: string;
         name: string;
@@ -14161,8 +16806,10 @@ export interface components {
       title: string;
       /** @enum {string} */
       status: "PENDING" | "APPROVED" | "REJECTED";
+      moderationNote: string | null;
       sortOrder: number;
       createdAt: string;
+      url: string | null;
       file: {
         id: string;
         /** @enum {string} */
@@ -14178,6 +16825,15 @@ export interface components {
     UpdateAreaInput: {
       name?: string;
       isActive?: boolean;
+    };
+    UpdateBlogPostInput: {
+      title?: string;
+      slug?: string;
+      excerpt?: string | null;
+      body?: string;
+      coverFileId?: string | null;
+      /** @enum {string} */
+      status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     };
     UpdateFeeInput: {
       dueDate?: string;
@@ -14365,6 +17021,9 @@ export interface components {
       zoneIds?: string[];
       syncProfileSubjects?: boolean;
     };
+    UpdateVideoInput: {
+      sortOrder: number;
+    };
     UpdateZoneInput: {
       label?: string;
       lat?: number;
@@ -14372,6 +17031,17 @@ export interface components {
       radiusM?: number;
       placeId?: string | null;
       addressText?: string | null;
+    };
+    UploadUrl: {
+      file: components["schemas"]["FileAsset"];
+      uploadUrl: string;
+      /** @constant */
+      method: "PUT";
+      headers: {
+        "Content-Type": string;
+      };
+      /** Format: date-time */
+      expiresAt: string;
     };
     Zone: {
       /** Format: uuid */
