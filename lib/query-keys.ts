@@ -33,6 +33,20 @@ export const queryKeys = {
     fees: <F extends object>(filters: F) =>
       ["admin", "fees", "list", filters] as const,
     fee: (id: string) => ["admin", "fees", "detail", id] as const,
+    paymentsAll: ["admin", "payment-attempts"] as const,
+    paymentAttempts: <F extends object>(filters: F) =>
+      ["admin", "payment-attempts", "list", filters] as const,
+    paymentSummary: ["admin", "payment-attempts", "summary"] as const,
+    paymentAttempt: (tranId: string) =>
+      ["admin", "payment-attempts", "detail", tranId] as const,
+    promoCodesAll: ["admin", "promo-codes"] as const,
+    promoCodes: <F extends object>(filters: F) =>
+      ["admin", "promo-codes", "list", filters] as const,
+    promoCode: (id: string) => ["admin", "promo-codes", "detail", id] as const,
+    refundsAll: ["admin", "refunds"] as const,
+    refunds: <F extends object>(filters: F) =>
+      ["admin", "refunds", "list", filters] as const,
+    refund: (id: string) => ["admin", "refunds", "detail", id] as const,
     packagesAll: ["admin", "packages"] as const,
     packages: <F extends object>(filters: F) =>
       ["admin", "packages", "list", filters] as const,
@@ -50,6 +64,13 @@ export const queryKeys = {
   /** Public GET /areas: the live area list for pickers and labels. */
   areas: ["areas"] as const,
   packages: { mine: ["packages", "mine"] as const },
+  fees: {
+    all: ["fees"] as const,
+    mine: ["fees", "mine"] as const,
+    detail: (id: string) => ["fees", "detail", id] as const,
+    attempt: (feeId: string, tranId: string) =>
+      ["fees", "attempt", feeId, tranId] as const,
+  },
   lookups: { education: ["lookups", "education"] as const },
   applications: {
     all: ["applications"] as const,
@@ -86,6 +107,14 @@ export function invalidateApplications(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
     invalidateNotifications(queryClient),
+  ]);
+}
+
+/** A settled or refused payment moves the tutor's fee list, the fee detail and the application's fee summary. */
+export function invalidateFees(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.fees.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
   ]);
 }
 

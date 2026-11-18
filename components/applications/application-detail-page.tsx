@@ -276,18 +276,12 @@ export function ApplicationDetailPage({
                 </p>
               )}
               {feeOpen && (
-                <div className="flex flex-col items-start gap-2">
-                  <button
-                    type="button"
-                    disabled
-                    className={cn(primaryButton, "min-h-10 px-4")}
-                  >
-                    Pay now
-                  </button>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    Online payment is coming soon.
-                  </p>
-                </div>
+                <Link
+                  href={`/dashboard/fees/${encodeURIComponent(fee.id)}`}
+                  className={cn(primaryButton, "min-h-10 self-start px-4")}
+                >
+                  Pay now
+                </Link>
               )}
             </div>
           </Section>

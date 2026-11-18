@@ -21,7 +21,12 @@ import {
   inputClass,
   textareaClass,
 } from "@/components/admin/admin-ui";
+import { RefundLinkRow } from "@/components/admin/refunds-page";
 import { formatAmount, formatDateTime } from "@/lib/admin";
+import {
+  ATTEMPT_STATUS_META,
+  type AdminFeeAttempt,
+} from "@/lib/admin-payments";
 import {
   FEE_STATUS_META,
   FEE_TYPE_LABEL,
@@ -52,12 +57,13 @@ type Dialog =
   | { kind: "waive" }
   | { kind: "void" };
 
-/** A payment can be reversed while some of it is left and the fee still takes payments. */
+/** A payment can be reversed while some of it is left and the fee still takes payments. Online payments are refunded from Refunds. */
 function reversibleAmount(
   fee: AdminFeeDetail,
   payment: AdminFeePayment,
 ): string | null {
   if (payment.kind !== "PAYMENT") return null;
+  if (payment.method === "SSLCOMMERZ") return null;
   if (fee.status === "WAIVED" || fee.status === "VOID") return null;
   const left = Number(payment.amount) - Number(payment.reversedAmount);
   return left > 0 ? left.toFixed(2) : null;
@@ -195,10 +201,22 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
                     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
                     .map((payment) => {
                       const reversible = reversibleAmount(fee, payment);
+                      // The attempt's tranId is the payment's txnReference for online payments.
+                      const attempt =
+                        payment.method === "SSLCOMMERZ"
+                          ? fee.attempts.find(
+                              (a) => a.tranId === payment.txnReference,
+                            )
+                          : undefined;
                       return (
                         <PaymentRow
                           key={payment.id}
                           payment={payment}
+                          attemptHref={
+                            attempt
+                              ? `/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`
+                              : undefined
+                          }
                           onReverse={
                             reversible
                               ? () => setDialog({ kind: "reverse", payment })
@@ -210,6 +228,26 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
                 </ol>
               )}
             </Section>
+
+            {fee.attempts.length > 0 && (
+              <Section title="Online attempts">
+                <ul className="grid gap-3">
+                  {fee.attempts.map((attempt) => (
+                    <AttemptRow key={attempt.tranId} attempt={attempt} />
+                  ))}
+                </ul>
+              </Section>
+            )}
+
+            {fee.refunds.length > 0 && (
+              <Section title="Refunds">
+                <ul className="grid gap-3">
+                  {fee.refunds.map((refund) => (
+                    <RefundLinkRow key={refund.id} refund={refund} />
+                  ))}
+                </ul>
+              </Section>
+            )}
 
             <EditSection
               key={`${fee.id}-${fee.updatedAt}`}
@@ -342,19 +380,28 @@ function FeeSection({ fee }: { fee: AdminFeeDetail }) {
           },
         ]}
       />
+      {fee.promo && (
+        <p className="text-sm break-words text-[var(--color-neutral-charcoal)] tabular-nums">
+          {`Promo ${fee.promo.code}: −${formatAmount(fee.promo.discountAmount)} (was ${formatAmount(fee.promo.originalAmount)})`}
+        </p>
+      )}
     </Section>
   );
 }
 
 function PaymentRow({
   payment,
+  attemptHref,
   onReverse,
 }: {
   payment: AdminFeePayment;
+  /** The online attempt behind an SSLCommerz payment, when it is on this fee. */
+  attemptHref?: string;
   onReverse?: () => void;
 }) {
   const isReversal = payment.kind === "REVERSAL";
   const reversedSome = !isReversal && Number(payment.reversedAmount) > 0;
+  const online = !isReversal && payment.method === "SSLCOMMERZ";
   return (
     <li className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -367,7 +414,8 @@ function PaymentRow({
           </p>
           <p className="mt-0.5 text-xs text-[var(--color-text-secondary)] tabular-nums">
             {formatDateTime(payment.receivedAt)} ·{" "}
-            {PAYMENT_METHOD_LABEL[payment.method]} · {payment.recordedByName}
+            {PAYMENT_METHOD_LABEL[payment.method]} ·{" "}
+            {payment.recordedByName ?? "SSLCommerz (online)"}
           </p>
         </div>
         {onReverse && (
@@ -395,6 +443,53 @@ function PaymentRow({
           {formatAmount(payment.reversedAmount)} reversed
         </p>
       )}
+      {online &&
+        (attemptHref ? (
+          <Link
+            href={attemptHref}
+            className={cn(
+              "w-fit rounded-md text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline",
+              focusRing,
+            )}
+          >
+            Refund it from the payment.
+          </Link>
+        ) : (
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Refund it from the payment.
+          </p>
+        ))}
+    </li>
+  );
+}
+
+function AttemptRow({ attempt }: { attempt: AdminFeeAttempt }) {
+  const meta = ATTEMPT_STATUS_META[attempt.status];
+  return (
+    <li>
+      <Link
+        href={`/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`}
+        className={cn(
+          "grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4 transition-[box-shadow] duration-150 ease-out hover:shadow-[0_0_0_1px_rgb(0_0_0/0.1)] motion-reduce:transition-none",
+          focusRing,
+        )}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="min-w-0 font-mono text-sm break-all text-[var(--color-neutral-charcoal)]">
+            {attempt.tranId}
+          </p>
+          <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+          {formatAmount(attempt.totalAmount)} ·{" "}
+          {formatDateTime(attempt.createdAt)}
+        </p>
+        {attempt.failureReason && (
+          <p className="line-clamp-1 text-sm text-[var(--color-text-secondary)]">
+            {attempt.failureReason}
+          </p>
+        )}
+      </Link>
     </li>
   );
 }

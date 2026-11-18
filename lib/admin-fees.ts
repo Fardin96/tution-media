@@ -71,11 +71,17 @@ export const adminFeeApi = {
     ),
 };
 
-/** Every fee write changes the fee lists, the fee detail and the applications' fee summaries. */
+/**
+ * Every fee write changes the fee lists, the fee detail and the applications' fee summaries, and
+ * the fee state shown on payment attempts and refunds (a waive or cash payment decides what a
+ * pending online payment or refund can still do).
+ */
 function invalidateAdminFees(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.admin.feesAll }),
     queryClient.invalidateQueries({ queryKey: ["admin", "applications"] }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentsAll }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.refundsAll }),
   ]);
 }
 
