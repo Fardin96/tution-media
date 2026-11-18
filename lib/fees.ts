@@ -16,6 +16,7 @@ export type CheckoutQuote = Schemas["CheckoutQuote"];
 export type CheckoutSession = Schemas["CheckoutSession"];
 export type PaymentAttemptView = Schemas["PaymentAttemptView"];
 export type PaymentAttemptStatus = PaymentAttemptView["status"];
+export type FeePromo = Schemas["FeePromo"];
 
 export const feeApi = {
   mine: (cursor?: string) =>
@@ -25,6 +26,17 @@ export const feeApi = {
   checkout: (id: string) =>
     unwrap(
       client.POST("/api/v1/fees/{id}/checkout", { params: { path: { id } } }),
+    ),
+  applyPromo: (id: string, code: string) =>
+    unwrap(
+      client.POST("/api/v1/fees/{id}/promo", {
+        params: { path: { id } },
+        body: { code },
+      }),
+    ),
+  removePromo: (id: string) =>
+    unwrap(
+      client.DELETE("/api/v1/fees/{id}/promo", { params: { path: { id } } }),
     ),
   attempt: (id: string, tranId: string) =>
     unwrap(
@@ -66,6 +78,39 @@ export function useCheckout(feeId: string) {
     // A 409 means the fee moved (paid, or a payment in progress): show the fresh state.
     onError: () => invalidateFees(queryClient),
   });
+}
+
+/**
+ * Promo writes return the fresh fee detail: it goes straight into the cache, then the fee list
+ * and applications refresh (a code can change the amount due or waive the fee).
+ */
+function usePromoWrite<V>(
+  feeId: string,
+  mutationFn: (variables: V) => Promise<TutorFeeDetail>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation<TutorFeeDetail, ApiError, V>({
+    mutationFn,
+    onSuccess: (detail) => {
+      queryClient.setQueryData(queryKeys.fees.detail(feeId), detail);
+    },
+    // A 409 (payment started, code used up) means the fee may have moved: show its fresh state.
+    onError: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.fees.detail(feeId) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.fees.mine }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
+      ]),
+  });
+}
+
+export function useApplyPromo(feeId: string) {
+  return usePromoWrite<string>(feeId, (code) => feeApi.applyPromo(feeId, code));
+}
+
+export function useRemovePromo(feeId: string) {
+  return usePromoWrite<void>(feeId, () => feeApi.removePromo(feeId));
 }
 
 /** Attempt states the gateway can still change. Every other state is final for the tutor. */

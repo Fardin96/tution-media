@@ -14,6 +14,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  TicketPercent,
   Users,
   Wallet,
 } from "lucide-react";
@@ -58,6 +59,12 @@ export const ADMIN_NAV = [
     label: "Payments",
     icon: CreditCard,
     description: "Online payments, and the ones that need a decision.",
+  },
+  {
+    href: "/dashboard/admin/promo-codes",
+    label: "Promo codes",
+    icon: TicketPercent,
+    description: "Discount codes tutors can use on their fees.",
   },
   {
     href: "/dashboard/admin/accounts",

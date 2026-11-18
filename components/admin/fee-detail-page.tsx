@@ -356,6 +356,11 @@ function FeeSection({ fee }: { fee: AdminFeeDetail }) {
           },
         ]}
       />
+      {fee.promo && (
+        <p className="text-sm break-words text-[var(--color-neutral-charcoal)] tabular-nums">
+          {`Promo ${fee.promo.code}: −${formatAmount(fee.promo.discountAmount)} (was ${formatAmount(fee.promo.originalAmount)})`}
+        </p>
+      )}
     </Section>
   );
 }

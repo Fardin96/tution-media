@@ -1,9 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { primaryButton, secondaryButton } from "@/components/profile/styles";
+import {
+  ghostButton,
+  primaryButton,
+  secondaryButton,
+} from "@/components/profile/styles";
+import { Field, inputClass } from "@/components/admin/admin-ui";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { TonePill } from "@/components/applications/status-pill";
@@ -17,14 +22,18 @@ import {
   paymentMethodText,
 } from "@/components/fees/fee-format";
 import { formatDateTime } from "@/lib/admin";
+import { errorCodeMessage } from "@/lib/api-errors";
 import {
+  useApplyPromo,
   useCheckout,
   useMyFee,
+  useRemovePromo,
   type CheckoutQuote,
+  type FeePromo,
   type TutorFeeDetail,
 } from "@/lib/fees";
 import { ApiError } from "@/lib/profile";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 function DetailSkeleton() {
   return (
@@ -176,6 +185,124 @@ function PayOnlineSection({
   );
 }
 
+function PromoForm({ feeId }: { feeId: string }) {
+  const apply = useApplyPromo(feeId);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string>();
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = code.trim();
+    if (trimmed === "") {
+      setError("Enter a code.");
+      return;
+    }
+    setError(undefined);
+    apply.mutate(trimmed, {
+      onSuccess: (detail) => {
+        setCode("");
+        toastSuccess(
+          detail.status === "WAIVED"
+            ? "Code applied. Nothing left to pay."
+            : "Code applied.",
+        );
+      },
+      onError: (err) => {
+        // The code itself was refused (or the fee moved on): say so next to the field.
+        if (
+          err instanceof ApiError &&
+          (err.status === 400 || err.status === 409)
+        ) {
+          setError(errorCodeMessage(err) ?? err.message);
+          return;
+        }
+        toastError("Couldn't apply the code.", err);
+      },
+    });
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <Field label="Promo code" error={error}>
+        {({ id, describedBy, invalid }) => (
+          <div className="flex flex-wrap gap-3">
+            <input
+              id={id}
+              type="text"
+              value={code}
+              onChange={(event) => {
+                setCode(event.target.value);
+                setError(undefined);
+              }}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={32}
+              aria-invalid={invalid ? true : undefined}
+              aria-describedby={describedBy}
+              className={cn(inputClass, "min-w-0 flex-1 basis-48")}
+            />
+            <button
+              type="submit"
+              disabled={apply.isPending}
+              aria-busy={apply.isPending || undefined}
+              className={cn(secondaryButton, "shrink-0")}
+            >
+              {apply.isPending ? "Applying…" : "Apply"}
+            </button>
+          </div>
+        )}
+      </Field>
+    </form>
+  );
+}
+
+function AppliedPromo({ feeId, promo }: { feeId: string; promo: FeePromo }) {
+  const remove = useRemovePromo(feeId);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
+      <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
+        <span className="font-semibold">{promo.code}</span> takes{" "}
+        {formatMoney(promo.discountAmount)} off.
+      </p>
+      <button
+        type="button"
+        disabled={remove.isPending}
+        aria-busy={remove.isPending || undefined}
+        onClick={() =>
+          remove.mutate(undefined, {
+            onSuccess: () => toastSuccess("Code removed."),
+            onError: (err) => toastError("Couldn't remove the code.", err),
+          })
+        }
+        className={cn(ghostButton, "min-h-10 px-3")}
+      >
+        {remove.isPending ? "Removing…" : "Remove code"}
+      </button>
+    </div>
+  );
+}
+
+/** The form while no code is applied; the applied code (removable while nothing is paid) after. */
+function PromoSection({ fee }: { fee: TutorFeeDetail }) {
+  if (fee.promoAllowed) {
+    return (
+      <Section title="Promo code">
+        <PromoForm feeId={fee.id} />
+      </Section>
+    );
+  }
+  if (fee.promo && fee.status === "DUE" && fee.amountPaid === "0.00") {
+    return (
+      <Section title="Promo code">
+        <AppliedPromo feeId={fee.id} promo={fee.promo} />
+      </Section>
+    );
+  }
+  return null;
+}
+
 function PaymentsSection({ fee }: { fee: TutorFeeDetail }) {
   if (fee.payments.length === 0) {
     return (
@@ -220,6 +347,23 @@ function PaymentsSection({ fee }: { fee: TutorFeeDetail }) {
   );
 }
 
+/** A waived or void fee is no longer owed, whether or not a promo code is involved. */
+function owesNothing(fee: Pick<TutorFeeDetail, "status">): boolean {
+  return fee.status === "WAIVED" || fee.status === "VOID";
+}
+
+/**
+ * The API keeps amount_due at the full fee when a code covers all of it, so a waived fee with a
+ * promo shows the original amount less the discount. Done in cents to avoid float drift.
+ */
+function amountDueText(fee: TutorFeeDetail): string {
+  if (!fee.promo || fee.status !== "WAIVED") return fee.amountDue;
+  const cents =
+    Math.round(Number(fee.promo.originalAmount) * 100) -
+    Math.round(Number(fee.promo.discountAmount) * 100);
+  return (cents / 100).toFixed(2);
+}
+
 function FeeBody({ fee }: { fee: TutorFeeDetail }) {
   const status = feeStatusDisplay(fee);
   const confirmed = fee.application.confirmedAt
@@ -245,9 +389,27 @@ function FeeBody({ fee }: { fee: TutorFeeDetail }) {
           </div>
           <Rows
             rows={[
-              { label: "Amount due", value: formatMoney(fee.amountDue) },
+              ...(fee.promo
+                ? [
+                    {
+                      label: "Original amount",
+                      value: formatMoney(fee.promo.originalAmount),
+                    },
+                    {
+                      label: `Promo ${fee.promo.code}`,
+                      value: `−${formatMoney(fee.promo.discountAmount)}`,
+                    },
+                  ]
+                : []),
+              {
+                label: "Amount due",
+                value: formatMoney(amountDueText(fee)),
+              },
               { label: "Paid", value: formatMoney(fee.amountPaid) },
-              { label: "Remaining", value: formatMoney(fee.remaining) },
+              {
+                label: "Remaining",
+                value: formatMoney(owesNothing(fee) ? "0" : fee.remaining),
+              },
               { label: "Due date", value: formatDay(fee.dueDate) },
               { label: "Confirmed on", value: confirmed },
               { label: "Student", value: fee.application.studentName },
@@ -257,6 +419,11 @@ function FeeBody({ fee }: { fee: TutorFeeDetail }) {
               },
             ]}
           />
+          {fee.promo && fee.status === "WAIVED" && (
+            <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
+              Your promo code covered this fee.
+            </p>
+          )}
           <Link
             href={`/dashboard/applications/${encodeURIComponent(fee.application.id)}`}
             className={cn(secondaryButton, "min-h-10 self-start px-4")}
@@ -265,6 +432,8 @@ function FeeBody({ fee }: { fee: TutorFeeDetail }) {
           </Link>
         </div>
       </Section>
+
+      <PromoSection fee={fee} />
 
       {fee.checkout !== null && (
         <PayOnlineSection

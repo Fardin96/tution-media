@@ -74,10 +74,14 @@ const SESSION = {
   totalAmount: "1537.50",
 };
 
-/** Serves the fee detail and answers the checkout POST with `checkout`. */
+/**
+ * Serves the fee detail, answers the checkout POST with `checkout`, and answers the promo
+ * POST and DELETE with `promo`.
+ */
 function mockApi(
   body: TutorFeeDetail,
   checkout: () => Promise<Response> = async () => respond(SESSION, 201),
+  promo: () => Promise<Response> = async () => respond(body),
 ) {
   vi.mocked(apiFetch).mockImplementation(async (input, init) => {
     const { pathname } = new URL(input, "http://localhost");
@@ -88,7 +92,32 @@ function mockApi(
     ) {
       return checkout();
     }
+    if (pathname === `/api/v1/fees/${FEE_ID}/promo`) return promo();
     return respond({ message: "Not mocked" }, 404);
+  });
+}
+
+const APPLIED = {
+  code: "SAVE20",
+  discountAmount: "300.00",
+  originalAmount: "1500.00",
+  appliedAt: "2026-11-18T04:00:00.000Z",
+};
+
+/** A fee with SAVE20 applied: the amount due is already reduced. */
+function discounted(overrides: Partial<TutorFeeDetail> = {}): TutorFeeDetail {
+  return detail({
+    amountDue: "1200.00",
+    remaining: "1200.00",
+    checkout: enabledQuote({
+      feeAmount: "1200.00",
+      chargePercent: "2.50",
+      chargeAmount: "30.00",
+      totalAmount: "1230.00",
+    }),
+    promo: APPLIED,
+    promoAllowed: false,
+    ...overrides,
   });
 }
 
@@ -389,5 +418,282 @@ describe("FeeDetailPage states", () => {
     expect(
       await screen.findByText("We couldn't find that fee."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("FeeDetailPage promo code", () => {
+  it("shows the promo form only when a code can still be applied", async () => {
+    mockApi(detail({ promoAllowed: true }));
+    const { unmount } = renderPage();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    expect(
+      within(section).getByRole("textbox", { name: "Promo code" }),
+    ).toHaveAttribute("maxLength", "32");
+    expect(
+      within(section).getByRole("button", { name: "Apply" }),
+    ).toBeEnabled();
+    unmount();
+
+    mockApi(detail({ promoAllowed: false, promo: null }));
+    renderPage();
+
+    await screen.findByRole("region", { name: "Summary" });
+    expect(
+      screen.queryByRole("region", { name: "Promo code" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for a code without sending a request when the field is empty", async () => {
+    mockApi(detail());
+    renderPage();
+    const user = userEvent.setup();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    await user.click(within(section).getByRole("button", { name: "Apply" }));
+
+    const input = within(section).getByRole("textbox", { name: "Promo code" });
+    expect(within(section).getByText("Enter a code.")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Enter a code.");
+    expect(
+      vi
+        .mocked(apiFetch)
+        .mock.calls.some(([url]) => String(url).includes("/promo")),
+    ).toBe(false);
+  });
+
+  it("applies the trimmed code and toasts", async () => {
+    mockApi(detail(), undefined, async () => respond(discounted()));
+    renderPage();
+    const user = userEvent.setup();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    await user.type(
+      within(section).getByRole("textbox", { name: "Promo code" }),
+      "  SAVE20  ",
+    );
+    await user.click(within(section).getByRole("button", { name: "Apply" }));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Code applied."),
+    );
+    const post = vi
+      .mocked(apiFetch)
+      .mock.calls.find(([url]) => String(url).includes("/promo"));
+    expect(post).toBeDefined();
+    expect(new URL(post![0], "http://localhost").pathname).toBe(
+      `/api/v1/fees/${FEE_ID}/promo`,
+    );
+    expect(post![1]?.method).toBe("POST");
+    expect(JSON.parse(post![1]!.body as string)).toEqual({ code: "SAVE20" });
+    // The returned fee replaces the form with the applied code.
+    expect(
+      await screen.findByRole("button", { name: "Remove code" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Promo code" })).toBeNull();
+  });
+
+  it("says nothing is left to pay when the code waives the fee", async () => {
+    mockApi(detail(), undefined, async () =>
+      respond(
+        discounted({
+          status: "WAIVED",
+          amountDue: "0.00",
+          remaining: "0.00",
+          checkout: null,
+          promo: {
+            ...APPLIED,
+            discountAmount: "1500.00",
+            originalAmount: "1500.00",
+          },
+        }),
+      ),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    await user.type(
+      within(section).getByRole("textbox", { name: "Promo code" }),
+      "SAVE20",
+    );
+    await user.click(within(section).getByRole("button", { name: "Apply" }));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Code applied. Nothing left to pay.",
+      ),
+    );
+  });
+
+  it("shows a refused code inline under the field, not as a toast", async () => {
+    mockApi(detail(), undefined, async () =>
+      respond({ code: "PROMO_INVALID", message: "This code has ended." }, 409),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    const input = within(section).getByRole("textbox", { name: "Promo code" });
+    await user.type(input, "SAVE20");
+    await user.click(within(section).getByRole("button", { name: "Apply" }));
+
+    expect(
+      await within(section).findByText("This code has ended."),
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("This code has ended.");
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(input).toHaveValue("SAVE20");
+  });
+
+  it("shows the applied code with a remove button while nothing is paid", async () => {
+    mockApi(discounted());
+    renderPage();
+
+    const section = await screen.findByRole("region", { name: "Promo code" });
+    // The code is in its own span, so match the paragraph's full text.
+    expect(
+      within(section).getByText(
+        (_, el) =>
+          el?.tagName === "P" && el.textContent === "SAVE20 takes ৳300.00 off.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByRole("button", { name: "Remove code" }),
+    ).toBeEnabled();
+    expect(
+      within(section).queryByRole("textbox", { name: "Promo code" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the removable code once a payment has been made", async () => {
+    mockApi(discounted({ amountPaid: "500.00", remaining: "730.00" }));
+    renderPage();
+
+    await screen.findByRole("region", { name: "Summary" });
+    expect(
+      screen.queryByRole("region", { name: "Promo code" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("removes the code with DELETE and toasts", async () => {
+    mockApi(discounted(), undefined, async () =>
+      respond(detail({ promo: null, promoAllowed: true })),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Remove code" }),
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Code removed."),
+    );
+    const del = vi
+      .mocked(apiFetch)
+      .mock.calls.find(([url]) => String(url).includes("/promo"));
+    expect(del![1]?.method).toBe("DELETE");
+    expect(
+      await screen.findByRole("textbox", { name: "Promo code" }),
+    ).toBeInTheDocument();
+  });
+
+  it("lists the original amount and the discount above the amount due", async () => {
+    mockApi(discounted());
+    renderPage();
+
+    const summary = await screen.findByRole("region", { name: "Summary" });
+    expect(within(summary).getByText("৳1,500.00")).toBeInTheDocument();
+    expect(within(summary).getByText("−৳300.00")).toBeInTheDocument();
+    const labels = within(summary)
+      .getAllByRole("term")
+      .map((term) => term.textContent);
+    expect(labels.slice(0, 3)).toEqual([
+      "Original amount",
+      "Promo SAVE20",
+      "Amount due",
+    ]);
+  });
+
+  it("says the promo code covered a waived fee", async () => {
+    mockApi(
+      discounted({
+        status: "WAIVED",
+        amountDue: "0.00",
+        remaining: "0.00",
+        checkout: null,
+        promo: {
+          ...APPLIED,
+          discountAmount: "1500.00",
+          originalAmount: "1500.00",
+        },
+      }),
+    );
+    renderPage();
+
+    const summary = await screen.findByRole("region", { name: "Summary" });
+    expect(
+      within(summary).getByText("Your promo code covered this fee."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Promo code" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("FeeDetailPage waived fees", () => {
+  /** The value shown next to a summary label, e.g. "৳0.00". */
+  function summaryValue(summary: HTMLElement, label: string) {
+    return within(summary).getByText(label, { selector: "dt" })
+      .nextElementSibling?.textContent;
+  }
+
+  it("shows nothing due for a fee a promo code waived in full", async () => {
+    mockApi(
+      detail({
+        status: "WAIVED",
+        amountDue: "1500.00",
+        amountPaid: "0.00",
+        remaining: "1500.00",
+        checkout: null,
+        promoAllowed: false,
+        promo: {
+          code: "FREE100",
+          discountAmount: "1500.00",
+          originalAmount: "1500.00",
+          appliedAt: "2026-11-18T04:00:00.000Z",
+        },
+      }),
+    );
+    renderPage();
+
+    const summary = await screen.findByRole("region", { name: "Summary" });
+    expect(summaryValue(summary, "Amount due")).toBe("৳0.00");
+    expect(summaryValue(summary, "Remaining")).toBe("৳0.00");
+    expect(within(summary).getByText("Promo FREE100")).toBeInTheDocument();
+    expect(within(summary).getByText("−৳1,500.00")).toBeInTheDocument();
+    expect(summaryValue(summary, "Original amount")).toBe("৳1,500.00");
+  });
+
+  it("shows nothing remaining on a waived fee with no promo, and keeps the amount due", async () => {
+    mockApi(
+      detail({
+        status: "WAIVED",
+        amountDue: "1500.00",
+        amountPaid: "0.00",
+        remaining: "1500.00",
+        checkout: null,
+        promoAllowed: true,
+        promo: null,
+      }),
+    );
+    renderPage();
+
+    const summary = await screen.findByRole("region", { name: "Summary" });
+    expect(summaryValue(summary, "Amount due")).toBe("৳1,500.00");
+    expect(summaryValue(summary, "Remaining")).toBe("৳0.00");
   });
 });
