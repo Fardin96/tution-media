@@ -1415,7 +1415,7 @@ export interface paths {
     get?: never;
     /**
      * Replace my areas
-     * @description Replaces the tutor's areas with areaIds. Every area must be in the tutor's city, the district of the saved address. Otherwise 409 AREA_OUTSIDE_CITY is returned with details.invalidAreaIds and nothing is written.
+     * @description Replaces the tutor's areas with areaIds. Every area must be in the tutor's city, the district of the saved address. An area that is unknown, inactive or out-of-city gets 409 AREA_OUTSIDE_CITY with details.invalidAreaIds and nothing is written. An inactive area the tutor already has may stay in the set.
      *
      *     **Who:** TUTOR.
      *
@@ -6489,6 +6489,67 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/areas": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List areas
+     * @description Active areas grouped by division, then district. Divisions, districts and areas are each sorted by name. code is the district code that tutor-city checks compare against (null when the district name is not recognised). Cached for 5 minutes; signed-in callers get no-store.
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *
+     *     **Rate limit:** 120/min per IP.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AreaList"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/subjects": {
     parameters: {
       query?: never;
@@ -8749,6 +8810,359 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/admin/areas": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List areas
+     * @description Every area, inactive ones included, ordered by division, district then name. tutorCount, studentCount and requirementCount count the tutors, students and requirements that use the area. Filter by districtCode, q (name contains, case-insensitive) and isActive. Not paginated. districts always lists all 64 districts, sorted by division then name, for the create form.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          districtCode?:
+            | "barguna"
+            | "barishal"
+            | "bhola"
+            | "jhalokathi"
+            | "patuakhali"
+            | "pirojpur"
+            | "bandarban"
+            | "brahmanbaria"
+            | "chandpur"
+            | "chattogram"
+            | "coxsbazar"
+            | "cumilla"
+            | "feni"
+            | "khagrachhari"
+            | "lakshmipur"
+            | "noakhali"
+            | "rangamati"
+            | "dhaka"
+            | "faridpur"
+            | "gazipur"
+            | "gopalganj"
+            | "kishoreganj"
+            | "madaripur"
+            | "manikganj"
+            | "munshiganj"
+            | "narayanganj"
+            | "narsingdi"
+            | "rajbari"
+            | "shariatpur"
+            | "tangail"
+            | "bagerhat"
+            | "chuadanga"
+            | "jashore"
+            | "jhenaidah"
+            | "khulna"
+            | "kushtia"
+            | "magura"
+            | "meherpur"
+            | "narail"
+            | "satkhira"
+            | "jamalpur"
+            | "mymensingh"
+            | "netrokona"
+            | "sherpur"
+            | "bogura"
+            | "chapainawabganj"
+            | "joypurhat"
+            | "naogaon"
+            | "natore"
+            | "pabna"
+            | "rajshahi"
+            | "sirajganj"
+            | "dinajpur"
+            | "gaibandha"
+            | "kurigram"
+            | "lalmonirhat"
+            | "nilphamari"
+            | "panchagarh"
+            | "rangpur"
+            | "thakurgaon"
+            | "habiganj"
+            | "moulvibazar"
+            | "sunamganj"
+            | "sylhet";
+          q?: string;
+          isActive?: "true" | "false";
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminAreaList"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Create an area
+     * @description division and the district display name come from districtCode. 409 AREA_EXISTS when the name (case-insensitive) is already taken in that district.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateAreaInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminArea"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/areas/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update an area
+     * @description Renames or activates/deactivates an area. isActive false removes it from GET /areas only; students, tutors and requirements keep it. District and division cannot change. 404 when the area does not exist, 409 AREA_EXISTS when the new name is taken in the same district.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: number;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateAreaInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminArea"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
   "/api/v1/admin/settings": {
     parameters: {
       query?: never;
@@ -9150,6 +9564,35 @@ export interface components {
             | "MADRASAH"
           )
         | null;
+    };
+    AdminArea: {
+      id: number;
+      name: string;
+      division: string;
+      district: string;
+      districtCode: string | null;
+      isActive: boolean;
+      tutorCount: number;
+      studentCount: number;
+      requirementCount: number;
+    };
+    AdminAreaDistrict: {
+      code: string;
+      name: string;
+      /** @enum {string} */
+      division:
+        | "Barishal"
+        | "Chattogram"
+        | "Dhaka"
+        | "Khulna"
+        | "Mymensingh"
+        | "Rajshahi"
+        | "Rangpur"
+        | "Sylhet";
+    };
+    AdminAreaList: {
+      areas: components["schemas"]["AdminArea"][];
+      districts: components["schemas"]["AdminAreaDistrict"][];
     };
     AdminFee: {
       id: string;
@@ -9581,6 +10024,22 @@ export interface components {
         teachesOnline: boolean;
       };
     };
+    AreaDistrict: {
+      code: string | null;
+      name: string;
+      areas: components["schemas"]["AreaOption"][];
+    };
+    AreaDivision: {
+      name: string;
+      districts: components["schemas"]["AreaDistrict"][];
+    };
+    AreaList: {
+      divisions: components["schemas"]["AreaDivision"][];
+    };
+    AreaOption: {
+      id: number;
+      name: string;
+    };
     AuditLogEntry: {
       id: string;
       action: string;
@@ -9663,6 +10122,75 @@ export interface components {
     ConsentResult: {
       consentVersion: string | null;
       consentAcceptedAt: string | null;
+    };
+    CreateAreaInput: {
+      /** @enum {string} */
+      districtCode:
+        | "barguna"
+        | "barishal"
+        | "bhola"
+        | "jhalokathi"
+        | "patuakhali"
+        | "pirojpur"
+        | "bandarban"
+        | "brahmanbaria"
+        | "chandpur"
+        | "chattogram"
+        | "coxsbazar"
+        | "cumilla"
+        | "feni"
+        | "khagrachhari"
+        | "lakshmipur"
+        | "noakhali"
+        | "rangamati"
+        | "dhaka"
+        | "faridpur"
+        | "gazipur"
+        | "gopalganj"
+        | "kishoreganj"
+        | "madaripur"
+        | "manikganj"
+        | "munshiganj"
+        | "narayanganj"
+        | "narsingdi"
+        | "rajbari"
+        | "shariatpur"
+        | "tangail"
+        | "bagerhat"
+        | "chuadanga"
+        | "jashore"
+        | "jhenaidah"
+        | "khulna"
+        | "kushtia"
+        | "magura"
+        | "meherpur"
+        | "narail"
+        | "satkhira"
+        | "jamalpur"
+        | "mymensingh"
+        | "netrokona"
+        | "sherpur"
+        | "bogura"
+        | "chapainawabganj"
+        | "joypurhat"
+        | "naogaon"
+        | "natore"
+        | "pabna"
+        | "rajshahi"
+        | "sirajganj"
+        | "dinajpur"
+        | "gaibandha"
+        | "kurigram"
+        | "lalmonirhat"
+        | "nilphamari"
+        | "panchagarh"
+        | "rangpur"
+        | "thakurgaon"
+        | "habiganj"
+        | "moulvibazar"
+        | "sunamganj"
+        | "sylhet";
+      name: string;
     };
     CreateFeeInput: {
       /** Format: uuid */
@@ -10027,7 +10555,8 @@ export interface components {
       | "INVALID_ACCOUNT_STATE"
       | "INVALID_FEE_STATE"
       | "PACKAGE_ALREADY_MODERATED"
-      | "SUBJECT_EXISTS";
+      | "SUBJECT_EXISTS"
+      | "AREA_EXISTS";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -10755,6 +11284,10 @@ export interface components {
     };
     UnreadCount: {
       count: number;
+    };
+    UpdateAreaInput: {
+      name?: string;
+      isActive?: boolean;
     };
     UpdateFeeInput: {
       dueDate?: string;

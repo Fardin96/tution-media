@@ -26,7 +26,7 @@ import {
   levelOptionsFor,
   useEducationLookup,
 } from "@/lib/education";
-import { AREAS } from "@/lib/profile";
+import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { cn } from "@/lib/utils";
 import {
@@ -262,6 +262,7 @@ function NearbyTutors() {
 
 function SearchTutors() {
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
   const [nameInput, setNameInput] = useState("");
   const [area, setArea] = useState("");
   const [subject, setSubject] = useState("");
@@ -351,7 +352,7 @@ function SearchTutors() {
           onChange={setArea}
         >
           <option value="">All areas</option>
-          {AREAS.map((a) => (
+          {areas.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
             </option>

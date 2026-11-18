@@ -38,12 +38,17 @@ export const queryKeys = {
       ["admin", "packages", "list", filters] as const,
     package: (id: string) => ["admin", "packages", "detail", id] as const,
     subjects: ["admin", "subjects"] as const,
+    areas: <F extends object>(filters: F) =>
+      ["admin", "areas", filters] as const,
+    areasAll: ["admin", "areas"] as const,
     settings: ["admin", "settings"] as const,
     auditLogs: <F extends object>(filters: F) =>
       ["admin", "audit-logs", filters] as const,
   },
   /** Public GET /subjects: the live subject list for pickers and labels. */
   subjects: ["subjects"] as const,
+  /** Public GET /areas: the live area list for pickers and labels. */
+  areas: ["areas"] as const,
   packages: { mine: ["packages", "mine"] as const },
   lookups: { education: ["lookups", "education"] as const },
   applications: {

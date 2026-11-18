@@ -39,7 +39,8 @@ import {
   useEducationLookup,
 } from "@/lib/education";
 import { queryKeys } from "@/lib/query-keys";
-import { AREAS, optionName, profileApi } from "@/lib/profile";
+import { optionName, profileApi } from "@/lib/profile";
+import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { useTutorRequirements } from "@/lib/tutor-requirements";
@@ -72,6 +73,7 @@ function useMeAccount() {
 export function FindTuitionsPage() {
   const router = useRouter();
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -355,7 +357,7 @@ export function FindTuitionsPage() {
               }
             >
               <option value="">All areas</option>
-              {AREAS.map((a) => (
+              {areas.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
                 </option>
@@ -433,7 +435,7 @@ export function FindTuitionsPage() {
                     }
                     levelLabel={educationSummary(lookup, row) || "Any class"}
                     areaName={
-                      row.areaId === null ? null : optionName(AREAS, row.areaId)
+                      row.areaId === null ? null : optionName(areas, row.areaId)
                     }
                     apply={applyStateFor(row)}
                   />

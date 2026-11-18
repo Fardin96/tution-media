@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { sessionCookie, subjectsMock } from "./profile-mocks";
+import { areasMock, sessionCookie, subjectsMock } from "./profile-mocks";
 import type { EducationLookup } from "@/lib/education";
 import type { Requirement } from "@/lib/requirements";
 
@@ -156,6 +156,14 @@ test.describe("Student tuition requirements flow", () => {
           status: 200,
           contentType: "application/json",
           body: JSON.stringify(subjectsMock),
+        });
+      }
+
+      if (path === "/areas" && method === "GET") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(areasMock),
         });
       }
 

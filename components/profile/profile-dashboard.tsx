@@ -45,9 +45,9 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import {
-  AREAS,
   ApiError,
   SECTIONS,
   clearSession,
@@ -339,6 +339,7 @@ export function ProfileDashboard({
   };
 
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
   const saveSection = async (next: ProfileForm, fields: FieldDef[]) => {
     if (!me) return;
     const keys = fields.map((f) => f.key);
@@ -466,7 +467,7 @@ export function ProfileDashboard({
             profile={profile}
             areaLabel={
               me.student
-                ? optionName(AREAS, me.student.areaId)
+                ? optionName(areas, me.student.areaId)
                 : form.areaIds.length
                   ? `${form.areaIds.length} area${form.areaIds.length > 1 ? "s" : ""}`
                   : null
@@ -1522,6 +1523,7 @@ function RequirementItem({
   const [announce, setAnnounce] = useState("");
 
   const { subjects } = useSubjects();
+  const { areas } = useAreas();
   const subjectName = r.subjectIds.length
     ? r.subjectIds.map((id) => optionName(subjects, id)).join(", ")
     : "Tuition Requirement";
@@ -1604,7 +1606,7 @@ function RequirementItem({
           {r.areaId && (
             <li className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-subtle)] px-3 py-1 text-sm text-[var(--color-neutral-charcoal)]">
               <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
-              {optionName(AREAS, r.areaId)}
+              {optionName(areas, r.areaId)}
             </li>
           )}
           {r.daysPerWeek && (

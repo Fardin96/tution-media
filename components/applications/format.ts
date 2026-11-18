@@ -8,7 +8,7 @@ import {
   type Curriculum,
   type EducationLookup,
 } from "@/lib/education";
-import { AREAS, optionName, type Option } from "@/lib/profile";
+import { optionName, type Option } from "@/lib/profile";
 import { durationLabel } from "@/lib/packages";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import type { Application } from "@/lib/applications";
@@ -33,13 +33,17 @@ export function subjectNames(ids: number[], subjects: Option[]): string {
   return ids.map((id) => optionName(subjects, id)).join(" · ");
 }
 
-export function areaName(areaId: number | null): string {
-  return areaId === null ? "Online" : optionName(AREAS, areaId);
+/** `areas` is the live list from useAreas(). */
+export function areaName(areaId: number | null, areas: Option[]): string {
+  return areaId === null ? "Online" : optionName(areas, areaId);
 }
 
 /** Packages carry no area on the application, so only requirements show one. */
-export function areaText(target: ApplicationTarget): string | null {
-  return target.kind === "PACKAGE" ? null : areaName(target.areaId);
+export function areaText(
+  target: ApplicationTarget,
+  areas: Option[],
+): string | null {
+  return target.kind === "PACKAGE" ? null : areaName(target.areaId, areas);
 }
 
 /** A package is listed by its title; a requirement keeps the other party's name. */
@@ -105,14 +109,14 @@ export function scheduleText(target: ApplicationTarget): string | null {
 export function targetRows(
   lookup: EducationLookup | undefined,
   target: ApplicationTarget,
-  // Callers should pass useSubjects().subjects; the default keeps older callers from crashing.
-  subjects: Option[] = [],
+  subjects: Option[],
+  areas: Option[],
 ): { label: string; value: string }[] {
   const isPackage = target.kind === "PACKAGE";
   const rows = [
     { label: "Subjects", value: subjectNames(target.subjectIds, subjects) },
     { label: "Level", value: levelText(lookup, target) ?? "" },
-    { label: "Area", value: areaText(target) ?? "" },
+    { label: "Area", value: areaText(target, areas) ?? "" },
     { label: isPackage ? "Price" : "Salary", value: moneyText(target) ?? "" },
     { label: "Duration", value: durationText(target) ?? "" },
     {
