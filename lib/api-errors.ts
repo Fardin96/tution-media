@@ -35,6 +35,9 @@ export const ERROR_CODES = {
   InvalidAdminState: "INVALID_ADMIN_STATE",
   InvalidAccountState: "INVALID_ACCOUNT_STATE",
   InvalidFeeState: "INVALID_FEE_STATE",
+  InvalidPaymentState: "INVALID_PAYMENT_STATE",
+  PromoInvalid: "PROMO_INVALID",
+  PromoCodeExists: "PROMO_CODE_EXISTS",
   PackageAlreadyModerated: "PACKAGE_ALREADY_MODERATED",
   SubjectExists: "SUBJECT_EXISTS",
   AreaExists: "AREA_EXISTS",
@@ -149,6 +152,11 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     err.message || "This account changed. Refresh to see its current status.",
   INVALID_FEE_STATE: (err) =>
     err.message || "This fee changed. Refresh to see its current status.",
+  INVALID_PAYMENT_STATE: (err) =>
+    err.message || "This payment changed. Refresh to see its current status.",
+  // The server says which rule the code broke (expired, used up, below the ৳10 minimum...).
+  PROMO_INVALID: (err) => err.message || "That code can't be used on this fee.",
+  PROMO_CODE_EXISTS: "A promo code with that name already exists.",
   PACKAGE_ALREADY_MODERATED: "Another admin already reviewed this package.",
   SUBJECT_EXISTS: "A subject with this name or slug already exists.",
   AREA_EXISTS: "An area with this name already exists in this district.",

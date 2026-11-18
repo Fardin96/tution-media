@@ -23,6 +23,10 @@ import {
 } from "@/components/admin/admin-ui";
 import { formatAmount, formatDateTime } from "@/lib/admin";
 import {
+  ATTEMPT_STATUS_META,
+  type AdminFeeAttempt,
+} from "@/lib/admin-payments";
+import {
   FEE_STATUS_META,
   FEE_TYPE_LABEL,
   PAYMENT_METHOD_LABEL,
@@ -211,6 +215,16 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
               )}
             </Section>
 
+            {fee.attempts.length > 0 && (
+              <Section title="Online attempts">
+                <ul className="grid gap-3">
+                  {fee.attempts.map((attempt) => (
+                    <AttemptRow key={attempt.tranId} attempt={attempt} />
+                  ))}
+                </ul>
+              </Section>
+            )}
+
             <EditSection
               key={`${fee.id}-${fee.updatedAt}`}
               fee={fee}
@@ -396,6 +410,37 @@ function PaymentRow({
           {formatAmount(payment.reversedAmount)} reversed
         </p>
       )}
+    </li>
+  );
+}
+
+function AttemptRow({ attempt }: { attempt: AdminFeeAttempt }) {
+  const meta = ATTEMPT_STATUS_META[attempt.status];
+  return (
+    <li>
+      <Link
+        href={`/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`}
+        className={cn(
+          "grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4 transition-[box-shadow] duration-150 ease-out hover:shadow-[0_0_0_1px_rgb(0_0_0/0.1)] motion-reduce:transition-none",
+          focusRing,
+        )}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="min-w-0 font-mono text-sm break-all text-[var(--color-neutral-charcoal)]">
+            {attempt.tranId}
+          </p>
+          <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+          {formatAmount(attempt.totalAmount)} ·{" "}
+          {formatDateTime(attempt.createdAt)}
+        </p>
+        {attempt.failureReason && (
+          <p className="line-clamp-1 text-sm text-[var(--color-text-secondary)]">
+            {attempt.failureReason}
+          </p>
+        )}
+      </Link>
     </li>
   );
 }

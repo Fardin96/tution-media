@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  CreditCard,
   FileText,
   LayoutGrid,
   MapPin,
@@ -51,6 +52,12 @@ export const ADMIN_NAV = [
     label: "Fees",
     icon: Wallet,
     description: "Placement fees, cash payments and reversals.",
+  },
+  {
+    href: "/dashboard/admin/payments",
+    label: "Payments",
+    icon: CreditCard,
+    description: "Online payments, and the ones that need a decision.",
   },
   {
     href: "/dashboard/admin/accounts",

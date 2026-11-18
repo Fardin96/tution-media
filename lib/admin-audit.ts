@@ -46,6 +46,10 @@ const ACTION_LABELS: Record<string, string> = {
   "subject.update": "Changed a subject",
   "setting.update": "Changed a setting",
   "zone_limit_request.decide": "Decided a zone request",
+  "payment.check": "Checked a payment with the gateway",
+  "payment.review": "Decided a flagged payment",
+  "promo.create": "Created a promo code",
+  "promo.update": "Changed a promo code",
 };
 
 export function actionLabel(action: string): string {

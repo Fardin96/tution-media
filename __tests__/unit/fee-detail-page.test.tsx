@@ -60,6 +60,8 @@ function detail(overrides: Partial<TutorFeeDetail> = {}): TutorFeeDetail {
     payments: [],
     checkout: enabledQuote(),
     pendingAttempt: null,
+    promo: null,
+    promoAllowed: true,
     ...overrides,
   };
 }

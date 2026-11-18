@@ -6565,6 +6565,228 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/fees/{id}/promo": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Apply a promo code to a fee
+     * @description Applies a promo code to one of my fees. Only a DUE fee with nothing paid and no code yet accepts one. A percentage code takes its share of the amount due (capped if the code has a maximum); a flat code takes its value. A code that covers the whole fee waives it, so nothing is left to pay. A code that would leave less than ৳10 to pay online is refused. A pending online checkout is ended first. Refused while an online payment for the fee is starting. Codes are not case-sensitive.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ApplyPromoInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorFeeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    /**
+     * Remove the promo code from a fee
+     * @description Removes the promo code from one of my fees and restores the amount it replaced. Only while the fee is DUE with nothing paid. A code that waived the fee cannot be removed. A pending online checkout is ended first. Refused while an online payment for the fee is starting.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorFeeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/fees/{id}/checkout": {
     parameters: {
       query?: never;
@@ -8645,6 +8867,878 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/payment-attempts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List online payment attempts
+     * @description Newest first. Filter by status, attention (REVIEW or UNAPPLIED), fee and tutor. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?:
+            | "PENDING"
+            | "SUCCEEDED"
+            | "FAILED"
+            | "CANCELLED"
+            | "EXPIRED"
+            | "REVIEW"
+            | "UNAPPLIED";
+          attention?: "true" | "false";
+          feeId?: string;
+          tutorId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPaymentAttemptPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/payment-attempts/summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Count payment attempts that need attention
+     * @description Counts of REVIEW and UNAPPLIED attempts, PENDING attempts older than 60 minutes, and SUCCEEDED attempts settled in the last 24 hours with the fee amount collected.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPaymentSummary"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/payment-attempts/{tranId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get one online payment attempt
+     * @description Amounts, gateway fields, the raw gateway response, the fee and the tutor. canCheck and canReview say which actions the attempt allows right now.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          tranId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPaymentAttemptDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/payment-attempts/{tranId}/check": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Check a payment attempt with the gateway
+     * @description Asks the gateway about a PENDING, FAILED, CANCELLED or EXPIRED attempt and settles it if the gateway has verified a success. Final attempts (SUCCEEDED, REVIEW, UNAPPLIED) are refused. Writes a payment.check audit row. A gateway that does not answer returns 503 and the status is left as it was.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          tranId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPaymentAttemptDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/payment-attempts/{tranId}/review": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve or reject a flagged payment
+     * @description Super admins only. Decides an attempt in REVIEW. APPROVE posts the fee amount to the ledger, unless the ledger refuses it (the attempt becomes UNAPPLIED). REJECT makes it UNAPPLIED and leaves the money with the gateway. Writes a payment.review audit row.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          tranId: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ReviewPaymentInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPaymentAttemptDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/promo-codes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List promo codes
+     * @description Newest first. ?active=true or ?active=false filters on isActive. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          active?: "true" | "false";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPromoCodePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Create a promo code
+     * @description Super admins only. The code is stored uppercase and is unique case-insensitively. A PERCENT code takes a value up to 100 and an optional maxDiscount cap; a FLAT code takes a taka value and no cap. 409 PROMO_CODE_EXISTS when the code is taken.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreatePromoCodeInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPromoCodeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/promo-codes/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a promo code with its latest redemptions
+     * @description Includes redemptionCount and the latest 50 redemptions, newest first.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPromoCodeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Change a promo code's end, limits or status
+     * @description Super admins only. Changes description, endsAt (null clears it; must be in the future and after startsAt), maxRedemptions (null clears it), maxPerTutor and isActive. Discount terms cannot be changed.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdatePromoCodeInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminPromoCodeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
   "/api/v1/admin/packages": {
     parameters: {
       query?: never;
@@ -10053,6 +11147,23 @@ export interface components {
         packageTitle: string | null;
       };
     };
+    AdminFeeAttempt: {
+      tranId: string;
+      /** @enum {string} */
+      status:
+        | "PENDING"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "REVIEW"
+        | "UNAPPLIED";
+      totalAmount: string;
+      failureReason: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      settledAt: string | null;
+    };
     AdminFeeDetail: {
       id: string;
       /** @enum {string} */
@@ -10095,6 +11206,8 @@ export interface components {
         packageTitle: string | null;
       };
       payments: components["schemas"]["AdminFeePayment"][];
+      attempts: components["schemas"]["AdminFeeAttempt"][];
+      promo: components["schemas"]["FeePromo"] | null;
     };
     AdminFeePage: {
       fees: components["schemas"]["AdminFee"][];
@@ -10186,6 +11299,161 @@ export interface components {
     AdminPackagePage: {
       packages: components["schemas"]["AdminPackage"][];
       nextCursor: string | null;
+    };
+    AdminPaymentAttempt: {
+      id: string;
+      tranId: string;
+      /** @enum {string} */
+      status:
+        | "PENDING"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "REVIEW"
+        | "UNAPPLIED";
+      feeAmount: string;
+      chargeAmount: string;
+      totalAmount: string;
+      failureReason: string | null;
+      valId: string | null;
+      bankTranId: string | null;
+      cardType: string | null;
+      riskLevel: number | null;
+      paymentId: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      lastCheckedAt: string | null;
+      settledAt: string | null;
+      fee: {
+        id: string;
+        /** @enum {string} */
+        status: "DUE" | "PARTIAL" | "PAID" | "WAIVED" | "VOID";
+        amountDue: string;
+        amountPaid: string;
+      };
+      tutor: {
+        id: string;
+        name: string;
+      };
+    };
+    AdminPaymentAttemptDetail: {
+      id: string;
+      tranId: string;
+      /** @enum {string} */
+      status:
+        | "PENDING"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "REVIEW"
+        | "UNAPPLIED";
+      feeAmount: string;
+      chargeAmount: string;
+      totalAmount: string;
+      failureReason: string | null;
+      valId: string | null;
+      bankTranId: string | null;
+      cardType: string | null;
+      riskLevel: number | null;
+      paymentId: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      lastCheckedAt: string | null;
+      settledAt: string | null;
+      fee: {
+        id: string;
+        /** @enum {string} */
+        status: "DUE" | "PARTIAL" | "PAID" | "WAIVED" | "VOID";
+        amountDue: string;
+        amountPaid: string;
+      };
+      tutor: {
+        id: string;
+        name: string;
+      };
+      gatewayResponse: {
+        [key: string]: unknown;
+      } | null;
+      canCheck: boolean;
+      canReview: boolean;
+    };
+    AdminPaymentAttemptPage: {
+      attempts: components["schemas"]["AdminPaymentAttempt"][];
+      nextCursor: string | null;
+    };
+    AdminPaymentSummary: {
+      review: number;
+      unapplied: number;
+      stalePending: number;
+      succeeded24h: number;
+      collected24h: string;
+    };
+    AdminPromoCode: {
+      id: string;
+      code: string;
+      description: string | null;
+      /** @enum {string} */
+      discountType: "PERCENT" | "FLAT";
+      discountValue: string;
+      maxDiscount: string | null;
+      startsAt: string | null;
+      endsAt: string | null;
+      maxRedemptions: number | null;
+      maxPerTutor: number;
+      isActive: boolean;
+      redemptionCount: number;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      createdByName: string;
+    };
+    AdminPromoCodeDetail: {
+      id: string;
+      code: string;
+      description: string | null;
+      /** @enum {string} */
+      discountType: "PERCENT" | "FLAT";
+      discountValue: string;
+      maxDiscount: string | null;
+      startsAt: string | null;
+      endsAt: string | null;
+      maxRedemptions: number | null;
+      maxPerTutor: number;
+      isActive: boolean;
+      redemptionCount: number;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      createdByName: string;
+      redemptions: components["schemas"]["AdminPromoRedemption"][];
+    };
+    AdminPromoCodePage: {
+      promoCodes: components["schemas"]["AdminPromoCode"][];
+      nextCursor: string | null;
+    };
+    AdminPromoRedemption: {
+      id: string;
+      feeId: string;
+      tutor: {
+        id: string;
+        name: string;
+      };
+      originalAmount: string;
+      discountAmount: string;
+      /** @enum {string} */
+      status: "ACTIVE" | "RELEASED";
+      /** Format: date-time */
+      createdAt: string;
+      releasedAt: string | null;
+      releaseReason: string | null;
     };
     AdminSubject: {
       id: number;
@@ -10441,6 +11709,9 @@ export interface components {
         teachesOnline: boolean;
       };
     };
+    ApplyPromoInput: {
+      code: string;
+    };
     AreaDistrict: {
       code: string | null;
       name: string;
@@ -10685,6 +11956,21 @@ export interface components {
       /** @default [] */
       zoneIds?: string[];
       syncProfileSubjects?: boolean;
+    };
+    CreatePromoCodeInput: {
+      code: string;
+      description?: string;
+      /** @enum {string} */
+      discountType: "PERCENT" | "FLAT";
+      discountValue: number;
+      maxDiscount?: number;
+      /** Format: date-time */
+      startsAt?: string;
+      /** Format: date-time */
+      endsAt?: string;
+      maxRedemptions?: number;
+      /** @default 1 */
+      maxPerTutor?: number;
     };
     CreateRequirementInput:
       | {
@@ -10990,7 +12276,10 @@ export interface components {
       | "SUBJECT_EXISTS"
       | "AREA_EXISTS"
       | "PAYMENTS_DISABLED"
-      | "GATEWAY_UNAVAILABLE";
+      | "GATEWAY_UNAVAILABLE"
+      | "INVALID_PAYMENT_STATE"
+      | "PROMO_INVALID"
+      | "PROMO_CODE_EXISTS";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -11007,6 +12296,13 @@ export interface components {
       };
       /** @description One entry per zod issue. Sent only with VALIDATION_ERROR. */
       issues?: components["schemas"]["ErrorIssue"][];
+    };
+    FeePromo: {
+      code: string;
+      discountAmount: string;
+      originalAmount: string;
+      /** Format: date-time */
+      appliedAt: string;
     };
     GoogleSignInInput: {
       idToken: string;
@@ -11414,6 +12710,11 @@ export interface components {
       reason: string;
       amount?: number;
     };
+    ReviewPaymentInput: {
+      /** @enum {string} */
+      decision: "APPROVE" | "REJECT";
+      note: string;
+    };
     Session: {
       /** Format: uuid */
       id: string;
@@ -11602,6 +12903,8 @@ export interface components {
         /** Format: date-time */
         createdAt: string;
       } | null;
+      promo: components["schemas"]["FeePromo"] | null;
+      promoAllowed: boolean;
     };
     TutorFeePage: {
       fees: components["schemas"]["TutorFee"][];
@@ -11868,6 +13171,13 @@ export interface components {
       teachesOnline?: boolean;
       zoneIds?: string[];
       syncProfileSubjects?: boolean;
+    };
+    UpdatePromoCodeInput: {
+      description?: string | null;
+      endsAt?: string | null;
+      maxRedemptions?: number | null;
+      maxPerTutor?: number;
+      isActive?: boolean;
     };
     UpdateRequirementInput: {
       areaId?: number;
