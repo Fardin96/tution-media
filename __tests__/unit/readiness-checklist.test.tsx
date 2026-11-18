@@ -1,6 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
+import type { TutorRequirement } from "@/lib/tutor-requirements";
+
+function defaultSet(over: Partial<TutorRequirement>): TutorRequirement {
+  return {
+    id: "set-1",
+    name: "Weekday",
+    isDefault: true,
+    isActive: true,
+    subjectIds: [1],
+    teachesOnline: false,
+    zoneIds: [],
+    ...over,
+  } as TutorRequirement;
+}
 
 describe("ReadinessChecklist", () => {
   it("lists each missing item with a link to where it is fixed", () => {
@@ -16,6 +30,7 @@ describe("ReadinessChecklist", () => {
           "verification",
           "default_requirement",
         ]}
+        defaultSet={null}
       />,
     );
 
@@ -52,5 +67,50 @@ describe("ReadinessChecklist", () => {
   it("renders nothing when nothing is missing", () => {
     const { container } = render(<ReadinessChecklist missing={[]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("names the default set and links to its edit page when it has no zone", () => {
+    render(
+      <ReadinessChecklist
+        missing={["default_requirement"]}
+        defaultSet={defaultSet({})}
+      />,
+    );
+
+    const link = screen.getByRole("link", {
+      name: "Default set “Weekday” needs a zone or online teaching",
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      "/dashboard/tutor/requirements/set-1/edit",
+    );
+    expect(link).toHaveAccessibleDescription(
+      "Add a teaching zone to it, or turn on “I also teach online”.",
+    );
+    expect(screen.getByText("1 thing to fix.")).toBeInTheDocument();
+  });
+
+  it("lists both gaps when the default set has no subject and no zone", () => {
+    render(
+      <ReadinessChecklist
+        missing={["default_requirement"]}
+        defaultSet={defaultSet({ subjectIds: [] })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: "Default set “Weekday” needs a subject, and a zone or online teaching",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("stays general while the sets are not loaded", () => {
+    render(<ReadinessChecklist missing={["default_requirement", "name"]} />);
+
+    expect(
+      screen.getByRole("link", { name: "Fix your default requirement set" }),
+    ).toHaveAttribute("href", "/dashboard/tutor/requirements");
+    expect(screen.getByText("2 things to fix.")).toBeInTheDocument();
   });
 });

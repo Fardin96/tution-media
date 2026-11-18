@@ -77,7 +77,7 @@ const MISSING_REQUIREMENT_LABELS: Record<string, string> = {
   area: "teaching area",
   phone_number: "phone number",
   phone_verification: "phone verification",
-  default_requirement: "default requirement set",
+  default_requirement: "default set with a zone or online teaching",
   verification: "verification",
 };
 

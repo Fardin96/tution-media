@@ -21,6 +21,7 @@ const validForm: TutorRequirementForm = {
   levelMin: 9,
   levelMax: 10,
   subjectIds: [3],
+  zoneIds: ["z1"],
 };
 
 const original: TutorRequirement = {
@@ -56,6 +57,19 @@ function set(
 describe("validateTutorRequirementForm", () => {
   it("accepts a complete form", () => {
     expect(validateTutorRequirementForm(validForm)).toEqual({});
+  });
+
+  it("requires a zone or online teaching", () => {
+    const offline = { ...validForm, teachesOnline: false, zoneIds: [] };
+    expect(validateTutorRequirementForm(offline).zoneIds).toBe(
+      "Pick a zone or turn on online teaching.",
+    );
+    expect(
+      validateTutorRequirementForm({ ...offline, teachesOnline: true }).zoneIds,
+    ).toBeUndefined();
+    expect(
+      validateTutorRequirementForm({ ...offline, zoneIds: ["z1"] }).zoneIds,
+    ).toBeUndefined();
   });
 
   it("requires a name and caps it at 60 characters after trimming", () => {
@@ -200,7 +214,7 @@ describe("toCreatePayload", () => {
       availableFrom: validForm.availableFrom,
       teachesOnline: false,
       subjectIds: [3],
-      zoneIds: [],
+      zoneIds: ["z1"],
     });
     expect("syncProfileSubjects" in payload).toBe(false);
   });

@@ -19,6 +19,7 @@ import {
   tutorRequirementApi,
   useProfileSubjects,
   validateTutorRequirementForm,
+  ZONE_RULE_MESSAGE,
   type TutorRequirement,
   type TutorRequirementForm as FormState,
   type TutorRequirementFormErrors,
@@ -59,7 +60,14 @@ export function TutorRequirementForm({
       ? fromTutorRequirement(initialData)
       : emptyTutorRequirementForm(),
   );
-  const [errors, setErrors] = useState<TutorRequirementFormErrors>({});
+  // An existing set that breaks the zone rule shows why straight away.
+  const [errors, setErrors] = useState<TutorRequirementFormErrors>(() =>
+    initialData &&
+    !initialData.teachesOnline &&
+    initialData.zoneIds.length === 0
+      ? { zoneIds: ZONE_RULE_MESSAGE }
+      : {},
+  );
   const [saving, setSaving] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -83,6 +91,8 @@ export function TutorRequirementForm({
       }
       // The days-per-week fit depends on the chosen days, so drop its stale error.
       if ("availableDays" in patch) delete next.daysPerWeek;
+      // Teaching online satisfies the zone rule, so drop its stale error.
+      if ("teachesOnline" in patch) delete next.zoneIds;
       return next;
     });
   };
@@ -91,7 +101,7 @@ export function TutorRequirementForm({
     requestAnimationFrame(() => {
       formRef.current
         ?.querySelector<HTMLElement>(
-          "[aria-invalid=true]:is(input,select,textarea), [aria-invalid=true] input",
+          "[aria-invalid=true]:is(input,select,textarea), [aria-invalid=true] input, [data-field-error]",
         )
         ?.focus();
     });
@@ -142,6 +152,14 @@ export function TutorRequirementForm({
       setSaving(false);
       if (err instanceof ApiError && err.issues) {
         setErrors(mapServerIssuesToFields<keyof FormState>(err.issues));
+        focusFirstInvalid();
+      } else if (
+        err instanceof ApiError &&
+        err.code === "INVALID_REQUIREMENT" &&
+        Array.isArray(err.details?.fields) &&
+        err.details.fields.includes("zoneIds")
+      ) {
+        setErrors({ zoneIds: err.message });
         focusFirstInvalid();
       }
       toastError("Couldn't save this set. Try again.", err);
@@ -373,7 +391,19 @@ export function TutorRequirementForm({
             value={form.zoneIds}
             onChange={(ids) => updateForm({ zoneIds: ids })}
             teachesOnline={form.teachesOnline}
+            emptyHint={
+              // The inline error says the same thing once the form is submitted.
+              errors.zoneIds ? "" : undefined
+            }
           />
+          {errors.zoneIds && (
+            <div data-field-error tabIndex={-1} className="outline-none">
+              <FieldError
+                id={`${idPrefix}-zoneIds-error`}
+                message={errors.zoneIds}
+              />
+            </div>
+          )}
         </fieldset>
       </div>
 

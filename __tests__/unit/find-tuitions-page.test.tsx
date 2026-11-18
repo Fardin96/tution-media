@@ -271,6 +271,37 @@ describe("FindTuitionsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the default set that blocks applying and links to fix it", async () => {
+    mockApi({
+      readiness: {
+        ready: false,
+        missing: ["default_requirement"],
+        verificationRequired: false,
+      },
+      sets: [
+        {
+          ...OTHER_SET,
+          id: "set-default",
+          name: "Weekday",
+          isDefault: true,
+          subjectIds: [1],
+          teachesOnline: false,
+          zoneIds: [],
+        },
+      ],
+    });
+    renderPage();
+
+    const region = await screen.findByRole("region", {
+      name: "Finish your profile to apply",
+    });
+    expect(
+      await within(region).findByRole("link", {
+        name: "Default set “Weekday” needs a zone or online teaching",
+      }),
+    ).toHaveAttribute("href", "/dashboard/tutor/requirements/set-default/edit");
+  });
+
   it("shows three scope segments", async () => {
     mockApi();
     renderPage();
