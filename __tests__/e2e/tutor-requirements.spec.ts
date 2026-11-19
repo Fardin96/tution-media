@@ -201,6 +201,15 @@ async function mockTutorApi(
       return json(route, { areas: [{ id: 1, name: "Dhanmondi" }] });
     }
 
+    if (path === "/tutors/me/zones" && method === "GET") {
+      return json(route, {
+        zones: [],
+        limit: 5,
+        used: 0,
+        pendingRequest: null,
+      });
+    }
+
     if (path === "/tutors/me/credentials") {
       return json(route, { credentials: [] });
     }
@@ -464,6 +473,16 @@ test.describe("Tutor requirement sets", () => {
       await page.getByLabel("From", { exact: true }).selectOption("9");
       await page.getByLabel("To", { exact: true }).selectOption("10");
 
+      // A set needs a zone or online teaching; this one teaches online.
+      // The checkbox is visually hidden under its chip label, so click the label text.
+      await page.getByText("I also teach online", { exact: true }).click();
+      await expect(
+        page.getByRole("checkbox", {
+          name: "I also teach online",
+          exact: true,
+        }),
+      ).toBeChecked();
+
       await page
         .getByRole("button", { name: "Create set", exact: true })
         .click();
@@ -478,6 +497,7 @@ test.describe("Tutor requirement sets", () => {
       expect(post?.body).toMatchObject({
         syncProfileSubjects: true,
         subjectIds: [BIOLOGY],
+        teachesOnline: true,
       });
     });
 
@@ -492,6 +512,7 @@ test.describe("Tutor requirement sets", () => {
             id: "set-1",
             name: "Evening Physics",
             isDefault: true,
+            teachesOnline: true,
           }),
         ],
         profileSubjectIds: [PHYSICS],

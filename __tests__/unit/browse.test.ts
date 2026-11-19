@@ -252,7 +252,7 @@ describe("PROFILE_INCOMPLETE message", () => {
       },
     });
     expect(errorCodeMessage(err)).toBe(
-      "Finish your profile before applying: name, location pin, teaching area, phone verification, default requirement set.",
+      "Finish your profile before applying: name, location pin, teaching area, phone verification, default set with a zone or online teaching.",
     );
   });
 

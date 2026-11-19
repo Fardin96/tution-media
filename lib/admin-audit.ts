@@ -55,6 +55,17 @@ const ACTION_LABELS: Record<string, string> = {
   "refund.reject": "Declined a refund",
   "refund.check": "Checked a refund with the gateway",
   "refund.resolve": "Resolved a refund by hand",
+  "verification.decide": "Decided an ID verification",
+  "video.moderate": "Decided a tutor video",
+  "video.update": "Changed a video's order",
+  "file.view": "Opened a private file",
+  "file.delete": "Deleted a file",
+  "file.remove": "Removed a user's file",
+  "uploads.block": "Paused a user's uploads",
+  "uploads.unblock": "Resumed a user's uploads",
+  "blog.create": "Created a blog post",
+  "blog.update": "Changed a blog post",
+  "blog.delete": "Deleted a blog post",
 };
 
 export function actionLabel(action: string): string {

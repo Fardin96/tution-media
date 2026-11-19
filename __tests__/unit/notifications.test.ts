@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/api";
 import {
   notificationApi,
+  notificationHref,
   notificationText,
   relativeTime,
   type AppNotification,
@@ -46,7 +47,7 @@ const KINDS: NotificationKind[] = [
 ];
 
 /** Copy from the spec, per kind: [requirement text, package text]. Kinds with one copy repeat it. */
-const COPY: Record<NotificationKind, [string, string]> = {
+const COPY: Partial<Record<NotificationKind, [string, string]>> = {
   APPLICATION_RECEIVED: [
     "Ana applied to your tuition.",
     "Ana applied to your tuition.",
@@ -93,16 +94,58 @@ const COPY: Record<NotificationKind, [string, string]> = {
   ],
 };
 
+/** Upload and moderation alerts: fixed copy that does not depend on the name. */
+const FIXED: Partial<Record<NotificationKind, string>> = {
+  ID_APPROVED: "Your ID was approved.",
+  ID_REJECTED: "Your ID was not accepted. Upload a new one.",
+  VIDEO_APPROVED: "Your video was approved.",
+  VIDEO_REJECTED: "Your video was not approved.",
+  UPLOADS_UNBLOCKED: "You can upload again.",
+};
+
+type Fields = Pick<
+  AppNotification,
+  | "kind"
+  | "listingKind"
+  | "counterpartName"
+  | "filePurpose"
+  | "blocksVideos"
+  | "blocksDocuments"
+>;
+
 function note(
   kind: NotificationKind,
   listingKind: AppNotification["listingKind"],
-): Pick<AppNotification, "kind" | "listingKind" | "counterpartName"> {
-  return { kind, listingKind, counterpartName: "Ana" };
+): Fields {
+  return {
+    kind,
+    listingKind,
+    counterpartName: "Ana",
+    filePurpose: null,
+    blocksVideos: null,
+    blocksDocuments: null,
+  };
 }
 
 describe("notificationText", () => {
   it("covers every kind", () => {
-    expect(Object.keys(COPY).sort()).toEqual([...KINDS].sort());
+    const ALL_KINDS: NotificationKind[] = [
+      ...KINDS,
+      "ID_APPROVED",
+      "ID_REJECTED",
+      "VIDEO_APPROVED",
+      "VIDEO_REJECTED",
+      "FILE_REMOVED",
+      "UPLOADS_BLOCKED",
+      "UPLOADS_UNBLOCKED",
+    ];
+    const covered = [
+      ...Object.keys(COPY),
+      ...Object.keys(FIXED),
+      "FILE_REMOVED",
+      "UPLOADS_BLOCKED",
+    ];
+    expect([...covered].sort()).toEqual([...ALL_KINDS].sort());
   });
 
   it.each(
@@ -111,8 +154,7 @@ describe("notificationText", () => {
       [kind, "PACKAGE"],
     ]),
   )("%s / %s", (kind, listingKind) => {
-    const expected =
-      COPY[kind as NotificationKind][listingKind === "PACKAGE" ? 1 : 0];
+    const expected = COPY[kind]?.[listingKind === "PACKAGE" ? 1 : 0] ?? "";
     expect(
       notificationText(
         note(
@@ -123,14 +165,90 @@ describe("notificationText", () => {
     ).toBe(expected);
   });
 
+  it.each(Object.entries(FIXED))("%s has fixed copy", (kind, expected) => {
+    expect(notificationText({ ...note(kind as NotificationKind, null) })).toBe(
+      expected,
+    );
+  });
+
+  it.each([
+    ["STUDENT_ID", "An admin removed your ID."],
+    ["TUTOR_ID", "An admin removed your ID."],
+    ["CREDENTIAL", "An admin removed your certificate."],
+    ["TUTOR_VIDEO", "An admin removed your video."],
+    ["BLOG_COVER", "An admin removed your file."],
+    [null, "An admin removed your file."],
+  ] as const)("FILE_REMOVED for %s", (filePurpose, expected) => {
+    expect(
+      notificationText({
+        ...note("FILE_REMOVED", null),
+        filePurpose,
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [true, false, "An admin paused your video uploads."],
+    [false, true, "An admin paused your ID and certificate uploads."],
+    [true, true, "An admin paused your uploads."],
+  ] as const)(
+    "UPLOADS_BLOCKED videos=%s documents=%s",
+    (blocksVideos, blocksDocuments, expected) => {
+      expect(
+        notificationText({
+          ...note("UPLOADS_BLOCKED", null),
+          blocksVideos,
+          blocksDocuments,
+        }),
+      ).toBe(expected);
+    },
+  );
+
   it("uses the counterpart name verbatim", () => {
     expect(
       notificationText({
-        kind: "APPLICATION_RECEIVED",
-        listingKind: "REQUIREMENT",
+        ...note("APPLICATION_RECEIVED", "REQUIREMENT"),
         counterpartName: "Rafiq Hossain",
       }),
     ).toBe("Rafiq Hossain applied to your tuition.");
+  });
+});
+
+describe("notificationHref", () => {
+  const base = { applicationId: null, filePurpose: null } as const;
+
+  it.each([
+    ["APPLICATION_RECEIVED", "app-1", "/dashboard/applications/app-1"],
+    ["PACKAGE_CLOSED", "app-2", "/dashboard/applications/app-2"],
+    ["APPLICATION_RECEIVED", null, "/dashboard"],
+    ["ID_APPROVED", null, "/dashboard#verification"],
+    ["ID_REJECTED", null, "/dashboard#verification"],
+    ["VIDEO_APPROVED", null, "/dashboard"],
+    ["VIDEO_REJECTED", null, "/dashboard"],
+    ["UPLOADS_BLOCKED", null, "/dashboard"],
+    ["UPLOADS_UNBLOCKED", null, "/dashboard"],
+  ] as const)(
+    "%s (application %s) leads to %s",
+    (kind, applicationId, href) => {
+      expect(notificationHref({ ...base, kind, applicationId })).toBe(href);
+    },
+  );
+
+  it.each([
+    ["STUDENT_ID", "/dashboard#verification"],
+    ["TUTOR_ID", "/dashboard#verification"],
+    ["CREDENTIAL", "/dashboard"],
+    ["TUTOR_VIDEO", "/dashboard"],
+    ["BLOG_COVER", "/dashboard"],
+    [null, "/dashboard"],
+  ] as const)("FILE_REMOVED for %s leads to %s", (filePurpose, href) => {
+    expect(
+      notificationHref({
+        kind: "FILE_REMOVED",
+        applicationId: null,
+        filePurpose,
+      }),
+    ).toBe(href);
   });
 });
 

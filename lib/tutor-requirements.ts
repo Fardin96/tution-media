@@ -146,6 +146,9 @@ function salaryValue(raw: string): number | null {
   return digits === "" ? null : Number(digits);
 }
 
+/** A set needs a zone or online teaching; the apply gate checks the same on the default set. */
+export const ZONE_RULE_MESSAGE = "Pick a zone or turn on online teaching.";
+
 export function validateTutorRequirementForm(
   form: TutorRequirementForm,
 ): TutorRequirementFormErrors {
@@ -194,6 +197,9 @@ export function validateTutorRequirementForm(
   }
   if (form.maxStudents < 1) {
     errors.maxStudents = "At least 1 student.";
+  }
+  if (!form.teachesOnline && form.zoneIds.length === 0) {
+    errors.zoneIds = ZONE_RULE_MESSAGE;
   }
 
   return errors;

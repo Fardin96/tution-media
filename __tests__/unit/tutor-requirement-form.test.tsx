@@ -10,7 +10,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { useEducationLookup, type EducationLookup } from "@/lib/education";
-import { searchSubjects, type Option } from "@/lib/profile";
+import { ApiError, searchSubjects, type Option } from "@/lib/profile";
 import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
 
 const push = vi.fn();
@@ -126,7 +126,7 @@ const SET: TutorRequirement = {
   minSalary: null,
   maxStudents: 1,
   availableFrom: "2026-11-01",
-  teachesOnline: false,
+  teachesOnline: true,
   subjectIds: [1],
   zoneIds: [],
 };
@@ -189,6 +189,49 @@ describe("TutorRequirementForm", () => {
     expect(tutorRequirementApi.create).not.toHaveBeenCalled();
   });
 
+  it("shows the zone error when no zone is picked and online is off", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText("Set name"), "Evening Math");
+    await user.click(screen.getByRole("button", { name: "Math" }));
+    await user.selectOptions(screen.getByLabelText("From"), "1");
+    await user.selectOptions(screen.getByLabelText("To"), "8");
+    await user.click(screen.getByRole("button", { name: "Create set" }));
+
+    expect(
+      await screen.findByText("Pick a zone or turn on online teaching."),
+    ).toBeInTheDocument();
+    expect(tutorRequirementApi.create).not.toHaveBeenCalled();
+  });
+
+  it("shows the zone error on load when editing a set with no zone and online off", () => {
+    renderForm({ ...SET, teachesOnline: false, zoneIds: [] });
+
+    expect(
+      screen.getByText("Pick a zone or turn on online teaching."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the server's INVALID_REQUIREMENT zone error on the Zones group", async () => {
+    const user = userEvent.setup();
+    vi.mocked(tutorRequirementApi.update).mockRejectedValue(
+      new ApiError("Pick a zone or turn on online teaching", 400, {
+        code: "INVALID_REQUIREMENT",
+        details: { fields: ["zoneIds"] },
+      }),
+    );
+    renderForm(SET);
+
+    await user.clear(screen.getByLabelText("Set name"));
+    await user.type(screen.getByLabelText("Set name"), "Renamed");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(
+      await screen.findByText("Pick a zone or turn on online teaching"),
+    ).toBeInTheDocument();
+  });
+
   it("adds a non-profile subject from search and syncs it to the profile", async () => {
     const user = userEvent.setup();
     renderForm();
@@ -206,6 +249,9 @@ describe("TutorRequirementForm", () => {
 
     await user.selectOptions(screen.getByLabelText("From"), "1");
     await user.selectOptions(screen.getByLabelText("To"), "8");
+    await user.click(
+      screen.getByRole("checkbox", { name: "I also teach online" }),
+    );
     await user.click(screen.getByRole("button", { name: "Create set" }));
 
     await waitFor(() =>

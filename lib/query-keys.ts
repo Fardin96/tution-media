@@ -58,6 +58,24 @@ export const queryKeys = {
     settings: ["admin", "settings"] as const,
     auditLogs: <F extends object>(filters: F) =>
       ["admin", "audit-logs", filters] as const,
+    verificationsAll: ["admin", "verifications"] as const,
+    verifications: (kind: "tutors" | "students", filters: object) =>
+      ["admin", "verifications", kind, filters] as const,
+    videosAll: ["admin", "videos"] as const,
+    videos: <F extends object>(filters: F) =>
+      ["admin", "videos", filters] as const,
+    filesAll: ["admin", "files"] as const,
+    files: <F extends object>(filters: F) =>
+      ["admin", "files", "list", filters] as const,
+    fileStats: ["admin", "files", "stats"] as const,
+    /** One account's upload history and active upload block. */
+    uploadHistory: (accountId: string) =>
+      ["admin", "uploads", accountId] as const,
+    uploadsAll: ["admin", "uploads"] as const,
+    blogAll: ["admin", "blog"] as const,
+    blogPosts: <F extends object>(filters: F) =>
+      ["admin", "blog", "list", filters] as const,
+    blogPost: (id: string) => ["admin", "blog", "detail", id] as const,
   },
   /** Public GET /subjects: the live subject list for pickers and labels. */
   subjects: ["subjects"] as const,
@@ -72,6 +90,13 @@ export const queryKeys = {
       ["fees", "attempt", feeId, tranId] as const,
   },
   lookups: { education: ["lookups", "education"] as const },
+  /** GET /files/upload-status: whether an admin paused the caller's uploads. */
+  uploadStatus: ["upload-status"] as const,
+  blog: {
+    all: ["blog"] as const,
+    list: ["blog", "list"] as const,
+    post: (slug: string) => ["blog", "post", slug] as const,
+  },
   applications: {
     all: ["applications"] as const,
     list: (status?: string) =>

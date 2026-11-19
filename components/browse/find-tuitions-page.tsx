@@ -23,7 +23,7 @@ import {
   TuitionCard,
   type TuitionApplyState,
 } from "@/components/browse/tuition-card";
-import { missingRequirementLabel } from "@/lib/api-errors";
+import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
 import { useApplyToRequirement } from "@/lib/applications";
 import {
   requirementFiltersFromSearchParams,
@@ -52,12 +52,6 @@ const SCOPES: { value: RequirementBrowseScope; label: string }[] = [
 ];
 
 /** Readiness fixes, each on the page that owns it. */
-const FIX_LINKS = [
-  { href: "/dashboard", label: "Update profile" },
-  { href: "/dashboard/tutor/zones", label: "Teaching zones" },
-  { href: "/dashboard/tutor/requirements", label: "Default requirement set" },
-];
-
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
 }
@@ -95,7 +89,9 @@ export function FindTuitionsPage() {
     readiness && !readiness.ready ? "Finish your profile to apply." : null;
 
   const isSetMode = filters.scope === "set";
-  const sets = useTutorRequirements("active", isSetMode);
+  const missing = readiness && !readiness.ready ? readiness.missing : [];
+  const needsDefaultSet = missing.includes("default_requirement");
+  const sets = useTutorRequirements("active", isSetMode || needsDefaultSet);
   const activeSets = sets.data ?? [];
   // A set id from the URL that is not an active set falls back to the default.
   const selectedSetId = isSetMode
@@ -112,7 +108,10 @@ export function FindTuitionsPage() {
 
   const rows = browse.data?.pages.flatMap((page) => page.requirements) ?? [];
   const noServiceArea = browse.data?.pages[0]?.noServiceArea ?? false;
-  const missing = readiness && !readiness.ready ? readiness.missing : [];
+  // Undefined until the sets load, null when there is no default set.
+  const defaultSet = sets.isSuccess
+    ? (activeSets.find((s) => s.isDefault) ?? null)
+    : undefined;
 
   // Puts the resolved set in the URL so the page can be shared as shown.
   useEffect(() => {
@@ -221,45 +220,13 @@ export function FindTuitionsPage() {
       </p>
 
       {readiness && !readiness.ready && (
-        <section
-          aria-labelledby="apply-readiness-title"
-          className={cn(card, "mt-6 grid gap-4 p-5 sm:p-6")}
-        >
-          <div className="grid gap-1">
-            <h2
-              id="apply-readiness-title"
-              className="text-base font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Finish your profile to apply
-            </h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Applications stay off until these are done.
-            </p>
-          </div>
-          {missing.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
-              {missing.map((code) => (
-                <li
-                  key={code}
-                  className="rounded-full bg-[var(--color-semantic-warning-surface)] px-3 py-1 text-sm font-medium text-[var(--color-semantic-warning-text)]"
-                >
-                  {missingRequirementLabel(code)}
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {FIX_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(secondaryButton, "min-h-10 px-4")}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </section>
+        <ReadinessChecklist
+          className="mt-6"
+          missing={missing}
+          defaultSet={defaultSet}
+          title="Finish your profile to apply"
+          description="Applications stay off until these are done."
+        />
       )}
 
       <section

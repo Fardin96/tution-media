@@ -45,6 +45,18 @@ export const ERROR_CODES = {
   AreaExists: "AREA_EXISTS",
   PaymentsDisabled: "PAYMENTS_DISABLED",
   GatewayUnavailable: "GATEWAY_UNAVAILABLE",
+  StorageUnavailable: "STORAGE_UNAVAILABLE",
+  FileTooLarge: "FILE_TOO_LARGE",
+  UnsupportedFileType: "UNSUPPORTED_FILE_TYPE",
+  UploadNotFound: "UPLOAD_NOT_FOUND",
+  InvalidFile: "INVALID_FILE",
+  FileInUse: "FILE_IN_USE",
+  UploadLimitReached: "UPLOAD_LIMIT_REACHED",
+  InvalidVerificationState: "INVALID_VERIFICATION_STATE",
+  VideoAlreadyModerated: "VIDEO_ALREADY_MODERATED",
+  BlogSlugExists: "BLOG_SLUG_EXISTS",
+  InvalidPostState: "INVALID_POST_STATE",
+  UploadsBlocked: "UPLOADS_BLOCKED",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -66,7 +78,7 @@ const MISSING_REQUIREMENT_LABELS: Record<string, string> = {
   area: "teaching area",
   phone_number: "phone number",
   phone_verification: "phone verification",
-  default_requirement: "default requirement set",
+  default_requirement: "default set with a zone or online teaching",
   verification: "verification",
 };
 
@@ -171,6 +183,30 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "Online payments are turned off right now. Try again later.",
   GATEWAY_UNAVAILABLE:
     "The payment gateway isn't responding. Try again in a few minutes.",
+  STORAGE_UNAVAILABLE: "Uploads aren't available right now. Try again later.",
+  // The server names the limit ("The limit is 2 MB.") and the accepted types.
+  FILE_TOO_LARGE: (err) => err.message || "That file is too large.",
+  UNSUPPORTED_FILE_TYPE: (err) =>
+    err.message || "That file type isn't accepted here.",
+  UPLOAD_NOT_FOUND: "The upload didn't finish. Try again.",
+  INVALID_FILE: (err) =>
+    err.message || "That file can't be used. Upload it again.",
+  FILE_IN_USE: (err) => err.message || "That file is already in use.",
+  UPLOAD_LIMIT_REACHED: (err) =>
+    err.message || "You've reached the limit. Remove one first.",
+  INVALID_VERIFICATION_STATE: (err) =>
+    err.message || "This verification changed. Refresh to see its status.",
+  VIDEO_ALREADY_MODERATED: "This video already has that decision.",
+  BLOG_SLUG_EXISTS:
+    "Another post already uses that link. Pick a different one.",
+  INVALID_POST_STATE: (err) =>
+    err.message || "This post changed. Refresh to see its status.",
+  // The server says what is paused; the admin's note follows when they shared it.
+  UPLOADS_BLOCKED: (err) => {
+    const base = err.message || "An admin has paused your uploads.";
+    const note = err.details?.note;
+    return typeof note === "string" && note ? `${base} Note: ${note}` : base;
+  },
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

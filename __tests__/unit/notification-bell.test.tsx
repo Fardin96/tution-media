@@ -38,6 +38,10 @@ function alert(
     applicationId: `app-${id}`,
     listingKind: "REQUIREMENT",
     counterpartName: "Ana",
+    note: null,
+    filePurpose: null,
+    blocksVideos: null,
+    blocksDocuments: null,
     readAt: null,
     createdAt: NOW,
     ...over,
@@ -313,5 +317,33 @@ describe("NotificationBell", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe("NotificationBell notes and upload alerts", () => {
+  it("shows the admin note under the alert text", async () => {
+    mockApi([
+      alert("1", {
+        kind: "ID_REJECTED",
+        applicationId: null,
+        note: "Photo is blurred.",
+      }),
+    ]);
+    renderBell();
+    await userEvent.click(trigger());
+    expect(
+      await screen.findByText("Your ID was not accepted. Upload a new one."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Note: Photo is blurred.")).toBeInTheDocument();
+  });
+
+  it("leads an ID alert to the verification card", async () => {
+    mockApi([alert("2", { kind: "ID_APPROVED", applicationId: null })]);
+    renderBell();
+    await userEvent.click(trigger());
+    const link = await screen.findByRole("link", {
+      name: /Your ID was approved\./,
+    });
+    expect(link).toHaveAttribute("href", "/dashboard#verification");
   });
 });

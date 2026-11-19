@@ -56,6 +56,8 @@ export function TutorRequirementCard({
           .filter((label): label is string => Boolean(label))
           .join(" · ");
 
+  const needsPlace = !set.teachesOnline && set.zoneIds.length === 0;
+
   const zoneText =
     set.zoneIds.length > 0
       ? set.zoneIds.length === 1
@@ -91,6 +93,13 @@ export function TutorRequirementCard({
             </p>
           ) : (
             <p>{set.subjectIds.map(subjectNames).join(", ")}</p>
+          )}
+          {needsPlace && (
+            <p className="font-medium text-[var(--color-semantic-error-text)]">
+              {set.isDefault
+                ? "Add a zone or turn on online teaching. You can't apply until you do."
+                : "Add a zone or turn on online teaching."}
+            </p>
           )}
           <p>
             {daysSummary(set)} · {formatTimeRange(set.timeFrom, set.timeTo)}

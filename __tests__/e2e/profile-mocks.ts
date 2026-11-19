@@ -106,6 +106,9 @@ export const studentProfile = {
   name: "Rahim Uddin",
   areaId: 1,
   verificationFileId: null,
+  verificationNote: null,
+  verificationSubmittedAt: null,
+  verificationDecidedAt: null,
 } satisfies Schemas["MeStudent"];
 
 export const tutorProfile = {
