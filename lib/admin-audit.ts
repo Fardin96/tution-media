@@ -63,6 +63,13 @@ const ACTION_LABELS: Record<string, string> = {
   "blog.create": "Created a blog post",
   "blog.update": "Changed a blog post",
   "blog.delete": "Deleted a blog post",
+  "review.moderate": "Hid or restored a review",
+  "report.assign": "Took a report",
+  "report.resolve": "Resolved a report",
+  "report.dismiss": "Dismissed a report",
+  "dispute.assign": "Took a dispute",
+  "dispute.resolve": "Resolved a dispute",
+  "dispute.dismiss": "Dismissed a dispute",
 };
 
 export function actionLabel(action: string): string {

@@ -24,6 +24,12 @@ import {
   TutorProfileSection,
   TutorSetSection,
 } from "@/components/applications/tutor-details";
+import { ApplicationCaseActions } from "@/components/cases/application-case-actions";
+import { ApplicationReviewSection } from "@/components/reviews/application-review-section";
+import {
+  StudentReviewList,
+  TutorReviewList,
+} from "@/components/reviews/review-list";
 import { useEducationLookup } from "@/lib/education";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
@@ -241,6 +247,19 @@ export function ApplicationDetailPage({
           </Section>
         )}
 
+        {!isAdmin && (
+          <>
+            <ApplicationReviewSection application={app} viewerRole={role} />
+            <Section title={`Reviews of ${counterpart}`}>
+              {isTutor ? (
+                <StudentReviewList studentId={app.student.id} />
+              ) : (
+                <TutorReviewList tutorId={app.tutor.id} />
+              )}
+            </Section>
+          </>
+        )}
+
         {fee && (
           <Section title="Placement fee">
             <div className="grid gap-4">
@@ -285,6 +304,10 @@ export function ApplicationDetailPage({
               )}
             </div>
           </Section>
+        )}
+
+        {!isAdmin && (
+          <ApplicationCaseActions application={app} viewerRole={role} />
         )}
       </div>
     );
