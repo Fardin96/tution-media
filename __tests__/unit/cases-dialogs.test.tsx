@@ -96,6 +96,21 @@ describe("ReportDialog", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
+  it("locks the details and categories while the report is sending", async () => {
+    vi.mocked(apiFetch).mockReturnValue(new Promise(() => {}));
+    open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("radio", { name: /Spam/ }));
+    await user.type(screen.getByLabelText("Details"), DETAILS);
+    await user.click(screen.getByRole("button", { name: "Send report" }));
+
+    await screen.findByRole("button", { name: "Sending..." });
+    expect(screen.getByLabelText("Details")).toBeDisabled();
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(0);
+    for (const radio of radios) expect(radio).toBeDisabled();
+  });
+
   it("shows a 409 inline and keeps the dialog open", async () => {
     vi.mocked(apiFetch).mockResolvedValue(
       respond({ code: "REPORT_EXISTS", message: "dup" }, 409),

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApplicationReviewSection } from "@/components/reviews/application-review-section";
 import { apiFetch } from "@/lib/api";
 import type { ApplicationDetail } from "@/lib/applications";
+import { queryKeys } from "@/lib/query-keys";
 import type { MyReview } from "@/lib/reviews";
 
 vi.mock("sonner", () => ({
@@ -23,10 +24,14 @@ function respond(body: unknown, status = 200) {
   });
 }
 
-function app(status: ApplicationDetail["status"]): ApplicationDetail {
+function app(
+  status: ApplicationDetail["status"],
+  confirmedAt: string | null = null,
+): ApplicationDetail {
   return {
     id: "app-1",
     status,
+    confirmedAt,
     tutor: { id: "t1", name: "Rafiq Ahmed" },
     student: { id: "s1", name: "Nadia Islam" },
   } as ApplicationDetail;
@@ -52,16 +57,21 @@ function renderSection(
   status: ApplicationDetail["status"],
   role: "STUDENT" | "TUTOR",
   reviews: MyReview[],
+  confirmedAt: string | null = null,
 ) {
   vi.mocked(apiFetch).mockResolvedValue(respond({ reviews, nextCursor: null }));
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const result = render(
     <QueryClientProvider client={client}>
-      <ApplicationReviewSection application={app(status)} viewerRole={role} />
+      <ApplicationReviewSection
+        application={app(status, confirmedAt)}
+        viewerRole={role}
+      />
     </QueryClientProvider>,
   );
+  return { ...result, client };
 }
 
 beforeEach(() => vi.mocked(apiFetch).mockReset());
@@ -125,5 +135,62 @@ describe("ApplicationReviewSection", () => {
     expect(
       screen.queryByRole("button", { name: "Edit" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps my review on a cancelled tuition that was confirmed", async () => {
+    renderSection(
+      "CANCELLED",
+      "STUDENT",
+      [review()],
+      "2026-11-01T04:00:00.000Z",
+    );
+    expect(await screen.findByText("Patient and clear.")).toBeInTheDocument();
+    expect(screen.getByText("Your review")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+  });
+
+  it("renders nothing on a cancelled tuition with no review, and no Rate button", async () => {
+    const { container, client } = renderSection(
+      "CANCELLED",
+      "STUDENT",
+      [],
+      "2026-11-01T04:00:00.000Z",
+    );
+    await waitFor(() =>
+      expect(
+        client.getQueryState(queryKeys.reviews.mine("app-1"))?.status,
+      ).toBe("success"),
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole("button", { name: /Rate/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders nothing on a cancelled tuition when the review fails to load", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(respond({ message: "x" }, 500));
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { container } = render(
+      <QueryClientProvider client={client}>
+        <ApplicationReviewSection
+          application={app("CANCELLED", "2026-11-01T04:00:00.000Z")}
+          viewerRole="STUDENT"
+        />
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(
+        client.getQueryState(queryKeys.reviews.mine("app-1"))?.status,
+      ).toBe("error"),
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("makes no request for a cancelled tuition that was never confirmed", () => {
+    const { container } = renderSection("CANCELLED", "STUDENT", []);
+    expect(container).toBeEmptyDOMElement();
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 });

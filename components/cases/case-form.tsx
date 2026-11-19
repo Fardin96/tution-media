@@ -23,6 +23,7 @@ function ChoiceCards<V extends string>({
   choices,
   value,
   onChange,
+  disabled,
   error,
 }: {
   legend: string;
@@ -30,6 +31,7 @@ function ChoiceCards<V extends string>({
   choices: CaseChoice<V>[];
   value: V | null;
   onChange: (value: V) => void;
+  disabled?: boolean;
   error?: string;
 }) {
   const errorId = useId();
@@ -49,6 +51,7 @@ function ChoiceCards<V extends string>({
             "hover:bg-[var(--color-neutral-off-white)]",
             "has-[:checked]:bg-[var(--color-secondary-sky)] has-[:checked]:shadow-[0_0_0_2px_var(--color-primary-core)]",
             "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--color-primary-core)]",
+            "has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60",
           )}
         >
           <input
@@ -57,6 +60,7 @@ function ChoiceCards<V extends string>({
             value={choice.value}
             checked={value === choice.value}
             onChange={() => onChange(choice.value)}
+            disabled={disabled}
             className="sr-only"
           />
           <span className="text-sm font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
@@ -132,6 +136,7 @@ export function CaseForm<V extends string>({
         choices={choices}
         value={choice}
         onChange={setChoice}
+        disabled={pending}
         error={missingChoice}
       />
       <Field label={detailsLabel} hint={detailsHint} error={detailsError}>
@@ -142,6 +147,7 @@ export function CaseForm<V extends string>({
               required
               value={details}
               onChange={(event) => setDetails(event.target.value)}
+              disabled={pending}
               aria-describedby={describedBy}
               aria-invalid={invalid || undefined}
               className={textareaClass}

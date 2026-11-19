@@ -23,8 +23,9 @@ import {
 import { toastError, toastSuccess } from "@/lib/toast";
 
 /**
- * Writes a review, or edits one when `existing` is passed. A 409 (already reviewed, not
- * allowed yet, hidden or past the edit window) stays in the dialog next to the form.
+ * Writes a review, or edits one when `existing` is passed. A 409 stays in the dialog next to
+ * the form (not allowed yet, hidden, past the edit window), except REVIEW_EXISTS on create: the
+ * review is already there, so the dialog closes and the section shows it.
  */
 export function ReviewDialog({
   applicationId,
@@ -53,6 +54,19 @@ export function ReviewDialog({
   }
 
   function fail(err: unknown) {
+    // Someone already reviewed this pair (another tab, or another application). Show the review instead.
+    if (
+      !editing &&
+      err instanceof ApiError &&
+      err.status === 409 &&
+      err.code === "REVIEW_EXISTS"
+    ) {
+      onOpenChange(false);
+      toastSuccess(
+        `You already reviewed ${subjectName}. Your review is below.`,
+      );
+      return;
+    }
     if (err instanceof ApiError && err.status === 409) {
       setServerError(errorCodeMessage(err) ?? err.message);
       return;

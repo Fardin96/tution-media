@@ -209,7 +209,30 @@ describe("ReviewDialog", () => {
     });
   });
 
-  it("shows a 409 inline and keeps the dialog open", async () => {
+  it("shows other 409s inline and keeps the dialog open", async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiFetch).mockResolvedValue(
+      respond(
+        {
+          code: "REVIEW_NOT_ALLOWED",
+          message: "Not yet, the tuition is live.",
+        },
+        409,
+      ),
+    );
+    const onOpenChange = dialog();
+
+    await user.click(screen.getByRole("radio", { name: "5 stars" }));
+    await user.click(screen.getByRole("button", { name: "Post review" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Not yet, the tuition is live.",
+    );
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("closes and points to the review when one already exists", async () => {
     const user = userEvent.setup();
     vi.mocked(apiFetch).mockResolvedValue(
       respond({ code: "REVIEW_EXISTS", message: "Already reviewed." }, 409),
@@ -219,11 +242,13 @@ describe("ReviewDialog", () => {
     await user.click(screen.getByRole("radio", { name: "5 stars" }));
     await user.click(screen.getByRole("button", { name: "Post review" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "You've already reviewed this person. Edit your review instead.",
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "You already reviewed Rafiq Ahmed. Your review is below.",
+      ),
     );
-    expect(onOpenChange).not.toHaveBeenCalledWith(false);
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("edits with only the changed fields", async () => {

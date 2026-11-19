@@ -16,6 +16,14 @@ export function canReview(status: ApplicationDetail["status"]): boolean {
   return status === "CONFIRMED" || status === "COMPLETED";
 }
 
+/**
+ * A tuition that was confirmed and then cancelled keeps its review, which the author can still
+ * edit, but nobody can write a new one.
+ */
+function keepsReview(application: ApplicationDetail): boolean {
+  return application.status === "CANCELLED" && Boolean(application.confirmedAt);
+}
+
 /** The viewer's own review of the other side of this application. Renders nothing before the tuition is confirmed. */
 export function ApplicationReviewSection({
   application,
@@ -24,15 +32,19 @@ export function ApplicationReviewSection({
   application: ApplicationDetail;
   viewerRole: "STUDENT" | "TUTOR";
 }) {
-  const eligible = canReview(application.status);
-  const query = useMyReview(application.id, eligible);
+  const live = canReview(application.status);
+  const enabled = live || keepsReview(application);
+  const query = useMyReview(application.id, enabled);
   const [open, setOpen] = useState(false);
 
-  if (!eligible) return null;
+  if (!enabled) return null;
 
   const name =
     viewerRole === "TUTOR" ? application.student.name : application.tutor.name;
   const review = query.data;
+
+  // Cancelled: show an existing review only. Loading, errors and "no review" render nothing.
+  if (!live && (query.isPending || query.isError || !review)) return null;
 
   let body: React.ReactNode;
   if (query.isPending) {
