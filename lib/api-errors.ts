@@ -56,6 +56,14 @@ export const ERROR_CODES = {
   VideoAlreadyModerated: "VIDEO_ALREADY_MODERATED",
   BlogSlugExists: "BLOG_SLUG_EXISTS",
   InvalidPostState: "INVALID_POST_STATE",
+  ReviewExists: "REVIEW_EXISTS",
+  ReviewNotAllowed: "REVIEW_NOT_ALLOWED",
+  InvalidReviewState: "INVALID_REVIEW_STATE",
+  ReportExists: "REPORT_EXISTS",
+  ReportNotAllowed: "REPORT_NOT_ALLOWED",
+  DisputeExists: "DISPUTE_EXISTS",
+  DisputeNotAllowed: "DISPUTE_NOT_ALLOWED",
+  InvalidCaseState: "INVALID_CASE_STATE",
   UploadsBlocked: "UPLOADS_BLOCKED",
 } as const satisfies Record<string, ErrorCode>;
 
@@ -201,6 +209,19 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "Another post already uses that link. Pick a different one.",
   INVALID_POST_STATE: (err) =>
     err.message || "This post changed. Refresh to see its status.",
+  REVIEW_EXISTS:
+    "You've already reviewed this person. Edit your review instead.",
+  REVIEW_NOT_ALLOWED: (err) =>
+    err.message || "You can't review this tuition yet.",
+  INVALID_REVIEW_STATE: (err) =>
+    err.message || "This review changed. Refresh to see it.",
+  REPORT_EXISTS: "You already have an open report about this account.",
+  REPORT_NOT_ALLOWED: (err) => err.message || "This account can't be reported.",
+  DISPUTE_EXISTS: "You already have an open dispute on this tuition.",
+  DISPUTE_NOT_ALLOWED: (err) =>
+    err.message || "Only a confirmed or completed tuition can be disputed.",
+  INVALID_CASE_STATE: (err) =>
+    err.message || "This case changed. Refresh to see its status.",
   // The server says what is paused; the admin's note follows when they shared it.
   UPLOADS_BLOCKED: (err) => {
     const base = err.message || "An admin has paused your uploads.";

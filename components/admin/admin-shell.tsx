@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Clapperboard,
+  Flag,
   CreditCard,
   FileText,
   HardDrive,
@@ -14,8 +15,10 @@ import {
   LayoutGrid,
   MapPin,
   Newspaper,
+  MessageSquareWarning,
   Package,
   ScrollText,
+  Star,
   Settings,
   ShieldCheck,
   TicketPercent,
@@ -52,6 +55,25 @@ export const ADMIN_NAV = [
     label: "Videos",
     icon: Clapperboard,
     description: "Approve teaching videos before they go public.",
+  },
+  {
+    href: "/dashboard/admin/reviews",
+    label: "Reviews",
+    icon: Star,
+    description: "Hide or restore ratings and comments.",
+  },
+  {
+    href: "/dashboard/admin/reports",
+    label: "Reports",
+    icon: Flag,
+    description:
+      "Reports about people. Take a case, then resolve or dismiss it.",
+  },
+  {
+    href: "/dashboard/admin/disputes",
+    label: "Disputes",
+    icon: MessageSquareWarning,
+    description: "Problems with a tuition that need an admin to step in.",
   },
   {
     href: "/dashboard/admin/zone-requests",

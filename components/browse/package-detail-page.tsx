@@ -29,6 +29,7 @@ import {
 import { studentPlaceText } from "./package-card";
 import { BackLink } from "@/components/ui/back-link";
 import { useSubjects } from "@/lib/subjects";
+import { TutorReviewList } from "@/components/reviews/review-list";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
@@ -259,6 +260,19 @@ export function PackageDetailPage({ id }: { id: string }) {
           </section>
         </aside>
       </div>
+
+      <section
+        aria-labelledby="package-reviews"
+        className={cn(card, "mt-6 grid gap-4 p-5 sm:p-6")}
+      >
+        <h2
+          id="package-reviews"
+          className="font-semibold text-[var(--color-neutral-charcoal)]"
+        >
+          Reviews of {pkg.tutor.name}
+        </h2>
+        <TutorReviewList tutorId={pkg.tutor.id} />
+      </section>
     </PageFrame>
   );
 }

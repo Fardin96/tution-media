@@ -76,6 +76,17 @@ export const queryKeys = {
     blogPosts: <F extends object>(filters: F) =>
       ["admin", "blog", "list", filters] as const,
     blogPost: (id: string) => ["admin", "blog", "detail", id] as const,
+    reviewsAll: ["admin", "reviews"] as const,
+    reviews: <F extends object>(filters: F) =>
+      ["admin", "reviews", "list", filters] as const,
+    reportsAll: ["admin", "reports"] as const,
+    reports: <F extends object>(filters: F) =>
+      ["admin", "reports", "list", filters] as const,
+    report: (id: string) => ["admin", "reports", "detail", id] as const,
+    disputesAll: ["admin", "disputes"] as const,
+    disputes: <F extends object>(filters: F) =>
+      ["admin", "disputes", "list", filters] as const,
+    dispute: (id: string) => ["admin", "disputes", "detail", id] as const,
   },
   /** Public GET /subjects: the live subject list for pickers and labels. */
   subjects: ["subjects"] as const,
@@ -105,6 +116,20 @@ export const queryKeys = {
     forRequirement: (id: string) =>
       ["applications", "requirement", id] as const,
     forPackage: (id: string) => ["applications", "package", id] as const,
+  },
+  reviews: {
+    all: ["reviews"] as const,
+    mine: (applicationId?: string) =>
+      ["reviews", "mine", { applicationId: applicationId ?? null }] as const,
+    tutor: (tutorId: string) => ["reviews", "tutor", tutorId] as const,
+    student: (studentId: string) => ["reviews", "student", studentId] as const,
+  },
+  /** Reports and disputes the signed-in user filed. */
+  cases: {
+    all: ["cases"] as const,
+    reports: ["cases", "reports"] as const,
+    disputes: (applicationId?: string) =>
+      ["cases", "disputes", { applicationId: applicationId ?? null }] as const,
   },
   notifications: {
     all: ["notifications"] as const,

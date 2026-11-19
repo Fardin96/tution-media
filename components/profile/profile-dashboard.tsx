@@ -16,6 +16,7 @@ import {
   Check,
   Eye,
   FileText,
+  Flag,
   MapPin,
   MessageCircle,
   PauseCircle,
@@ -588,6 +589,7 @@ export function ProfileDashboard({
                     <TeachingZonesCard />
                     <FindWorkCard />
                     <PlacementFeesCard />
+                    <ReportsCard />
                     <TutorRequirementsSection />
                   </>
                 ) : (
@@ -606,6 +608,7 @@ export function ProfileDashboard({
                       />
                     </Suspense>
                     <ApplicationsCard />
+                    <ReportsCard />
                     <RecommendedTutors />
                   </>
                 )}
@@ -1549,6 +1552,36 @@ function PlacementFeesCard() {
         </div>
         <Link href="/dashboard/fees" className={secondaryButton}>
           View fees
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function ReportsCard() {
+  return (
+    <section
+      id="reports"
+      aria-labelledby="reports-heading"
+      className="scroll-mt-24"
+    >
+      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+        <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
+          <Flag aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            id="reports-heading"
+            className="font-semibold text-[var(--color-neutral-charcoal)]"
+          >
+            Reports and disputes
+          </h2>
+          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            See what you&apos;ve raised and where it stands.
+          </p>
+        </div>
+        <Link href="/dashboard/reports" className={secondaryButton}>
+          View reports
         </Link>
       </div>
     </section>

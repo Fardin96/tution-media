@@ -1248,7 +1248,7 @@ export interface paths {
     };
     /**
      * List reviews of a student
-     * @description Visible reviews that tutors left for the student, newest first. Any signed-in account can read them.
+     * @description Visible reviews that tutors left for the student, newest first, cursor-paginated (limit 1 to 100, default 25). summary has the average, the count and the 1 to 5 star breakdown. Any signed-in account can read them. 404 when the student does not exist.
      *
      *     **Who:** Any signed-in account.
      *
@@ -1256,7 +1256,10 @@ export interface paths {
      */
     get: {
       parameters: {
-        query?: never;
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
         header?: never;
         path: {
           id: string;
@@ -1285,6 +1288,15 @@ export interface paths {
         };
         /** @description Missing, invalid or expired access token */
         401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
           headers: {
             [name: string]: unknown;
           };
@@ -2173,7 +2185,7 @@ export interface paths {
     };
     /**
      * List a tutor's reviews
-     * @description Visible reviews written by students, newest first.
+     * @description Visible reviews written by students, newest first, cursor-paginated (limit 1 to 100, default 25). summary has the average, the count and the 1 to 5 star breakdown. 404 when the tutor does not exist.
      *
      *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
      *
@@ -2181,7 +2193,10 @@ export interface paths {
      */
     get: {
       parameters: {
-        query?: never;
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
         header?: never;
         path: {
           id: string;
@@ -2201,6 +2216,15 @@ export interface paths {
         };
         /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
           headers: {
             [name: string]: unknown;
           };
@@ -5814,7 +5838,7 @@ export interface paths {
     put?: never;
     /**
      * Confirm an application
-     * @description #63. The counterparty accepts. Other pending applications on the same listing are rejected, and a placement fee is created when a commission rate is set.
+     * @description #63. The counterparty accepts. Other pending applications on the same listing are rejected, and a placement fee is created at commission_percent (40% unless an admin sets another rate; an explicit 0 creates none).
      *
      *     **Who:** TUTOR, STUDENT.
      *
@@ -6753,6 +6777,741 @@ export interface paths {
         };
       };
     };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reviews": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Review the other side of a tuition
+     * @description A student reviews the tutor, a tutor reviews the student. The application must be CONFIRMED or COMPLETED (409 REVIEW_NOT_ALLOWED otherwise) and you must be one of its two parties (404 otherwise). One review per tutor and student pair and direction: 409 REVIEW_EXISTS.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 20/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateReviewInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyReview"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reviews/mine": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the reviews I wrote
+     * @description Newest first, cursor-paginated (limit 1 to 100, default 25). Includes hidden reviews with status HIDDEN. applicationId returns the review for that application's tutor and student pair (at most one); 404 when you are not a party of it.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          applicationId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyReviewPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reviews/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Edit my review
+     * @description Only the author can edit, for 30 days after writing it (409 REVIEW_NOT_ALLOWED). A review hidden by an admin cannot be edited (409 INVALID_REVIEW_STATE). Send a rating, a comment (null clears it), or both.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 20/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateReviewInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyReview"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  "/api/v1/reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Report an account
+     * @description #71. Reports another student or tutor to the admins. Send targetAccountId, applicationId, or both; with only applicationId the other party of that application is reported. 400 when neither is sent or the target is the caller, 404 when the account does not exist (or the caller is not a party of the application, or the target is not the other party), 409 REPORT_NOT_ALLOWED for an admin account and 409 REPORT_EXISTS while an earlier report about the same account is still open.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateReportInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyReport"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/reports/mine": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my reports
+     * @description #72. Reports the caller filed, newest first. Cursor-paginated (limit 1 to 100, default 25). resolutionNote is shown once the report is resolved or dismissed.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyReportPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/disputes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Raise a dispute
+     * @description #73. Either party of a confirmed or completed tuition raises a problem (no-show, quality, payment). The other party is taken from the application. 404 when the caller is not a party, 409 DISPUTE_NOT_ALLOWED for any other status and 409 DISPUTE_EXISTS while the caller's earlier dispute on this tuition is still open.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateDisputeInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyDispute"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/disputes/mine": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my disputes
+     * @description #74. Disputes the caller raised, newest first, optionally for one application (404 when the caller is not a party). Cursor-paginated (limit 1 to 100, default 25). resolutionNote is shown once the dispute is resolved or dismissed.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          applicationId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyDisputePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -12975,7 +13734,7 @@ export interface paths {
     get?: never;
     /**
      * Update a platform setting
-     * @description Super admin only. commission_percent takes 0 to 100 and gateway_charge_percent takes 0 to 10, each with at most 2 decimals. The switches take true or false. Changing require_tutor_verification re-evaluates every tutor's listing.
+     * @description Super admin only. commission_percent takes 0 to 100 (default 40) and gateway_charge_percent takes 0 to 10, each with at most 2 decimals. The switches take true or false. Changing require_tutor_verification re-evaluates every tutor's listing.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -14725,6 +15484,799 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/admin/reviews": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List reviews
+     * @description Every review, newest first, hidden ones included. Filter by status, direction, tutorId, studentId or rating. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "VISIBLE" | "HIDDEN";
+          direction?: "STUDENT_TO_TUTOR" | "TUTOR_TO_STUDENT";
+          tutorId?: string;
+          studentId?: string;
+          rating?: number;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminReviewPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/reviews/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Hide or restore a review
+     * @description HIDDEN takes the review off public profiles and out of the rating average; VISIBLE restores it. The note is kept in the audit log. 409 INVALID_REVIEW_STATE when the review already has that status.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ModerateReviewInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminReview"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  "/api/v1/admin/reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Reports
+     * @description queue defaults to open (OPEN and UNDER_REVIEW, oldest first, the work queue). queue=closed lists RESOLVED and DISMISSED, newest first. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          queue?: "open" | "closed";
+          category?:
+            | "ABUSE"
+            | "FAKE_PROFILE"
+            | "SPAM"
+            | "NO_SHOW"
+            | "OFF_PLATFORM_CONTACT"
+            | "INAPPROPRIATE_CONTENT"
+            | "OTHER";
+          targetAccountId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminReportPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/reports/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get reports
+     * @description a report
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminReportDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Assign, resolve or dismiss reports
+     * @description ASSIGN moves an OPEN case to UNDER_REVIEW under you (or takes over one held by another admin). RESOLVE and DISMISS close an OPEN or UNDER_REVIEW case and need a note of 3 to 500 characters. 409 INVALID_CASE_STATE on a closed case or when it is already assigned to you.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CaseActionInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminReportDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
+  "/api/v1/admin/disputes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Disputes
+     * @description queue defaults to open (OPEN and UNDER_REVIEW, oldest first, the work queue). queue=closed lists RESOLVED and DISMISSED, newest first. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          queue?: "open" | "closed";
+          type?: "NO_SHOW" | "QUALITY" | "PAYMENT" | "SCHEDULE" | "OTHER";
+          applicationId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDisputePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/disputes/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get disputes
+     * @description a dispute
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDisputeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Assign, resolve or dismiss disputes
+     * @description ASSIGN moves an OPEN case to UNDER_REVIEW under you (or takes over one held by another admin). RESOLVE and DISMISS close an OPEN or UNDER_REVIEW case and need a note of 3 to 500 characters. 409 INVALID_CASE_STATE on a closed case or when it is already assigned to you.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CaseActionInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDisputeDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -14907,6 +16459,63 @@ export interface components {
     };
     AdminBlogPostPage: {
       posts: components["schemas"]["AdminBlogPost"][];
+      nextCursor: string | null;
+    };
+    AdminCaseHandler: {
+      accountId: string;
+      name: string | null;
+    };
+    AdminDispute: {
+      id: string;
+      applicationId: string;
+      /** @enum {string} */
+      type: "NO_SHOW" | "QUALITY" | "PAYMENT" | "SCHEDULE" | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      raisedBy: components["schemas"]["AdminParty"];
+      against: components["schemas"]["AdminParty"];
+      handledBy: components["schemas"]["AdminCaseHandler"] | null;
+    };
+    AdminDisputeDetail: {
+      id: string;
+      applicationId: string;
+      /** @enum {string} */
+      type: "NO_SHOW" | "QUALITY" | "PAYMENT" | "SCHEDULE" | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      raisedBy: components["schemas"]["AdminParty"];
+      against: components["schemas"]["AdminParty"];
+      handledBy: components["schemas"]["AdminCaseHandler"] | null;
+      application: {
+        id: string;
+        /** @enum {string} */
+        status:
+          | "PENDING"
+          | "CONFIRMED"
+          | "COMPLETED"
+          | "REJECTED"
+          | "WITHDRAWN"
+          | "CANCELLED"
+          | "EXPIRED";
+        confirmedAt: string | null;
+        endedAt: string | null;
+        tutorId: string;
+        studentId: string;
+      };
+      otherOpenDisputes: number;
+    };
+    AdminDisputePage: {
+      disputes: components["schemas"]["AdminDispute"][];
       nextCursor: string | null;
     };
     AdminFee: {
@@ -15141,6 +16750,15 @@ export interface components {
     AdminPackagePage: {
       packages: components["schemas"]["AdminPackage"][];
       nextCursor: string | null;
+    };
+    AdminParty: {
+      accountId: string;
+      /** @enum {string} */
+      role: "STUDENT" | "TUTOR" | "ADMIN";
+      /** @enum {string} */
+      status: "ACTIVE" | "BLOCKED" | "DELETED";
+      name: string | null;
+      email: string;
     };
     AdminPaymentAttempt: {
       id: string;
@@ -15416,6 +17034,103 @@ export interface components {
     };
     AdminRefundPage: {
       refunds: components["schemas"]["AdminRefund"][];
+      nextCursor: string | null;
+    };
+    AdminReport: {
+      id: string;
+      /** @enum {string} */
+      category:
+        | "ABUSE"
+        | "FAKE_PROFILE"
+        | "SPAM"
+        | "NO_SHOW"
+        | "OFF_PLATFORM_CONTACT"
+        | "INAPPROPRIATE_CONTENT"
+        | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      reporter: components["schemas"]["AdminParty"];
+      target: components["schemas"]["AdminParty"];
+      applicationId: string | null;
+      handledBy: components["schemas"]["AdminCaseHandler"] | null;
+    };
+    AdminReportDetail: {
+      id: string;
+      /** @enum {string} */
+      category:
+        | "ABUSE"
+        | "FAKE_PROFILE"
+        | "SPAM"
+        | "NO_SHOW"
+        | "OFF_PLATFORM_CONTACT"
+        | "INAPPROPRIATE_CONTENT"
+        | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      reporter: components["schemas"]["AdminParty"];
+      target: components["schemas"]["AdminParty"];
+      applicationId: string | null;
+      handledBy: components["schemas"]["AdminCaseHandler"] | null;
+      targetOpenReports: number;
+      targetReportCount: number;
+      targetActiveBlock: {
+        reason: string;
+        /** Format: date-time */
+        blockedAt: string;
+      } | null;
+      application: {
+        id: string;
+        /** @enum {string} */
+        status:
+          | "PENDING"
+          | "CONFIRMED"
+          | "COMPLETED"
+          | "REJECTED"
+          | "WITHDRAWN"
+          | "CANCELLED"
+          | "EXPIRED";
+        confirmedAt: string | null;
+      } | null;
+    };
+    AdminReportPage: {
+      reports: components["schemas"]["AdminReport"][];
+      nextCursor: string | null;
+    };
+    AdminReview: {
+      id: string;
+      /** @enum {string} */
+      direction: "STUDENT_TO_TUTOR" | "TUTOR_TO_STUDENT";
+      rating: number;
+      comment: string | null;
+      /** @enum {string} */
+      status: "VISIBLE" | "HIDDEN";
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      tutor: {
+        id: string;
+        accountId: string;
+        name: string;
+      };
+      student: {
+        id: string;
+        accountId: string;
+        name: string;
+      };
+    };
+    AdminReviewPage: {
+      reviews: components["schemas"]["AdminReview"][];
       nextCursor: string | null;
     };
     AdminStudentVerification: {
@@ -15887,6 +17602,11 @@ export interface components {
       nextCursor: string | null;
       noServiceArea: boolean;
     };
+    CaseActionInput: {
+      /** @enum {string} */
+      action: "ASSIGN" | "RESOLVE" | "DISMISS";
+      note?: string;
+    };
     CheckoutQuote: {
       enabled: boolean;
       unavailableReason:
@@ -15994,6 +17714,13 @@ export interface components {
       /** Format: uuid */
       fileId: string;
     };
+    CreateDisputeInput: {
+      /** Format: uuid */
+      applicationId: string;
+      /** @enum {string} */
+      type: "NO_SHOW" | "QUALITY" | "PAYMENT" | "SCHEDULE" | "OTHER";
+      details: string;
+    };
     CreateFeeInput: {
       /** Format: uuid */
       applicationId: string;
@@ -16075,6 +17802,22 @@ export interface components {
       tranId: string;
       amount?: string;
       reason: string;
+    };
+    CreateReportInput: {
+      /** Format: uuid */
+      targetAccountId?: string;
+      /** @enum {string} */
+      category:
+        | "ABUSE"
+        | "FAKE_PROFILE"
+        | "SPAM"
+        | "NO_SHOW"
+        | "OFF_PLATFORM_CONTACT"
+        | "INAPPROPRIATE_CONTENT"
+        | "OTHER";
+      details: string;
+      /** Format: uuid */
+      applicationId?: string;
     };
     CreateRequirementInput:
       | {
@@ -16185,6 +17928,12 @@ export interface components {
           /** @constant */
           status: "DRAFT";
         };
+    CreateReviewInput: {
+      /** Format: uuid */
+      applicationId: string;
+      rating: number;
+      comment?: string | null;
+    };
     CreateStudentProfileInput: {
       name: string;
       areaId: number;
@@ -16422,6 +18171,14 @@ export interface components {
       | "VIDEO_ALREADY_MODERATED"
       | "BLOG_SLUG_EXISTS"
       | "INVALID_POST_STATE"
+      | "REVIEW_EXISTS"
+      | "REVIEW_NOT_ALLOWED"
+      | "INVALID_REVIEW_STATE"
+      | "REPORT_EXISTS"
+      | "REPORT_NOT_ALLOWED"
+      | "DISPUTE_EXISTS"
+      | "DISPUTE_NOT_ALLOWED"
+      | "INVALID_CASE_STATE"
       | "UPLOADS_BLOCKED";
     ErrorIssue: {
       path: (string | number)[];
@@ -16605,6 +18362,11 @@ export interface components {
       decision: "APPROVE" | "REJECT";
       note?: string;
     };
+    ModerateReviewInput: {
+      /** @enum {string} */
+      status: "VISIBLE" | "HIDDEN";
+      note: string;
+    };
     ModerateVideoInput: {
       /** @enum {string} */
       decision: "APPROVE" | "REJECT";
@@ -16623,6 +18385,29 @@ export interface components {
         | "WITHDRAWN"
         | "CANCELLED"
         | "EXPIRED";
+    };
+    MyDispute: {
+      id: string;
+      applicationId: string;
+      /** @enum {string} */
+      type: "NO_SHOW" | "QUALITY" | "PAYMENT" | "SCHEDULE" | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      against: {
+        accountId: string;
+        /** @enum {string} */
+        role: "STUDENT" | "TUTOR" | "ADMIN";
+        name: string | null;
+      };
+    };
+    MyDisputePage: {
+      disputes: components["schemas"]["MyDispute"][];
+      nextCursor: string | null;
     };
     MyPackage: {
       id: string;
@@ -16690,6 +18475,62 @@ export interface components {
     };
     MyPackageList: {
       packages: components["schemas"]["MyPackage"][];
+    };
+    MyReport: {
+      id: string;
+      /** @enum {string} */
+      category:
+        | "ABUSE"
+        | "FAKE_PROFILE"
+        | "SPAM"
+        | "NO_SHOW"
+        | "OFF_PLATFORM_CONTACT"
+        | "INAPPROPRIATE_CONTENT"
+        | "OTHER";
+      details: string;
+      /** @enum {string} */
+      status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
+      /** Format: date-time */
+      createdAt: string;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+      target: {
+        accountId: string;
+        /** @enum {string} */
+        role: "STUDENT" | "TUTOR" | "ADMIN";
+        name: string | null;
+      };
+      applicationId: string | null;
+    };
+    MyReportPage: {
+      reports: components["schemas"]["MyReport"][];
+      nextCursor: string | null;
+    };
+    MyReview: {
+      id: string;
+      /** @enum {string} */
+      direction: "STUDENT_TO_TUTOR" | "TUTOR_TO_STUDENT";
+      rating: number;
+      comment: string | null;
+      /** @enum {string} */
+      status: "VISIBLE" | "HIDDEN";
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: date-time */
+      editableUntil: string;
+      canEdit: boolean;
+      subject: {
+        /** @enum {string} */
+        kind: "TUTOR" | "STUDENT";
+        id: string;
+        name: string;
+      };
+    };
+    MyReviewPage: {
+      reviews: components["schemas"]["MyReview"][];
+      nextCursor: string | null;
     };
     NotificationPage: {
       notifications: components["schemas"]["AppNotification"][];
@@ -16904,6 +18745,17 @@ export interface components {
       decision: "APPROVE" | "REJECT";
       note: string;
     };
+    ReviewSummary: {
+      ratingAvg: number;
+      ratingCount: number;
+      breakdown: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
+      };
+    };
     Session: {
       /** Format: uuid */
       id: string;
@@ -16970,6 +18822,8 @@ export interface components {
     };
     StudentReviewList: {
       reviews: components["schemas"]["StudentReview"][];
+      nextCursor: string | null;
+      summary: components["schemas"]["ReviewSummary"];
     };
     Subject: {
       id: number;
@@ -17283,6 +19137,8 @@ export interface components {
     };
     TutorReviewList: {
       reviews: components["schemas"]["TutorReview"][];
+      nextCursor: string | null;
+      summary: components["schemas"]["ReviewSummary"];
     };
     TutorSearchList: {
       tutors: components["schemas"]["TutorSearchResult"][];
@@ -17465,6 +19321,10 @@ export interface components {
         | "Group Coaching";
       /** @enum {string} */
       status?: "DRAFT" | "OPEN";
+    };
+    UpdateReviewInput: {
+      rating?: number;
+      comment?: string | null;
     };
     UpdateSettingInput: {
       value: number | boolean;
