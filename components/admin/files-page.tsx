@@ -32,6 +32,7 @@ import {
 } from "@/lib/admin-files";
 import { formatDateTime } from "@/lib/admin";
 import { openFile, formatBytes, type FilePurpose } from "@/lib/files";
+import { FilePreview } from "@/components/files/file-preview";
 import { toastError } from "@/lib/toast";
 
 type PurposeView = "ALL" | FilePurpose;
@@ -235,6 +236,7 @@ function FileRow({
 }) {
   const canView = file.status === "UPLOADED";
   const canDelete = !file.inUse && file.status !== "DELETED";
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <article className={cn(card, "grid gap-4 p-5")}>
@@ -256,13 +258,23 @@ function FileRow({
         {(canView || canDelete) && (
           <div className="flex flex-wrap gap-2">
             {canView && (
-              <button
-                type="button"
-                onClick={onView}
-                className={cn(ghostButton, "min-h-10 px-3")}
-              >
-                View
-              </button>
+              <>
+                <button
+                  type="button"
+                  aria-expanded={showPreview}
+                  onClick={() => setShowPreview((open) => !open)}
+                  className={cn(ghostButton, "min-h-10 px-3")}
+                >
+                  {showPreview ? "Hide preview" : "Preview"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onView}
+                  className={cn(ghostButton, "min-h-10 px-3")}
+                >
+                  Open
+                </button>
+              </>
             )}
             {canDelete && (
               <button
@@ -289,6 +301,14 @@ function FileRow({
         </StatusPill>
         {file.published && <StatusPill tone="success">Public</StatusPill>}
       </div>
+
+      {canView && showPreview && (
+        <FilePreview
+          fileId={file.id}
+          contentType={file.contentType}
+          name={file.fileName}
+        />
+      )}
 
       <DetailList
         items={[

@@ -32,6 +32,7 @@ import {
   type VerificationStatus,
 } from "@/lib/admin-verifications";
 import { openFile, formatBytes } from "@/lib/files";
+import { FilePreview } from "@/components/files/file-preview";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 
@@ -344,6 +345,7 @@ function VerificationCard({
   const meta = VERIFICATION_STATUS_META[row.status];
   const file = row.file;
   const audience = row.kind === "tutors" ? "tutor" : "student";
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <>
@@ -399,20 +401,38 @@ function VerificationCard({
         </div>
       )}
 
+      {file && showPreview && (
+        <FilePreview
+          fileId={file.id}
+          contentType={file.contentType}
+          name={file.fileName}
+        />
+      )}
+
       {(pending || file) && (
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           {file ? (
-            <button
-              type="button"
-              onClick={() => {
-                openFile(file.id).catch((err) =>
-                  toastError("Couldn't open the file.", err),
-                );
-              }}
-              className={cn(secondaryButton, "min-h-11")}
-            >
-              View document
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                aria-expanded={showPreview}
+                onClick={() => setShowPreview((open) => !open)}
+                className={cn(secondaryButton, "min-h-11")}
+              >
+                {showPreview ? "Hide preview" : "Preview document"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  openFile(file.id).catch((err) =>
+                    toastError("Couldn't open the file.", err),
+                  );
+                }}
+                className={cn(secondaryButton, "min-h-11")}
+              >
+                Open in new tab
+              </button>
+            </div>
           ) : (
             <span />
           )}

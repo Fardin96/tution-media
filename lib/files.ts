@@ -20,28 +20,28 @@ export const FILE_RULES: Record<
 > = {
   STUDENT_ID: {
     accept: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
-    maxBytes: 10 * MB,
-    hint: "JPG, PNG, WebP or PDF, up to 10 MB",
+    maxBytes: 2 * MB,
+    hint: "JPG, PNG, WebP or PDF, up to 2 MB",
   },
   TUTOR_ID: {
     accept: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
-    maxBytes: 10 * MB,
-    hint: "JPG, PNG, WebP or PDF, up to 10 MB",
+    maxBytes: 2 * MB,
+    hint: "JPG, PNG, WebP or PDF, up to 2 MB",
   },
   CREDENTIAL: {
     accept: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
-    maxBytes: 10 * MB,
-    hint: "JPG, PNG, WebP or PDF, up to 10 MB",
+    maxBytes: 2 * MB,
+    hint: "JPG, PNG, WebP or PDF, up to 2 MB",
   },
   TUTOR_VIDEO: {
     accept: ["video/mp4", "video/webm", "video/quicktime"],
-    maxBytes: 150 * MB,
-    hint: "MP4, WebM or MOV, up to 150 MB",
+    maxBytes: 2 * MB,
+    hint: "MP4, WebM or MOV, up to 2 MB",
   },
   BLOG_COVER: {
     accept: ["image/jpeg", "image/png", "image/webp"],
-    maxBytes: 5 * MB,
-    hint: "JPG, PNG or WebP, up to 5 MB",
+    maxBytes: 2 * MB,
+    hint: "JPG, PNG or WebP, up to 2 MB",
   },
 };
 
@@ -200,6 +200,16 @@ export function useFileUpload(purpose: FilePurpose) {
   }, []);
 
   return { state, start, cancel, reset };
+}
+
+export type PreviewKind = "image" | "pdf" | "video" | "none";
+
+/** How the admin preview renders a file of this content type. */
+export function previewKind(contentType: string): PreviewKind {
+  if (contentType.startsWith("image/")) return "image";
+  if (contentType === "application/pdf") return "pdf";
+  if (contentType.startsWith("video/")) return "video";
+  return "none";
 }
 
 /** Opens a private file (ID, credential) in a new tab through a short-lived signed URL. */

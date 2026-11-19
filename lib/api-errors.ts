@@ -183,7 +183,7 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   GATEWAY_UNAVAILABLE:
     "The payment gateway isn't responding. Try again in a few minutes.",
   STORAGE_UNAVAILABLE: "Uploads aren't available right now. Try again later.",
-  // The server names the limit ("The limit is 10 MB.") and the accepted types.
+  // The server names the limit ("The limit is 2 MB.") and the accepted types.
   FILE_TOO_LARGE: (err) => err.message || "That file is too large.",
   UNSUPPORTED_FILE_TYPE: (err) =>
     err.message || "That file type isn't accepted here.",
