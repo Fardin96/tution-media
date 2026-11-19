@@ -7569,6 +7569,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/files/upload-status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Check whether my uploads are paused
+     * @description Whether an admin has paused video or document uploads for you, and the note when the admin shared it. All false and null when nothing is paused.
+     *
+     *     **Who:** Any signed-in account.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UploadStatus"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/files/upload-url": {
     parameters: {
       query?: never;
@@ -9190,6 +9260,322 @@ export interface paths {
         };
         /** @description Conflict with the current state */
         409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/accounts/{accountId}/uploads": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Upload history for an account
+     * @description The account's active upload block (or null), a summary and its upload history, newest first. A rejection, revocation or removal counts as an issue for 30 days; three or more issues show a repeated-problems warning. Admin views include hidden notes. Cursor-paginated (limit 1 to 100, default 25).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path: {
+          accountId: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UploadHistory"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/accounts/{accountId}/upload-block": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Pause uploads for an account
+     * @description Blocks video uploads, document uploads (IDs and certificates) or both, with a note. Creates the active block or updates it. The account is told, and the note shows to them only when noteVisible is true. Admin accounts cannot be blocked. Audited.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          accountId: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            blocksVideos: boolean;
+            blocksDocuments: boolean;
+            note: string;
+            /** @default true */
+            noteVisible?: boolean;
+          };
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["UploadBlockView"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/accounts/{accountId}/upload-block/lift": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Lift an upload block
+     * @description Closes the account's active upload block. The note is optional; the account is told, and it shows to them only when a note is given and noteVisible is true. 404 when nothing is blocked. Audited. Replies 204 with no body.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          accountId: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            note?: string;
+            /** @default true */
+            noteVisible?: boolean;
+          } | null;
+        };
+      };
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
           headers: {
             [name: string]: unknown;
           };
@@ -12783,7 +13169,7 @@ export interface paths {
     };
     /**
      * List tutor ID submissions
-     * @description status defaults to PENDING, the work queue, oldest first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25).
+     * @description status defaults to PENDING, the work queue, oldest first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25). Each row has isLatest (only the tutor's newest submission can be decided), noteVisible (false when the note is for admins only) and uploadFlags (rejections, revocations and removals in the last 30 days, and whether uploads are blocked).
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -12877,7 +13263,7 @@ export interface paths {
     put?: never;
     /**
      * Approve or reject a tutor ID submission
-     * @description The id is the verification (submission) id from the list. APPROVE makes the tutor's verification APPROVED. REJECT needs a note that tells the tutor why. 409 INVALID_VERIFICATION_STATE when the submission was already reviewed.
+     * @description The id is the verification (submission) id from the list. Only the tutor's newest submission can be decided. APPROVE sets it APPROVED and needs the file still uploaded. REJECT sets it REJECTED and needs a note that tells the tutor why. Allowed moves: PENDING to APPROVED or REJECTED, REJECTED to APPROVED, and APPROVED to REJECTED (a revocation, which also sets the tutor REJECTED). The note is shared with the tutor when noteVisible is true (the default); otherwise the tutor gets a generic alert. The decision is recorded in the upload history and sent as an alert. 409 INVALID_VERIFICATION_STATE when the submission is not the latest, already has that decision, or its file was removed.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -12987,7 +13373,7 @@ export interface paths {
     };
     /**
      * List student ID submissions
-     * @description status defaults to PENDING, the work queue, oldest submission first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25).
+     * @description status defaults to PENDING, the work queue, oldest submission first. APPROVED and REJECTED are newest first. Cursor-paginated (limit 1 to 100, default 25). Each row has noteVisible and uploadFlags.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -13081,7 +13467,7 @@ export interface paths {
     put?: never;
     /**
      * Approve or reject a student ID submission
-     * @description The id is the student id. APPROVE makes the student verified. REJECT needs a note that tells the student why. 409 INVALID_VERIFICATION_STATE when the submission was already reviewed.
+     * @description The id is the student id. APPROVE makes the student verified and needs the file still uploaded. REJECT needs a note that tells the student why. Allowed moves: PENDING to APPROVED or REJECTED, REJECTED to APPROVED, and APPROVED to REJECTED (a revocation). The note is shared with the student when noteVisible is true (the default); otherwise the student gets a generic alert. The decision is recorded in the upload history and sent as an alert. 409 INVALID_VERIFICATION_STATE when there is no submission, the decision is already set, or the file was removed.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -13285,7 +13671,7 @@ export interface paths {
     put?: never;
     /**
      * Approve or reject a tutor video
-     * @description APPROVE publishes the video to students. REJECT needs a note that tells the tutor why, and takes an approved video down. 409 VIDEO_ALREADY_MODERATED when the video already has that decision.
+     * @description APPROVE publishes the video to students. REJECT needs a note that tells the tutor why, and takes an approved video down. noteVisible false keeps the note between admins: the tutor sees a generic message. Each decision is kept in the upload history and sends the tutor an alert. 409 VIDEO_ALREADY_MODERATED when the video already has that decision.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -13662,6 +14048,109 @@ export interface paths {
     };
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/files/{id}/remove": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Remove an uploaded file and tell its owner
+     * @description Takes a file down with a note for the owner (required). What changes depends on the file. An ID (tutor or student) that is pending is rejected; an approved ID is rejected only when unverify is true. Only a tutor's latest submission changes. A credential or video that uses the file is deleted. Files no record uses are just removed. The stored copies are deleted. noteVisible false keeps the note between admins: the owner sees a generic message. Each removal is audited, kept in the upload history and sent to the owner as an alert. Blog covers are removed from their post instead (400). 404 when the file is missing or already removed. Replies with the file.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["RemoveFileInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminFile"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     delete?: never;
     options?: never;
     head?: never;
@@ -14936,7 +15425,9 @@ export interface components {
       submittedAt: string | null;
       decidedAt: string | null;
       note: string | null;
+      noteVisible: boolean;
       reviewedById: string | null;
+      uploadFlags: components["schemas"]["UploadFlags"];
       file: components["schemas"]["FileAsset"] | null;
       student: {
         id: string;
@@ -14988,7 +15479,10 @@ export interface components {
       submittedAt: string;
       decidedAt: string | null;
       note: string | null;
+      noteVisible: boolean;
       reviewedById: string | null;
+      isLatest: boolean;
+      uploadFlags: components["schemas"]["UploadFlags"];
       file: components["schemas"]["FileAsset"];
       tutor: {
         id: string;
@@ -15011,6 +15505,7 @@ export interface components {
       /** @enum {string} */
       status: "PENDING" | "APPROVED" | "REJECTED";
       moderationNote: string | null;
+      noteVisible: boolean;
       sortOrder: number;
       /** Format: date-time */
       createdAt: string;
@@ -15018,11 +15513,13 @@ export interface components {
       file: components["schemas"]["FileAsset"];
       tutor: {
         id: string;
+        accountId: string;
         name: string;
         /** @enum {string} */
         verificationStatus:
           "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
       };
+      uploadFlags: components["schemas"]["UploadFlags"];
     };
     AdminVideoPage: {
       videos: components["schemas"]["AdminVideo"][];
@@ -15064,11 +15561,29 @@ export interface components {
         | "APPLICATION_CANCELLED"
         | "APPLICATION_COMPLETED"
         | "PACKAGE_UPDATED"
-        | "PACKAGE_CLOSED";
-      applicationId: string;
-      /** @enum {string} */
-      listingKind: "REQUIREMENT" | "PACKAGE";
-      counterpartName: string;
+        | "PACKAGE_CLOSED"
+        | "ID_APPROVED"
+        | "ID_REJECTED"
+        | "VIDEO_APPROVED"
+        | "VIDEO_REJECTED"
+        | "FILE_REMOVED"
+        | "UPLOADS_BLOCKED"
+        | "UPLOADS_UNBLOCKED";
+      applicationId: string | null;
+      listingKind: ("REQUIREMENT" | "PACKAGE") | null;
+      counterpartName: string | null;
+      note: string | null;
+      filePurpose:
+        | (
+            | "STUDENT_ID"
+            | "TUTOR_ID"
+            | "CREDENTIAL"
+            | "TUTOR_VIDEO"
+            | "BLOG_COVER"
+          )
+        | null;
+      blocksVideos: boolean | null;
+      blocksDocuments: boolean | null;
       readAt: string | null;
       /** Format: date-time */
       createdAt: string;
@@ -15784,6 +16299,8 @@ export interface components {
       /** @enum {string} */
       decision: "APPROVE" | "REJECT";
       note?: string;
+      /** @default true */
+      noteVisible?: boolean;
     };
     DecideZoneRequestInput: {
       /** @enum {string} */
@@ -15904,7 +16421,8 @@ export interface components {
       | "INVALID_VERIFICATION_STATE"
       | "VIDEO_ALREADY_MODERATED"
       | "BLOG_SLUG_EXISTS"
-      | "INVALID_POST_STATE";
+      | "INVALID_POST_STATE"
+      | "UPLOADS_BLOCKED";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -16091,6 +16609,8 @@ export interface components {
       /** @enum {string} */
       decision: "APPROVE" | "REJECT";
       note?: string;
+      /** @default true */
+      noteVisible?: boolean;
     };
     MyApplication: {
       id: string;
@@ -16292,6 +16812,13 @@ export interface components {
     };
     RejectRefundInput: {
       note: string;
+    };
+    RemoveFileInput: {
+      note: string;
+      /** @default true */
+      noteVisible?: boolean;
+      /** @default false */
+      unverify?: boolean;
     };
     ReplaceTutorAreasInput: {
       areaIds: number[];
@@ -17031,6 +17558,71 @@ export interface components {
       radiusM?: number;
       placeId?: string | null;
       addressText?: string | null;
+    };
+    UploadActor: {
+      accountId: string;
+      name: string;
+    };
+    UploadBlockView: {
+      id: string;
+      blocksVideos: boolean;
+      blocksDocuments: boolean;
+      note: string;
+      noteVisible: boolean;
+      /** Format: date-time */
+      blockedAt: string;
+      blockedBy: components["schemas"]["UploadActor"] | null;
+    };
+    UploadFlags: {
+      recentIssues: number;
+      uploadsBlocked: boolean;
+    };
+    UploadHistory: {
+      block: components["schemas"]["UploadBlockView"] | null;
+      summary: {
+        recentIssues: number;
+        total: number;
+        windowDays: number;
+        threshold: number;
+      };
+      events: components["schemas"]["UploadReviewEvent"][];
+      nextCursor: string | null;
+    };
+    UploadReviewEvent: {
+      id: string;
+      /** @enum {string} */
+      action:
+        | "APPROVED"
+        | "REJECTED"
+        | "REVOKED"
+        | "REMOVED"
+        | "BLOCKED"
+        | "UNBLOCKED";
+      purpose:
+        | (
+            | "STUDENT_ID"
+            | "TUTOR_ID"
+            | "CREDENTIAL"
+            | "TUTOR_VIDEO"
+            | "BLOG_COVER"
+          )
+        | null;
+      fileName: string | null;
+      contentType: string | null;
+      sizeBytes: number | null;
+      fileId: string | null;
+      fileAvailable: boolean;
+      note: string | null;
+      noteVisible: boolean;
+      actor: components["schemas"]["UploadActor"] | null;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    UploadStatus: {
+      blocksVideos: boolean;
+      blocksDocuments: boolean;
+      note: string | null;
+      blockedAt: string | null;
     };
     UploadUrl: {
       file: components["schemas"]["FileAsset"];

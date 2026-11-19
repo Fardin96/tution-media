@@ -19,7 +19,16 @@ import {
   StatusPill,
   inputClass,
 } from "@/components/admin/admin-ui";
-import { DecisionNoteForm } from "@/components/admin/verifications-page";
+import {
+  ReviewNoteForm,
+  type ReviewSubmit,
+} from "@/components/admin/review-dialog";
+import {
+  HiddenFromUser,
+  RemoveFileDialog,
+  UploadFlagsNote,
+  useRemoveFileReview,
+} from "@/components/admin/upload-flags";
 import { formatDateTime } from "@/lib/admin";
 import {
   useAdminVideos,
@@ -61,8 +70,8 @@ function parseStatus(value: string | null): VideoStatus {
 type VideoAction = "APPROVE" | "REJECT" | "TAKE_DOWN";
 
 type VideoReviewTarget = {
+  key: string;
   id: string;
-  title: string;
   action: VideoAction;
 };
 
@@ -73,7 +82,7 @@ function useVideoReview() {
   const moderate = useModerateVideo();
 
   function start(video: AdminVideo, action: VideoAction) {
-    setTarget({ id: video.id, title: video.title, action });
+    setTarget({ key: `${video.id}-${Date.now()}`, id: video.id, action });
     setOpen(true);
   }
 
@@ -81,12 +90,12 @@ function useVideoReview() {
     if (!moderate.isPending) setOpen(false);
   }
 
-  function confirm(note?: string) {
+  function confirm({ note, noteVisible }: ReviewSubmit) {
     if (!target) return;
     const body: ModerateVideoInput =
       target.action === "APPROVE"
         ? { decision: "APPROVE" }
-        : { decision: "REJECT", note };
+        : { decision: "REJECT", note, noteVisible };
     const done = {
       APPROVE: "Video approved",
       REJECT: "Video rejected",
@@ -163,7 +172,9 @@ function VideoReviewDialog({ review }: { review: VideoReviewState }) {
           </button>
           <button
             type="button"
-            onClick={() => review.confirm()}
+            onClick={() =>
+              review.confirm({ note: undefined, noteVisible: true })
+            }
             disabled={review.saving}
             aria-busy={review.saving || undefined}
             className={cn(primaryButton, "min-h-11 sm:min-w-28")}
@@ -172,18 +183,22 @@ function VideoReviewDialog({ review }: { review: VideoReviewState }) {
           </button>
         </DialogActions>
       ) : (
-        <DecisionNoteForm
-          key={review.target?.id}
-          label={
-            action === "TAKE_DOWN"
-              ? "Why are you taking it down?"
-              : "Why is this video rejected?"
-          }
-          submitLabel={action === "TAKE_DOWN" ? "Take down" : "Reject"}
-          saving={review.saving}
-          onCancel={review.close}
-          onSubmit={(note) => review.confirm(note)}
-        />
+        review.target && (
+          <ReviewNoteForm
+            key={review.target.key}
+            noteLabel={
+              action === "TAKE_DOWN"
+                ? "Why are you taking it down?"
+                : "Why is this video rejected?"
+            }
+            noteRequired
+            submitLabel={action === "TAKE_DOWN" ? "Take down" : "Reject"}
+            danger
+            saving={review.saving}
+            onCancel={review.close}
+            onSubmit={review.confirm}
+          />
+        )
       )}
     </AdminDialog>
   );
@@ -198,6 +213,7 @@ export function AdminVideosPage() {
   const status = parseStatus(searchParams.get("status"));
   const queue = useAdminVideos(status);
   const review = useVideoReview();
+  const removal = useRemoveFileReview();
   const update = useUpdateVideo();
 
   const videos = queue.data?.pages.flatMap((page) => page.videos) ?? [];
@@ -245,6 +261,13 @@ export function AdminVideosPage() {
                 onApprove={() => review.start(video, "APPROVE")}
                 onReject={() => review.start(video, "REJECT")}
                 onTakeDown={() => review.start(video, "TAKE_DOWN")}
+                onRemove={() =>
+                  removal.start({
+                    fileId: video.file.id,
+                    fileName: video.file.fileName,
+                    purpose: "TUTOR_VIDEO",
+                  })
+                }
                 onSaveOrder={(sortOrder) => saveOrder(video, sortOrder)}
               />
             </li>
@@ -256,6 +279,7 @@ export function AdminVideosPage() {
       </QueryState>
 
       <VideoReviewDialog review={review} />
+      <RemoveFileDialog review={removal} />
     </AdminPage>
   );
 }
@@ -266,6 +290,7 @@ function VideoCard({
   onApprove,
   onReject,
   onTakeDown,
+  onRemove,
   onSaveOrder,
 }: {
   video: AdminVideo;
@@ -273,6 +298,7 @@ function VideoCard({
   onApprove: () => void;
   onReject: () => void;
   onTakeDown: () => void;
+  onRemove: () => void;
   onSaveOrder: (sortOrder: number) => void;
 }) {
   const meta = VIDEO_STATUS_META[video.status];
@@ -296,6 +322,11 @@ function VideoCard({
         <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
       </div>
 
+      <UploadFlagsNote
+        uploadFlags={video.uploadFlags}
+        accountId={video.tutor.accountId}
+      />
+
       <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">
         Uploaded {formatDateTime(video.createdAt)}
       </p>
@@ -314,12 +345,15 @@ function VideoCard({
         </div>
       )}
 
-      {rejected && video.moderationNote && (
+      {video.moderationNote && (
         <div className="grid gap-1 border-t border-[var(--color-neutral-border)] pt-3">
-          <p className="text-xs text-[var(--color-text-secondary)]">
-            Note for the tutor
-          </p>
-          <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Note for the tutor
+            </p>
+            {!video.noteVisible && <HiddenFromUser />}
+          </div>
+          <p className="text-sm text-pretty break-words text-[var(--color-neutral-charcoal)]">
             {video.moderationNote}
           </p>
         </div>
@@ -330,7 +364,10 @@ function VideoCard({
           <button
             type="button"
             onClick={onReject}
-            className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
+            className={cn(
+              secondaryButton,
+              "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+            )}
           >
             Reject
           </button>
@@ -356,7 +393,10 @@ function VideoCard({
             <button
               type="button"
               onClick={onTakeDown}
-              className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
+              className={cn(
+                secondaryButton,
+                "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+              )}
             >
               Take down
             </button>
@@ -365,7 +405,7 @@ function VideoCard({
       )}
 
       {rejected && (
-        <div className="flex justify-end">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onApprove}
@@ -375,6 +415,19 @@ function VideoCard({
           </button>
         </div>
       )}
+
+      <div className="flex justify-end border-t border-[var(--color-neutral-border)] pt-3">
+        <button
+          type="button"
+          onClick={onRemove}
+          className={cn(
+            secondaryButton,
+            "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+          )}
+        >
+          Remove file
+        </button>
+      </div>
     </>
   );
 }

@@ -56,6 +56,7 @@ export const ERROR_CODES = {
   VideoAlreadyModerated: "VIDEO_ALREADY_MODERATED",
   BlogSlugExists: "BLOG_SLUG_EXISTS",
   InvalidPostState: "INVALID_POST_STATE",
+  UploadsBlocked: "UPLOADS_BLOCKED",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -200,6 +201,12 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "Another post already uses that link. Pick a different one.",
   INVALID_POST_STATE: (err) =>
     err.message || "This post changed. Refresh to see its status.",
+  // The server says what is paused; the admin's note follows when they shared it.
+  UPLOADS_BLOCKED: (err) => {
+    const base = err.message || "An admin has paused your uploads.";
+    const note = err.details?.note;
+    return typeof note === "string" && note ? `${base} Note: ${note}` : base;
+  },
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

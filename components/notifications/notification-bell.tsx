@@ -11,6 +11,7 @@ import {
 } from "@/components/profile/styles";
 import { toastError } from "@/lib/toast";
 import {
+  notificationHref,
   notificationText,
   relativeTime,
   useMarkAllRead,
@@ -162,7 +163,7 @@ export function NotificationBell() {
                 {list.data.notifications.map((n) => (
                   <li key={n.id}>
                     <Link
-                      href={applicationHref(n)}
+                      href={notificationHref(n)}
                       onClick={(e) => openItem(e, n)}
                       className={cn(
                         "flex w-full items-start gap-3 rounded-[16px] px-3 py-3 transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
@@ -191,6 +192,11 @@ export function NotificationBell() {
                         >
                           {notificationText(n)}
                         </span>
+                        {n.note && (
+                          <span className="mt-1 block break-words text-[var(--color-text-secondary)]">
+                            Note: {n.note}
+                          </span>
+                        )}
                       </span>
                       <time
                         dateTime={n.createdAt}
@@ -212,8 +218,4 @@ export function NotificationBell() {
       </Popover.Portal>
     </Popover.Root>
   );
-}
-
-function applicationHref(n: Pick<AppNotification, "applicationId">) {
-  return `/dashboard/applications/${n.applicationId}`;
 }

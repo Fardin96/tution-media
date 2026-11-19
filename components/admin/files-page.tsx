@@ -19,6 +19,11 @@ import {
   type PillTone,
 } from "@/components/admin/admin-ui";
 import {
+  RemoveFileDialog,
+  useRemoveFileReview,
+} from "@/components/admin/upload-flags";
+import {
+  canRemoveFile,
   FILE_PURPOSES,
   FILE_STATUS_LABEL,
   PURPOSE_LABEL,
@@ -73,6 +78,7 @@ export function AdminFilesPage() {
   const stats = useAdminFileStats();
   const query = useAdminFiles(filters);
   const remove = useDeleteAdminFile();
+  const removal = useRemoveFileReview();
   const files = query.data?.pages.flatMap((page) => page.files) ?? [];
   const summaries = useMemo(
     () => summarizeStats(stats.data?.groups ?? []),
@@ -185,6 +191,13 @@ export function AdminFilesPage() {
               <FileRow
                 file={file}
                 onView={() => void view(file)}
+                onRemove={() =>
+                  removal.start({
+                    fileId: file.id,
+                    fileName: file.fileName,
+                    purpose: file.purpose,
+                  })
+                }
                 onDelete={() => setDeleting(file)}
               />
             </li>
@@ -221,6 +234,8 @@ export function AdminFilesPage() {
           </>
         )}
       </ConfirmDialog>
+
+      <RemoveFileDialog review={removal} />
     </AdminPage>
   );
 }
@@ -228,14 +243,17 @@ export function AdminFilesPage() {
 function FileRow({
   file,
   onView,
+  onRemove,
   onDelete,
 }: {
   file: AdminFile;
   onView: () => void;
+  onRemove: () => void;
   onDelete: () => void;
 }) {
   const canView = file.status === "UPLOADED";
   const canDelete = !file.inUse && file.status !== "DELETED";
+  const canRemove = canRemoveFile(file);
   const [showPreview, setShowPreview] = useState(false);
 
   return (
@@ -255,7 +273,7 @@ function FileRow({
             {PURPOSE_LABEL[file.purpose]}
           </p>
         </div>
-        {(canView || canDelete) && (
+        {(canView || canDelete || canRemove) && (
           <div className="flex flex-wrap gap-2">
             {canView && (
               <>
@@ -275,6 +293,18 @@ function FileRow({
                   Open
                 </button>
               </>
+            )}
+            {canRemove && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className={cn(
+                  secondaryButton,
+                  "min-h-10 text-[var(--color-semantic-error-text)]",
+                )}
+              >
+                Remove
+              </button>
             )}
             {canDelete && (
               <button

@@ -14,6 +14,16 @@ export type AdminFile = Schemas["AdminFile"];
 export type AdminFileStats = Schemas["AdminFileStats"];
 export type AdminFileStatsGroup = AdminFileStats["groups"][number];
 export type FileStatus = AdminFile["status"];
+export type RemoveFileInput = Schemas["RemoveFileInput"];
+export type IdStatus = Schemas["AdminTutorVerification"]["status"];
+
+/** The file a removal dialog is about. `idStatus` is set only when the page knows the ID's status. */
+export interface RemoveFileTarget {
+  fileId: string;
+  fileName: string | null;
+  purpose: FilePurpose;
+  idStatus?: IdStatus;
+}
 
 export interface AdminFileFilters {
   purpose?: FilePurpose;
@@ -68,6 +78,14 @@ export const adminFileApi = {
     unwrap(
       client.DELETE("/api/v1/admin/files/{id}", { params: { path: { id } } }),
     ),
+  /** Removes a file a record uses, with a note the user may see. */
+  removeFile: (id: string, body: RemoveFileInput) =>
+    unwrap(
+      client.POST("/api/v1/admin/files/{id}/remove", {
+        params: { path: { id } },
+        body,
+      }),
+    ),
 };
 
 export function useAdminFiles(filters: AdminFileFilters) {
@@ -85,6 +103,62 @@ export function useAdminFileStats() {
     queryKey: queryKeys.admin.fileStats,
     queryFn: adminFileApi.stats,
     staleTime: 15_000,
+  });
+}
+
+/** A file in use that an admin can remove with a note: uploaded, linked to a record, not a blog cover. */
+export function canRemoveFile(file: AdminFile): boolean {
+  return (
+    file.status === "UPLOADED" && file.inUse && file.purpose !== "BLOG_COVER"
+  );
+}
+
+/** Only an ID can lose its verified status, and only when the page knows it is approved. */
+export function showUnverifyOption(target: RemoveFileTarget): boolean {
+  return (
+    (target.purpose === "TUTOR_ID" || target.purpose === "STUDENT_ID") &&
+    target.idStatus === "APPROVED"
+  );
+}
+
+/** What the removal does, shown above the note form. */
+export function removeFileText(target: RemoveFileTarget): string {
+  if (target.purpose === "TUTOR_VIDEO") {
+    return "The video is deleted from their profile.";
+  }
+  if (target.purpose === "CREDENTIAL") {
+    return "The certificate is deleted from their profile.";
+  }
+  if (target.purpose === "BLOG_COVER") {
+    return "The blog cover is deleted.";
+  }
+  switch (target.idStatus) {
+    case "PENDING":
+      return "The ID is rejected and the user can upload a new one.";
+    case "APPROVED":
+      return "The ID file is deleted. They stay verified unless you tick the box below.";
+    case "REJECTED":
+      return "The ID file is deleted. The user can upload a new one.";
+    default:
+      return "A pending ID is rejected and the user can upload a new one. An approved ID stays verified.";
+  }
+}
+
+export function useRemoveFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fileId, body }: { fileId: string; body: RemoveFileInput }) =>
+      adminFileApi.removeFile(fileId, body),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.verificationsAll,
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.videosAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.filesAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.fileStats }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.uploadsAll }),
+      ]),
   });
 }
 

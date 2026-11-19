@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -11,20 +11,27 @@ import {
 import {
   AdminDialog,
   AdminPage,
-  DialogActions,
-  Field,
   FilterChips,
   LoadMore,
   QueryState,
   StatusPill,
-  textareaClass,
 } from "@/components/admin/admin-ui";
+import {
+  HiddenFromUser,
+  RemoveFileDialog,
+  UploadFlagsNote,
+  useRemoveFileReview,
+} from "@/components/admin/upload-flags";
+import {
+  ReviewNoteForm,
+  type ReviewSubmit,
+} from "@/components/admin/review-dialog";
 import { formatDateTime } from "@/lib/admin";
 import {
   fileTypeText,
   useAdminVerifications,
   useDecideVerification,
-  validateDecisionNote,
+  verificationActions,
   VERIFICATION_STATUS_META,
   type DecideVerificationInput,
   type VerificationKind,
@@ -65,30 +72,33 @@ function parseStatus(value: string | null): VerificationStatus {
   );
 }
 
-/* ───────── Review state and dialogs (shared with the videos page) ───────── */
+/* ───────── Approve, reject and revoke ───────── */
 
-export type VerificationReviewTarget = {
+type DecisionTarget = {
+  key: string;
   kind: VerificationKind;
   decideId: string;
-  name: string;
   action: "APPROVE" | "REJECT";
+  /** A reject of an approved ID. */
+  revoke: boolean;
 };
 
 /**
- * Approve or reject one ID. The dialog stays mounted through its close animation,
- * so `target` keeps its last value and only `open` goes false.
+ * One decision at a time. The dialog stays mounted through its close animation, so `target`
+ * keeps its last value and only `open` goes false.
  */
 export function useVerificationReview() {
-  const [target, setTarget] = useState<VerificationReviewTarget | null>(null);
+  const [target, setTarget] = useState<DecisionTarget | null>(null);
   const [open, setOpen] = useState(false);
   const decide = useDecideVerification();
 
   function start(row: VerificationRow, action: "APPROVE" | "REJECT") {
     setTarget({
+      key: `${row.decideId}-${Date.now()}`,
       kind: row.kind,
       decideId: row.decideId,
-      name: row.name,
       action,
+      revoke: action === "REJECT" && row.status === "APPROVED",
     });
     setOpen(true);
   }
@@ -97,17 +107,23 @@ export function useVerificationReview() {
     if (!decide.isPending) setOpen(false);
   }
 
-  function confirm(note?: string) {
+  function confirm({ note, noteVisible }: ReviewSubmit) {
     if (!target) return;
     const body: DecideVerificationInput =
       target.action === "APPROVE"
-        ? { decision: "APPROVE" }
-        : { decision: "REJECT", note };
+        ? { decision: "APPROVE", note, noteVisible }
+        : { decision: "REJECT", note, noteVisible };
+    const successText =
+      target.action === "APPROVE"
+        ? "ID approved"
+        : target.revoke
+          ? "Approval revoked"
+          : "ID rejected";
     decide.mutate(
       { kind: target.kind, id: target.decideId, body },
       {
         onSuccess: () => {
-          toastSuccess(target.action === "APPROVE" ? "Approved" : "Rejected");
+          toastSuccess(successText);
           setOpen(false);
         },
         onError: (err) => {
@@ -119,14 +135,7 @@ export function useVerificationReview() {
     );
   }
 
-  return {
-    target,
-    open,
-    start,
-    close,
-    confirm,
-    saving: decide.isPending,
-  };
+  return { target, open, start, close, confirm, saving: decide.isPending };
 }
 
 export type VerificationReviewState = ReturnType<typeof useVerificationReview>;
@@ -136,7 +145,21 @@ function VerificationReviewDialog({
 }: {
   review: VerificationReviewState;
 }) {
-  const approve = review.target?.action !== "REJECT";
+  const target = review.target;
+  const approve = target?.action === "APPROVE";
+  const revoke = target?.revoke ?? false;
+
+  const title = approve
+    ? "Approve this ID?"
+    : revoke
+      ? "Revoke approval?"
+      : "Reject this ID?";
+  const description = approve
+    ? "The account is marked as verified."
+    : revoke
+      ? "The account loses its verified status. The user sees your note and can upload a new ID."
+      : "They see your note on their dashboard and can upload a new ID.";
+
   return (
     <AdminDialog
       open={review.open}
@@ -144,114 +167,24 @@ function VerificationReviewDialog({
         if (!next) review.close();
       }}
       busy={review.saving}
-      title={approve ? "Approve this ID?" : "Reject this ID?"}
-      description={
-        approve
-          ? "The account is marked as verified."
-          : "They see your note on their dashboard and can upload a new ID."
-      }
+      title={title}
+      description={description}
     >
-      {approve ? (
-        <DialogActions>
-          <button
-            type="button"
-            onClick={review.close}
-            disabled={review.saving}
-            className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => review.confirm()}
-            disabled={review.saving}
-            aria-busy={review.saving || undefined}
-            className={cn(primaryButton, "min-h-11 sm:min-w-28")}
-          >
-            {review.saving ? "Saving..." : "Approve"}
-          </button>
-        </DialogActions>
-      ) : (
-        <DecisionNoteForm
-          key={review.target?.decideId}
-          label="Why is this ID rejected?"
-          submitLabel="Reject"
+      {target && (
+        <ReviewNoteForm
+          key={target.key}
+          noteLabel={approve ? "Note for the user" : "Why is this ID rejected?"}
+          noteRequired={!approve}
+          submitLabel={
+            approve ? "Approve" : revoke ? "Revoke approval" : "Reject"
+          }
+          danger={!approve}
           saving={review.saving}
           onCancel={review.close}
-          onSubmit={(note) => review.confirm(note)}
+          onSubmit={review.confirm}
         />
       )}
     </AdminDialog>
-  );
-}
-
-/** A required note for a rejection or take-down. Validates on submit, then calls `onSubmit` with the trimmed note. */
-export function DecisionNoteForm({
-  label,
-  submitLabel,
-  saving,
-  onCancel,
-  onSubmit,
-}: {
-  label: string;
-  submitLabel: string;
-  saving: boolean;
-  onCancel: () => void;
-  onSubmit: (note: string) => void;
-}) {
-  const [note, setNote] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const noteError = validateDecisionNote(note);
-  const shownError = submitted ? noteError : undefined;
-
-  function onFormSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-    if (noteError) return;
-    onSubmit(note.trim());
-  }
-
-  return (
-    <form noValidate onSubmit={onFormSubmit}>
-      <Field
-        label={label}
-        hint="They see this note on their dashboard. 3 to 500 characters."
-        error={shownError}
-      >
-        {({ id, describedBy, invalid }) => (
-          <textarea
-            id={id}
-            rows={4}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            aria-describedby={describedBy}
-            aria-invalid={invalid || undefined}
-            className={textareaClass}
-          />
-        )}
-      </Field>
-      <DialogActions>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          aria-busy={saving || undefined}
-          className={cn(
-            secondaryButton,
-            "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
-          )}
-        >
-          {saving ? "Saving..." : submitLabel}
-        </button>
-      </DialogActions>
-    </form>
   );
 }
 
@@ -265,6 +198,7 @@ export function AdminVerificationsPage() {
   const status = parseStatus(searchParams.get("status"));
   const queue = useAdminVerifications(kind, status);
   const review = useVerificationReview();
+  const removal = useRemoveFileReview();
 
   const rows = queue.data?.pages.flatMap((page) => page.rows) ?? [];
 
@@ -318,6 +252,15 @@ export function AdminVerificationsPage() {
                 row={row}
                 onApprove={() => review.start(row, "APPROVE")}
                 onReject={() => review.start(row, "REJECT")}
+                onRemove={() => {
+                  if (!row.file) return;
+                  removal.start({
+                    fileId: row.file.id,
+                    fileName: row.file.fileName,
+                    purpose: row.kind === "tutors" ? "TUTOR_ID" : "STUDENT_ID",
+                    idStatus: row.status,
+                  });
+                }}
               />
             </li>
           ))}
@@ -328,6 +271,7 @@ export function AdminVerificationsPage() {
       </QueryState>
 
       <VerificationReviewDialog review={review} />
+      <RemoveFileDialog review={removal} />
     </AdminPage>
   );
 }
@@ -336,16 +280,20 @@ function VerificationCard({
   row,
   onApprove,
   onReject,
+  onRemove,
 }: {
   row: VerificationRow;
   onApprove: () => void;
   onReject: () => void;
+  onRemove: () => void;
 }) {
-  const pending = row.status === "PENDING";
   const meta = VERIFICATION_STATUS_META[row.status];
   const file = row.file;
+  const fileRemoved = file?.status === "DELETED";
   const audience = row.kind === "tutors" ? "tutor" : "student";
+  const actions = verificationActions(row);
   const [showPreview, setShowPreview] = useState(false);
+  const canOpen = file !== null && !fileRemoved;
 
   return (
     <>
@@ -363,6 +311,11 @@ function VerificationCard({
         <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
       </div>
 
+      <UploadFlagsNote
+        uploadFlags={row.uploadFlags}
+        accountId={row.accountId}
+      />
+
       <div className="grid gap-1 text-sm text-[var(--color-neutral-charcoal)]">
         <p className="break-words">
           <span className="text-[var(--color-text-secondary)]">Student ID</span>{" "}
@@ -376,7 +329,15 @@ function VerificationCard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-3">
-        {file ? (
+        {!file && (
+          <p className="text-sm text-[var(--color-text-secondary)]">No file</p>
+        )}
+        {file && fileRemoved && (
+          <p className="text-sm font-semibold text-[var(--color-semantic-error-text)]">
+            File removed
+          </p>
+        )}
+        {file && !fileRemoved && (
           <div className="min-w-0">
             <p className="line-clamp-2 text-sm font-semibold break-all text-[var(--color-neutral-charcoal)]">
               {file.fileName ?? "Untitled file"}
@@ -385,23 +346,30 @@ function VerificationCard({
               {`${fileTypeText(file.contentType)} · ${formatBytes(file.sizeBytes)}`}
             </p>
           </div>
-        ) : (
-          <p className="text-sm text-[var(--color-text-secondary)]">No file</p>
         )}
       </div>
 
-      {row.status === "REJECTED" && row.note && (
+      {row.note && (
         <div className="grid gap-1 border-t border-[var(--color-neutral-border)] pt-3">
-          <p className="text-xs text-[var(--color-text-secondary)]">
-            {`Note for the ${audience}`}
-          </p>
-          <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {`Note for the ${audience}`}
+            </p>
+            {!row.noteVisible && <HiddenFromUser />}
+          </div>
+          <p className="text-sm text-pretty break-words text-[var(--color-neutral-charcoal)]">
             {row.note}
           </p>
         </div>
       )}
 
-      {file && showPreview && (
+      {!row.isLatest && (
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          A newer submission replaced this one.
+        </p>
+      )}
+
+      {canOpen && showPreview && file && (
         <FilePreview
           fileId={file.id}
           contentType={file.contentType}
@@ -409,9 +377,13 @@ function VerificationCard({
         />
       )}
 
-      {(pending || file) && (
+      {(canOpen ||
+        actions.reject ||
+        actions.approve ||
+        actions.revoke ||
+        actions.removeFile) && (
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {file ? (
+          {canOpen && file ? (
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -436,15 +408,44 @@ function VerificationCard({
           ) : (
             <span />
           )}
-          {pending && (
-            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            {actions.reject && (
               <button
                 type="button"
                 onClick={onReject}
-                className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
+                className={cn(
+                  secondaryButton,
+                  "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+                )}
               >
                 Reject
               </button>
+            )}
+            {actions.revoke && (
+              <button
+                type="button"
+                onClick={onReject}
+                className={cn(
+                  secondaryButton,
+                  "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+                )}
+              >
+                Revoke approval
+              </button>
+            )}
+            {actions.removeFile && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className={cn(
+                  secondaryButton,
+                  "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
+                )}
+              >
+                Remove file
+              </button>
+            )}
+            {actions.approve && (
               <button
                 type="button"
                 onClick={onApprove}
@@ -452,8 +453,8 @@ function VerificationCard({
               >
                 Approve
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </>

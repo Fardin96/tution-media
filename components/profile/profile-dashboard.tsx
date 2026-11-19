@@ -18,6 +18,7 @@ import {
   FileText,
   MapPin,
   MessageCircle,
+  PauseCircle,
   Pencil,
   PlayCircle,
   Plus,
@@ -54,6 +55,7 @@ import {
   videoLimitReached,
 } from "@/lib/upload-forms";
 import { useAreas } from "@/lib/areas";
+import { pausedText, useUploadStatus } from "@/lib/upload-status";
 import { useSubjects } from "@/lib/subjects";
 import {
   ApiError,
@@ -1237,9 +1239,11 @@ function VideoPreview({ video }: { video: Video }) {
   const refreshExpired = useRefreshExpiredMedia();
   return (
     <>
-      {video.status === "REJECTED" && video.moderationNote && (
-        <p className="rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-[var(--color-semantic-error-text)]">
-          Admin note: {video.moderationNote}
+      {video.status === "REJECTED" && (
+        <p className="rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-pretty text-[var(--color-semantic-error-text)]">
+          {video.moderationNote
+            ? `Admin note: ${video.moderationNote}`
+            : "An admin did not approve this video."}
         </p>
       )}
       {video.url ? (
@@ -1313,9 +1317,12 @@ function CredentialsSection({
   onAdded: (credential: Credential) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const uploadStatus = useUploadStatus();
+  const blockedText = pausedText(uploadStatus.data, "documents");
   // Without the list the count is unknown, so the add button waits for a reload.
   const full =
     credentials !== null && credentialLimitReached(credentials.length);
+  const canAdd = credentials !== null && !full && !blockedText;
   return (
     <section
       id="credentials"
@@ -1327,11 +1334,16 @@ function CredentialsSection({
         title="Exam credentials"
         description="SSC, HSC and university results. Verified tutors get listed first."
         action={
-          credentials !== null && !full ? (
+          canAdd ? (
             <AddButton label="Add credential" onClick={() => setAdding(true)} />
           ) : undefined
         }
       />
+      {blockedText && (
+        <div className="mt-5">
+          <PausedNotice text={blockedText} note={uploadStatus.data?.note} />
+        </div>
+      )}
       <div className={cn(card, "mt-5 overflow-hidden")}>
         {credentials === null ? (
           loadFailed
@@ -1383,8 +1395,11 @@ function VideosSection({
   onAdded: (video: Video) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const uploadStatus = useUploadStatus();
+  const blockedText = pausedText(uploadStatus.data, "videos");
   // Without the list the count is unknown, so the add button waits for a reload.
   const full = videos !== null && videoLimitReached(videos.length);
+  const canAdd = videos !== null && !full && !blockedText;
   return (
     <section
       id="videos"
@@ -1396,11 +1411,16 @@ function VideosSection({
         title="Teaching videos"
         description="A short demo lesson. Admins review each video before it goes live."
         action={
-          videos !== null && !full ? (
+          canAdd ? (
             <AddButton label="Add video" onClick={() => setAdding(true)} />
           ) : undefined
         }
       />
+      {blockedText && (
+        <div className="mt-5">
+          <PausedNotice text={blockedText} note={uploadStatus.data?.note} />
+        </div>
+      )}
       <div className={cn(card, "mt-5 overflow-hidden")}>
         {videos === null ? (
           loadFailed
@@ -2004,6 +2024,27 @@ function RecommendedTutors() {
   );
 }
 
+/* ───────── Paused uploads ───────── */
+
+/** Static warning that replaces an upload button while an admin has paused that kind of upload. */
+function PausedNotice({
+  text,
+  note,
+}: {
+  text: string;
+  note: string | null | undefined;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-[12px] bg-[var(--color-semantic-warning-surface)] px-3 py-3 text-sm text-pretty text-[var(--color-semantic-warning-text)]">
+      <PauseCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0 break-words">
+        <p className="font-semibold">{text}</p>
+        {note && <p className="mt-1">Admin note: {note}</p>}
+      </div>
+    </div>
+  );
+}
+
 /* ───────── Aside ───────── */
 
 function VerificationCard({
@@ -2023,8 +2064,10 @@ function VerificationCard({
   onSubmitted: (result: SubmittedVerification) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const uploadStatus = useUploadStatus();
   const v = VERIFICATION[status];
   const canUpload = status === "NOT_SUBMITTED" || status === "REJECTED";
+  const blockedText = pausedText(uploadStatus.data, "documents");
 
   const copy =
     status === "APPROVED"
@@ -2058,23 +2101,30 @@ function VerificationCard({
       <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
         {copy}
       </p>
-      {status === "REJECTED" && note && (
-        <p className="mt-3 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-[var(--color-semantic-error-text)]">
-          Reviewer note: {note}
+      {status === "REJECTED" && (
+        <p className="mt-3 rounded-[12px] bg-[var(--color-semantic-error-surface)] px-3 py-2 text-sm text-pretty text-[var(--color-semantic-error-text)]">
+          {note
+            ? `Reviewer note: ${note}`
+            : "An admin rejected this ID. Upload a new one."}
         </p>
       )}
-      {canUpload && (
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => setUploading(true)}
-            className={primaryButton}
-          >
-            <Upload aria-hidden="true" className="size-4" />
-            Upload ID
-          </button>
-        </div>
-      )}
+      {canUpload &&
+        (blockedText ? (
+          <div className="mt-4">
+            <PausedNotice text={blockedText} note={uploadStatus.data?.note} />
+          </div>
+        ) : (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setUploading(true)}
+              className={primaryButton}
+            >
+              <Upload aria-hidden="true" className="size-4" />
+              Upload ID
+            </button>
+          </div>
+        ))}
       <VerificationUploadDialog
         open={uploading}
         onOpenChange={setUploading}

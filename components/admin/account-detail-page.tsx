@@ -26,6 +26,7 @@ import {
   type AccountStatus,
   type AdminAccountDetail,
 } from "@/lib/admin-accounts";
+import { AccountUploadsSection } from "@/components/admin/account-uploads-section";
 
 type Verification = NonNullable<AdminAccountDetail["verificationStatus"]>;
 type AdminRole = NonNullable<AdminAccountDetail["adminRole"]>;
@@ -189,6 +190,13 @@ export function AccountDetailPage({ id }: { id: string }) {
                 </ul>
               )}
             </Section>
+
+            {account.role !== "ADMIN" && (
+              <AccountUploadsSection
+                accountId={id}
+                accountName={displayName(account)}
+              />
+            )}
           </>
         )}
       </QueryState>

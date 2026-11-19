@@ -150,13 +150,50 @@ export function useMarkAllRead() {
   });
 }
 
+type TextFields = Pick<
+  AppNotification,
+  | "kind"
+  | "listingKind"
+  | "counterpartName"
+  | "filePurpose"
+  | "blocksVideos"
+  | "blocksDocuments"
+>;
+
 /** Copy for each alert. Role-aware: the same event reads differently to a student and a tutor, and for packages. */
-export function notificationText(
-  n: Pick<AppNotification, "kind" | "listingKind" | "counterpartName">,
-): string {
+export function notificationText(n: TextFields): string {
   const name = n.counterpartName;
   const pkg = n.listingKind === "PACKAGE";
   switch (n.kind) {
+    case "ID_APPROVED":
+      return "Your ID was approved.";
+    case "ID_REJECTED":
+      return "Your ID was not accepted. Upload a new one.";
+    case "VIDEO_APPROVED":
+      return "Your video was approved.";
+    case "VIDEO_REJECTED":
+      return "Your video was not approved.";
+    case "FILE_REMOVED":
+      switch (n.filePurpose) {
+        case "STUDENT_ID":
+        case "TUTOR_ID":
+          return "An admin removed your ID.";
+        case "CREDENTIAL":
+          return "An admin removed your certificate.";
+        case "TUTOR_VIDEO":
+          return "An admin removed your video.";
+        default:
+          return "An admin removed your file.";
+      }
+    case "UPLOADS_BLOCKED":
+      if (n.blocksVideos && n.blocksDocuments)
+        return "An admin paused your uploads.";
+      if (n.blocksVideos) return "An admin paused your video uploads.";
+      if (n.blocksDocuments)
+        return "An admin paused your ID and certificate uploads.";
+      return "An admin paused your uploads.";
+    case "UPLOADS_UNBLOCKED":
+      return "You can upload again.";
     case "APPLICATION_RECEIVED":
       return `${name} applied to your tuition.`;
     case "PACKAGE_REQUESTED":
@@ -189,6 +226,33 @@ export function notificationText(
       return `${name} updated a package you requested.`;
     case "PACKAGE_CLOSED":
       return `${name} closed a package you requested.`;
+  }
+}
+
+/**
+ * Where an alert leads. Application alerts open the application; ID alerts and
+ * removed IDs open the verification card; video, certificate and upload alerts open the dashboard.
+ */
+export function notificationHref(
+  n: Pick<AppNotification, "kind" | "applicationId" | "filePurpose">,
+): string {
+  switch (n.kind) {
+    case "ID_APPROVED":
+    case "ID_REJECTED":
+      return "/dashboard#verification";
+    case "FILE_REMOVED":
+      return n.filePurpose === "STUDENT_ID" || n.filePurpose === "TUTOR_ID"
+        ? "/dashboard#verification"
+        : "/dashboard";
+    case "VIDEO_APPROVED":
+    case "VIDEO_REJECTED":
+    case "UPLOADS_BLOCKED":
+    case "UPLOADS_UNBLOCKED":
+      return "/dashboard";
+    default:
+      return n.applicationId
+        ? `/dashboard/applications/${n.applicationId}`
+        : "/dashboard";
   }
 }
 
