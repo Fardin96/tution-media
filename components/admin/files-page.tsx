@@ -244,7 +244,7 @@ function FileRow({
         <div className="min-w-0 flex-1">
           <p
             className={cn(
-              "truncate font-semibold text-[var(--color-neutral-charcoal)]",
+              "line-clamp-2 font-semibold break-all text-[var(--color-neutral-charcoal)]",
               !file.fileName &&
                 "font-normal text-[var(--color-text-secondary)] italic",
             )}

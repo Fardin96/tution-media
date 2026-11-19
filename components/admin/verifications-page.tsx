@@ -378,7 +378,7 @@ function VerificationCard({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-3">
         {file ? (
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+            <p className="line-clamp-2 text-sm font-semibold break-all text-[var(--color-neutral-charcoal)]">
               {file.fileName ?? "Untitled file"}
             </p>
             <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">

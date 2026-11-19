@@ -344,7 +344,7 @@ export function AdminDialog({
               {title}
             </DialogPrimitive.Description>
           )}
-          <div className="mt-5">{children}</div>
+          <div className="mt-5 min-w-0">{children}</div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -382,7 +382,7 @@ export function Field({ label, hint, error, children }: FieldProps) {
     [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") ||
     undefined;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-1.5">
       <label
         htmlFor={id}
         className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"

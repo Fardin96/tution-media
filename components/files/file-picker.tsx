@@ -71,13 +71,13 @@ export function FilePicker({
 
   if (value && state.status !== "uploading") {
     return (
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-[var(--color-surface-subtle)] px-4 py-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl bg-[var(--color-surface-subtle)] px-4 py-3">
         <FileCheck2
           aria-hidden="true"
           className="size-5 shrink-0 text-[var(--color-primary-core)]"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+          <p className="line-clamp-2 text-sm font-semibold break-all text-[var(--color-neutral-charcoal)]">
             {value.fileName ?? "Uploaded file"}
           </p>
           <p className="text-xs text-[var(--color-text-secondary)] tabular-nums">
@@ -115,7 +115,7 @@ export function FilePicker({
         void pick(event.dataTransfer.files[0]);
       }}
       className={cn(
-        "grid gap-3 rounded-2xl px-4 py-4 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none",
+        "grid min-w-0 gap-3 rounded-2xl px-4 py-4 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none",
         dragging &&
           "bg-[var(--color-secondary-sky)] shadow-[inset_0_0_0_2px_var(--color-primary-core)]",
         invalid && "shadow-[inset_0_0_0_1px_var(--color-semantic-error-text)]",
@@ -137,10 +137,10 @@ export function FilePicker({
       {busy ? (
         <div className="grid gap-2">
           <div className="flex items-center gap-3">
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+            <p className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold break-all text-[var(--color-neutral-charcoal)]">
               {state.fileName}
             </p>
-            <span className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+            <span className="shrink-0 text-xs text-[var(--color-text-secondary)] tabular-nums">
               {Math.round(state.progress * 100)}%
             </span>
             <button

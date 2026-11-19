@@ -79,7 +79,7 @@ function VideoForm({
         event.preventDefault();
         void submit();
       }}
-      className="grid gap-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-5"
     >
       <Field
         label="Title"

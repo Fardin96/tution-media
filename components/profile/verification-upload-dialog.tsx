@@ -51,7 +51,7 @@ export function VerificationUploadDialog({
       }
     >
       {needsIdNumberFirst ? (
-        <div className="grid gap-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
           <p className="text-sm text-pretty text-[var(--color-neutral-charcoal)]">
             Add your university student ID number to your profile first. Then
             come back to upload your ID.
@@ -115,7 +115,7 @@ function IdForm({
         event.preventDefault();
         void submit();
       }}
-      className="grid gap-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-5"
     >
       <Field label="Your ID">
         {({ id, describedBy, invalid }) => (
