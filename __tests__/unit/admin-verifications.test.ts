@@ -1,45 +1,101 @@
 import { describe, it, expect } from "vitest";
 import {
   fileTypeText,
-  validateDecisionNote,
+  verificationActions,
   VERIFICATION_STATUS_META,
+  type VerificationRow,
 } from "@/lib/admin-verifications";
 import { validateSortOrder, VIDEO_STATUS_META } from "@/lib/admin-videos";
 import { actionLabel } from "@/lib/admin-audit";
 
-describe("validateDecisionNote", () => {
-  it("asks for a note when it is empty", () => {
-    expect(validateDecisionNote("")).toBe(
-      "Write a note explaining the decision.",
-    );
+function row(overrides: Partial<VerificationRow> = {}): VerificationRow {
+  return {
+    kind: "tutors",
+    decideId: "v1",
+    name: "Rahim",
+    institute: null,
+    studentIdNumber: "123",
+    submittedAt: "2026-11-01T00:00:00.000Z",
+    status: "PENDING",
+    note: null,
+    noteVisible: true,
+    isLatest: true,
+    accountId: "acc-1",
+    uploadFlags: { recentIssues: 0, uploadsBlocked: false },
+    file: {
+      id: "f1",
+      purpose: "TUTOR_ID",
+      contentType: "application/pdf",
+      sizeBytes: 100,
+      status: "UPLOADED",
+      fileName: "id.pdf",
+      createdAt: "2026-11-01T00:00:00.000Z",
+      uploadedAt: "2026-11-01T00:00:00.000Z",
+      ownerAccountId: "acc-1",
+      ownerEmail: "rahim@example.com",
+      published: false,
+      inUse: true,
+    } as VerificationRow["file"],
+    ...overrides,
+  };
+}
+
+describe("verificationActions", () => {
+  it("offers reject and approve for a pending ID", () => {
+    expect(verificationActions(row())).toEqual({
+      approve: true,
+      reject: true,
+      revoke: false,
+      removeFile: false,
+    });
   });
 
-  it("treats a whitespace-only note as empty", () => {
-    expect(validateDecisionNote("   \n  ")).toBe(
-      "Write a note explaining the decision.",
-    );
+  it("offers revoke and remove for an approved ID", () => {
+    expect(verificationActions(row({ status: "APPROVED" }))).toEqual({
+      approve: false,
+      reject: false,
+      revoke: true,
+      removeFile: true,
+    });
   });
 
-  it("rejects a note shorter than 3 characters after trimming", () => {
-    expect(validateDecisionNote("  ab  ")).toBe("Write at least 3 characters.");
+  it("offers approve and remove for a rejected ID", () => {
+    expect(verificationActions(row({ status: "REJECTED" }))).toEqual({
+      approve: true,
+      reject: false,
+      revoke: false,
+      removeFile: true,
+    });
   });
 
-  it("accepts a note of exactly 3 characters", () => {
-    expect(validateDecisionNote("abc")).toBeUndefined();
+  it("offers no decisions for a submission a newer one replaced", () => {
+    const actions = verificationActions(row({ isLatest: false }));
+    expect(Object.values(actions).some(Boolean)).toBe(false);
   });
 
-  it("accepts a note of exactly 500 characters", () => {
-    expect(validateDecisionNote("a".repeat(500))).toBeUndefined();
+  it("never offers approve or remove for a removed file", () => {
+    const deleted = { ...row().file!, status: "DELETED" as const };
+    expect(
+      verificationActions(row({ status: "REJECTED", file: deleted })),
+    ).toEqual({
+      approve: false,
+      reject: false,
+      revoke: false,
+      removeFile: false,
+    });
+    expect(
+      verificationActions(row({ status: "APPROVED", file: deleted })),
+    ).toEqual({
+      approve: false,
+      reject: false,
+      revoke: true,
+      removeFile: false,
+    });
+    expect(verificationActions(row({ file: deleted })).approve).toBe(false);
   });
 
-  it("rejects a note over 500 characters", () => {
-    expect(validateDecisionNote("a".repeat(501))).toBe(
-      "Keep it under 500 characters.",
-    );
-  });
-
-  it("does not count surrounding spaces toward the limit", () => {
-    expect(validateDecisionNote(`  ${"a".repeat(500)}  `)).toBeUndefined();
+  it("does not approve a pending ID that has no file", () => {
+    expect(verificationActions(row({ file: null })).approve).toBe(false);
   });
 });
 

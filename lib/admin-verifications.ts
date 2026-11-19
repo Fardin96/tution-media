@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
+import type { UploadFlags } from "./admin-moderation";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminTutorVerification = Schemas["AdminTutorVerification"];
@@ -29,6 +30,13 @@ export type VerificationRow = {
   submittedAt: string | null;
   status: VerificationRecordStatus;
   note: string | null;
+  /** False when the note is for admins only. */
+  noteVisible: boolean;
+  /** Only the tutor's newest submission can be decided or removed. Students are always latest. */
+  isLatest: boolean;
+  /** The account that uploaded the file. Links to its upload history. */
+  accountId: string;
+  uploadFlags: UploadFlags;
   file: Schemas["FileAsset"] | null;
 };
 
@@ -78,6 +86,10 @@ export function tutorRows(
     submittedAt: v.submittedAt,
     status: v.status,
     note: v.note,
+    noteVisible: v.noteVisible,
+    isLatest: v.isLatest,
+    accountId: v.tutor.accountId,
+    uploadFlags: v.uploadFlags,
     file: v.file,
   }));
 }
@@ -94,6 +106,10 @@ export function studentRows(
     submittedAt: v.submittedAt,
     status: v.status,
     note: v.note,
+    noteVisible: v.noteVisible,
+    isLatest: true,
+    accountId: v.student.accountId,
+    uploadFlags: v.uploadFlags,
     file: v.file,
   }));
 }
@@ -142,22 +158,49 @@ export function useDecideVerification() {
       }
     },
     onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.verificationsAll,
-      }),
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.verificationsAll,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.uploadsAll,
+        }),
+      ]),
   });
 }
 
-const NOTE_MIN = 3;
-const NOTE_MAX = 500;
+export type VerificationActions = {
+  approve: boolean;
+  /** Reject a pending ID. */
+  reject: boolean;
+  /** Reject an approved ID, which takes away the verified status. */
+  revoke: boolean;
+  removeFile: boolean;
+};
 
-/** The note a user reads when their ID or video is rejected. Required, 3 to 500 characters. */
-export function validateDecisionNote(text: string): string | undefined {
-  const note = text.trim();
-  if (note === "") return "Write a note explaining the decision.";
-  if (note.length < NOTE_MIN) return "Write at least 3 characters.";
-  if (note.length > NOTE_MAX) return "Keep it under 500 characters.";
-  return undefined;
+/**
+ * Which decision buttons a row offers. Only the latest submission can change, and a removed file
+ * (DELETED) can't be approved or removed again.
+ */
+export function verificationActions(row: VerificationRow): VerificationActions {
+  const none: VerificationActions = {
+    approve: false,
+    reject: false,
+    revoke: false,
+    removeFile: false,
+  };
+  if (!row.isLatest) return none;
+  const fileLive = row.file !== null && row.file.status !== "DELETED";
+  switch (row.status) {
+    case "PENDING":
+      return { ...none, approve: fileLive, reject: true };
+    case "APPROVED":
+      return { ...none, revoke: true, removeFile: fileLive };
+    case "REJECTED":
+      return { ...none, approve: fileLive, removeFile: fileLive };
+    default:
+      return none;
+  }
 }
 
 type Tone = "neutral" | "warning" | "success" | "error";

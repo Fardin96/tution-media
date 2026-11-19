@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { Footer } from "@/components/footer";
 import { formatPostDate, useBlogPosts, type BlogPostSummary } from "@/lib/blog";
+import { useRefreshExpiredMedia } from "@/lib/files";
 
 export function BlogIndex() {
   const query = useBlogPosts();
@@ -89,6 +90,7 @@ export function BlogIndex() {
 }
 
 function PostCard({ post }: { post: BlogPostSummary }) {
+  const refreshExpired = useRefreshExpiredMedia();
   return (
     <Link
       href={`/blog/${encodeURIComponent(post.slug)}`}
@@ -102,6 +104,7 @@ function PostCard({ post }: { post: BlogPostSummary }) {
         // eslint-disable-next-line @next/next/no-img-element -- R2 URLs are not configured for next/image.
         <img
           src={post.coverUrl}
+          onError={refreshExpired}
           alt=""
           loading="lazy"
           className="aspect-[16/9] w-full rounded-[16px] object-cover outline outline-1 -outline-offset-1 outline-black/10"

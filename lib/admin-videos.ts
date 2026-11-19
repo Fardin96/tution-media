@@ -53,7 +53,10 @@ export function useModerateVideo() {
     mutationFn: ({ id, body }: { id: string; body: ModerateVideoInput }) =>
       adminVideoApi.moderate(id, body),
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.videosAll }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.videosAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.uploadsAll }),
+      ]),
   });
 }
 

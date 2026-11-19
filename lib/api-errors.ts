@@ -64,6 +64,7 @@ export const ERROR_CODES = {
   DisputeExists: "DISPUTE_EXISTS",
   DisputeNotAllowed: "DISPUTE_NOT_ALLOWED",
   InvalidCaseState: "INVALID_CASE_STATE",
+  UploadsBlocked: "UPLOADS_BLOCKED",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -191,7 +192,7 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   GATEWAY_UNAVAILABLE:
     "The payment gateway isn't responding. Try again in a few minutes.",
   STORAGE_UNAVAILABLE: "Uploads aren't available right now. Try again later.",
-  // The server names the limit ("The limit is 10 MB.") and the accepted types.
+  // The server names the limit ("The limit is 2 MB.") and the accepted types.
   FILE_TOO_LARGE: (err) => err.message || "That file is too large.",
   UNSUPPORTED_FILE_TYPE: (err) =>
     err.message || "That file type isn't accepted here.",
@@ -221,6 +222,12 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     err.message || "Only a confirmed or completed tuition can be disputed.",
   INVALID_CASE_STATE: (err) =>
     err.message || "This case changed. Refresh to see its status.",
+  // The server says what is paused; the admin's note follows when they shared it.
+  UPLOADS_BLOCKED: (err) => {
+    const base = err.message || "An admin has paused your uploads.";
+    const note = err.details?.note;
+    return typeof note === "string" && note ? `${base} Note: ${note}` : base;
+  },
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */
