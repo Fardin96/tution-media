@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fileApi, previewKind } from "@/lib/files";
+import { fileApi, previewKind, useRefreshExpiredMedia } from "@/lib/files";
 import { errorCodeMessage } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ export function FilePreview({
     gcTime: 4 * 60 * 1000,
     retry: false,
   });
+  const refreshExpired = useRefreshExpiredMedia();
 
   if (query.isPending) {
     return (
@@ -66,6 +67,7 @@ export function FilePreview({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={url}
+        onError={refreshExpired}
         alt={label}
         loading="lazy"
         className={cn(frame, "max-h-[32rem] object-contain")}
@@ -87,6 +89,7 @@ export function FilePreview({
         controls
         preload="metadata"
         src={url}
+        onError={refreshExpired}
         className={cn(frame, "aspect-video bg-black")}
       />
     );

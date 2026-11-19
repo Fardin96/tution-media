@@ -34,6 +34,7 @@ import {
 import { TUTOR_VERIFICATION_LABEL } from "@/lib/admin-verifications";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { useRefreshExpiredMedia } from "@/lib/files";
 
 const PATH = "/dashboard/admin/videos";
 
@@ -275,6 +276,7 @@ function VideoCard({
   onSaveOrder: (sortOrder: number) => void;
 }) {
   const meta = VIDEO_STATUS_META[video.status];
+  const refreshExpired = useRefreshExpiredMedia();
   const pending = video.status === "PENDING";
   const approved = video.status === "APPROVED";
   const rejected = video.status === "REJECTED";
@@ -303,6 +305,7 @@ function VideoCard({
           controls
           preload="metadata"
           src={video.url}
+          onError={refreshExpired}
           className="aspect-video w-full rounded-[16px] bg-black outline outline-1 -outline-offset-1 outline-black/10"
         />
       ) : (

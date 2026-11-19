@@ -42,7 +42,11 @@ import {
   type UpdateBlogPostBody,
 } from "@/lib/admin-blog";
 import { errorCodeMessage, mapServerIssuesToFields } from "@/lib/api-errors";
-import { FILE_RULES, type FileAsset } from "@/lib/files";
+import {
+  FILE_RULES,
+  useRefreshExpiredMedia,
+  type FileAsset,
+} from "@/lib/files";
 import { ApiError } from "@/lib/profile";
 import { toastError } from "@/lib/toast";
 
@@ -104,6 +108,7 @@ const STATUS_FOR_ACTION: Partial<
  * PATCH sends only the fields that changed from the last saved version.
  */
 function BlogEditor({ post }: { post?: AdminBlogPost }) {
+  const refreshExpired = useRefreshExpiredMedia();
   const router = useRouter();
   const isNew = !post;
   const [saved, setSaved] = useState<AdminBlogPost | null>(post ?? null);
@@ -369,6 +374,7 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
             {/* eslint-disable-next-line @next/next/no-img-element -- R2 URLs are not configured for next/image. */}
             <img
               src={currentCover}
+              onError={refreshExpired}
               alt=""
               loading="lazy"
               className="aspect-[16/9] w-full max-w-sm rounded-[16px] object-cover outline outline-1 -outline-offset-1 outline-black/10"

@@ -49,7 +49,7 @@ export function FilePicker({
   onBusyChange,
 }: FilePickerProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const { state, start, cancel, reset } = useFileUpload(purpose);
+  const { state, start, cancel, reset, refuse } = useFileUpload(purpose);
   const [dragging, setDragging] = React.useState(false);
   const errorId = React.useId();
   const busy = state.status === "uploading";
@@ -112,7 +112,12 @@ export function FilePicker({
         event.preventDefault();
         setDragging(false);
         if (disabled || busy) return;
-        void pick(event.dataTransfer.files[0]);
+        const { files } = event.dataTransfer;
+        if (files.length > 1) {
+          refuse("Drop one file at a time.");
+          return;
+        }
+        void pick(files[0]);
       }}
       className={cn(
         "grid min-w-0 gap-3 rounded-2xl px-4 py-4 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none",

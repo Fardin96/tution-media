@@ -7,8 +7,10 @@ import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
 import { ApiError } from "@/lib/profile";
 import { formatPostDate, useBlogPost } from "@/lib/blog";
+import { useRefreshExpiredMedia } from "@/lib/files";
 
 export function BlogPostView({ slug }: { slug: string }) {
+  const refreshExpired = useRefreshExpiredMedia();
   const query = useBlogPost(slug);
   const post = query.data;
   const notFound =
@@ -73,6 +75,7 @@ export function BlogPostView({ slug }: { slug: string }) {
                 // eslint-disable-next-line @next/next/no-img-element -- R2 URLs are not configured for next/image.
                 <img
                   src={post.coverUrl}
+                  onError={refreshExpired}
                   alt=""
                   className={cn(
                     "mt-8 aspect-[16/9] w-full rounded-[24px] object-cover outline outline-1 -outline-offset-1 outline-black/10",

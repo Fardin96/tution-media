@@ -46,7 +46,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
-import { openFile } from "@/lib/files";
+import { openFile, useRefreshExpiredMedia } from "@/lib/files";
 import {
   credentialLimitReached,
   MAX_TUTOR_CREDENTIALS,
@@ -1234,6 +1234,7 @@ function ViewFileButton({ fileId, label }: { fileId: string; label: string }) {
 }
 
 function VideoPreview({ video }: { video: Video }) {
+  const refreshExpired = useRefreshExpiredMedia();
   return (
     <>
       {video.status === "REJECTED" && video.moderationNote && (
@@ -1246,6 +1247,7 @@ function VideoPreview({ video }: { video: Video }) {
           controls
           preload="metadata"
           src={video.url}
+          onError={refreshExpired}
           aria-label={video.title}
           className="aspect-video w-full rounded-[12px] bg-black outline outline-1 -outline-offset-1 outline-black/10"
         />
