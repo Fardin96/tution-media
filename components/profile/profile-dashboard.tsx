@@ -720,6 +720,7 @@ export function ProfileDashboard({
           open={phoneDialog.open}
           onOpenChange={(open) => setPhoneDialog((d) => ({ ...d, open }))}
           currentPhone={profile.phoneNumber}
+          currentVerifiedAt={profile.phoneVerifiedAt}
           initialNumber={phoneDialog.initialNumber}
           onVerified={phoneVerified}
         />

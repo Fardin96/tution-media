@@ -197,7 +197,10 @@ export function RequirementForm({
         toast.error("Verify your phone number before posting.", {
           id: "requirement-phone-verification",
           description: (
-            <Link href="/dashboard#profile" className="font-semibold underline">
+            <Link
+              href="/dashboard#phone-verification"
+              className="font-semibold underline"
+            >
               Go to your profile to verify it
             </Link>
           ),

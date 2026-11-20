@@ -126,8 +126,10 @@ export const tutorProfile = {
 export async function mockApi(
   context: BrowserContext | Page,
   role: "STUDENT" | "TUTOR",
-  opts: { onboarded: boolean },
+  opts: { onboarded: boolean; phoneRequired?: boolean },
 ) {
+  // Phone verification: the code "123456" verifies, any other code is wrong.
+  let phoneVerified: Schemas["PhoneVerified"] | null = null;
   // Whichever profile the role has: seeded from the fixtures, then merged with each write.
   let profile: Schemas["MeStudent"] | Schemas["MeTutor"] | null = opts.onboarded
     ? { ...(role === "STUDENT" ? studentProfile : tutorProfile) }
@@ -183,6 +185,37 @@ export async function mockApi(
     if (path === "/students/me" || path === "/tutors/me") {
       profile = { ...base, ...(profile ?? {}), ...req.postDataJSON() };
       return json(route, profile, method === "POST" ? 201 : 200);
+    }
+    if (path === "/phone-verification")
+      return json(route, {
+        required: opts.phoneRequired ?? false,
+        phoneNumber: profile?.phoneNumber ?? null,
+        verifiedAt: profile?.phoneVerifiedAt ?? null,
+        pendingVerification: profile ? null : phoneVerified,
+      } satisfies Schemas["PhoneVerificationStatus"]);
+    if (path === "/phone-verification/send") {
+      const now = Date.now();
+      return json(route, {
+        phoneNumber: req.postDataJSON().phoneNumber,
+        expiresAt: new Date(now + 5 * 60_000).toISOString(),
+        resendAfter: new Date(now + 60_000).toISOString(),
+      } satisfies Schemas["PhoneOtpSent"]);
+    }
+    if (path === "/phone-verification/verify") {
+      const { phoneNumber, code } = req.postDataJSON();
+      if (code !== "123456")
+        return json(
+          route,
+          {
+            error: "OtpInvalid",
+            code: "OTP_INVALID",
+            message: "That code isn't right. Check the SMS and try again.",
+            details: { attemptsLeft: 4 },
+          } satisfies Schemas["ErrorResponse"],
+          400,
+        );
+      phoneVerified = { phoneNumber, verifiedAt: new Date().toISOString() };
+      return json(route, phoneVerified satisfies Schemas["PhoneVerified"]);
     }
     if (path === "/subjects") return json(route, subjectsMock);
     if (path === "/areas") return json(route, areasMock);

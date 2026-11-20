@@ -17,6 +17,8 @@ export interface PhoneVerifyDialogProps {
   onOpenChange: (open: boolean) => void;
   /** The profile's number, E.164. */
   currentPhone: string;
+  /** When the profile's number is verified, the dialog opens on a new number instead. */
+  currentVerifiedAt?: string | null;
   /** Opens on this number instead of the profile's (for example, the number a save was refused for). */
   initialNumber?: string | null;
   /** The profile now holds the verified number. */
@@ -31,6 +33,7 @@ export function PhoneVerifyDialog({
   open,
   onOpenChange,
   currentPhone,
+  currentVerifiedAt = null,
   initialNumber = null,
   onVerified,
 }: PhoneVerifyDialogProps) {
@@ -43,6 +46,7 @@ export function PhoneVerifyDialog({
       {open && (
         <PhoneVerifyBody
           currentPhone={currentPhone}
+          currentVerifiedAt={currentVerifiedAt}
           initialNumber={initialNumber}
           onVerified={(result) => {
             onOpenChange(false);
@@ -57,10 +61,12 @@ export function PhoneVerifyDialog({
 
 function PhoneVerifyBody({
   currentPhone,
+  currentVerifiedAt,
   initialNumber,
   onVerified,
 }: {
   currentPhone: string;
+  currentVerifiedAt: string | null;
   initialNumber: string | null;
   onVerified: (result: VerifiedPhone) => void;
 }) {
@@ -68,7 +74,10 @@ function PhoneVerifyBody({
   const inputId = `${id}-new-number`;
   const errorId = `${id}-new-number-error`;
   const [target, setTarget] = useState(initialNumber ?? currentPhone);
-  const [entering, setEntering] = useState(false);
+  // A verified number has nothing to send a code for, so start on the new-number field.
+  const [entering, setEntering] = useState(
+    !initialNumber && !!currentVerifiedAt,
+  );
   const [draft, setDraft] = useState("");
   const [draftError, setDraftError] = useState<string | null>(null);
 
@@ -147,7 +156,7 @@ function PhoneVerifyBody({
       <PhoneVerificationPanel
         key={target}
         phoneNumber={target}
-        verifiedAt={null}
+        verifiedAt={target === currentPhone ? currentVerifiedAt : null}
         onVerified={onVerified}
       />
       <div className="border-t border-[var(--color-neutral-border)] pt-4">
