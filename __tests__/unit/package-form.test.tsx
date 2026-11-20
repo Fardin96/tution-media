@@ -420,7 +420,7 @@ describe("PackageForm create", () => {
 
     expect(
       await screen.findByRole("link", { name: "Verify your phone number" }),
-    ).toHaveAttribute("href", "/dashboard#profile");
+    ).toHaveAttribute("href", "/dashboard#phone-verification");
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith("Finish your profile to publish.");
     expect(push).not.toHaveBeenCalled();

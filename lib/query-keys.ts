@@ -105,6 +105,10 @@ export const queryKeys = {
     profile: (id: string) => ["tutors", "profile", id] as const,
   },
   lookups: { education: ["lookups", "education"] as const },
+  /** GET /phone-verification: whether the caller's role must verify a phone, and the profile's number. */
+  phoneVerification: {
+    status: ["phone-verification", "status"] as const,
+  },
   /** GET /files/upload-status: whether an admin paused the caller's uploads. */
   uploadStatus: ["upload-status"] as const,
   blog: {
@@ -213,5 +217,15 @@ export function invalidateTutorZones(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.tutor.zones }),
     invalidateTutorRequirements(queryClient),
+  ]);
+}
+
+/** A verified phone changes the status and the profile's number, so both refetch. */
+export function invalidatePhoneVerification(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.phoneVerification.status,
+    }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.me }),
   ]);
 }

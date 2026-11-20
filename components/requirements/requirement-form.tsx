@@ -190,7 +190,19 @@ export function RequirementForm({
       const status = (err as { status?: number }).status;
       const message = (err as { message?: string }).message;
 
-      if (status === 400) {
+      if (
+        err instanceof ApiError &&
+        err.code === "PHONE_VERIFICATION_REQUIRED"
+      ) {
+        toast.error("Verify your phone number before posting.", {
+          id: "requirement-phone-verification",
+          description: (
+            <Link href="/dashboard#profile" className="font-semibold underline">
+              Go to your profile to verify it
+            </Link>
+          ),
+        });
+      } else if (status === 400) {
         toast.error(
           "One of your choices isn't available any more. Pick it again.",
         );

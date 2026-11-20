@@ -52,6 +52,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { usePhoneVerificationStatus } from "@/lib/phone-verification";
 import { openFile, useRefreshExpiredMedia } from "@/lib/files";
 import {
   credentialLimitReached,
@@ -68,6 +69,7 @@ import {
   clearSession,
   formatBdPhone,
   formFromProfile,
+  normalizeBdPhone,
   optionName,
   profileApi,
   profileOf,
@@ -94,6 +96,7 @@ import {
 } from "@/lib/requirements";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
+import { Badge } from "@/components/ui/badge";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -104,6 +107,7 @@ import {
 import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
+import { PhoneVerifyDialog } from "./phone-verify-dialog";
 import { CredentialDialog } from "./credential-dialog";
 import {
   VerificationUploadDialog,
@@ -261,6 +265,14 @@ export function ProfileDashboard({
   const dialogResolver = useRef<((ok: boolean) => void) | null>(null);
   // Content stays set after close so the exit fade doesn't flash an empty dialog.
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [phoneDialog, setPhoneDialog] = useState<{
+    open: boolean;
+    initialNumber: string | null;
+  }>({ open: false, initialNumber: null });
+  const phoneStatus = usePhoneVerificationStatus();
+  const phoneRequired = phoneStatus.data?.required ?? false;
+  const openPhoneDialog = (initialNumber: string | null = null) =>
+    setPhoneDialog({ open: true, initialNumber });
 
   useEffect(() => {
     let live = true;
@@ -415,6 +427,14 @@ export function ProfileDashboard({
       }
       if (role === "TUTOR") await saveTutorLists(next, keys);
     } catch (err) {
+      // A new number must be verified first. Keep the section open on that number.
+      if (
+        err instanceof ApiError &&
+        err.code === "PHONE_VERIFICATION_REQUIRED"
+      ) {
+        openPhoneDialog(normalizeBdPhone(next.phoneNumber));
+        throw new SaveCancelled();
+      }
       const blocked = blockedFromServerError(err, sets ?? []);
       if (!blocked) throw err;
       openBlocked(blocked);
@@ -468,6 +488,25 @@ export function ProfileDashboard({
       ...d,
       videos: d.videos && [...d.videos, video],
     }));
+  };
+
+  const phoneVerified = (result: {
+    phoneNumber: string;
+    verifiedAt: string;
+  }) => {
+    const change = {
+      phoneNumber: result.phoneNumber,
+      phoneVerifiedAt: result.verifiedAt,
+    };
+    setMe(
+      (m) =>
+        m &&
+        (role === "STUDENT"
+          ? { ...m, student: { ...m.student!, ...change } }
+          : { ...m, tutor: { ...m.tutor!, ...change } }),
+    );
+    // The edit form reads the number from here, so a changed number shows at once.
+    setForm((f) => f && { ...f, phoneNumber: result.phoneNumber });
   };
 
   const verificationSent = (result: SubmittedVerification) => {
@@ -568,6 +607,22 @@ export function ProfileDashboard({
                         : "What tutors and admins see when you post a requirement."
                     }
                   />
+                  {role === "STUDENT" &&
+                    phoneRequired &&
+                    !profile.phoneVerifiedAt && (
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[var(--color-semantic-warning-surface)] p-4">
+                        <p className="text-sm font-medium text-pretty text-[var(--color-semantic-warning-text)]">
+                          Verify your phone number before posting a requirement.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => openPhoneDialog()}
+                          className={cn(secondaryButton, "min-h-10 px-4")}
+                        >
+                          Verify
+                        </button>
+                      </div>
+                    )}
                   <div className="mt-5 grid gap-4">
                     {SECTIONS[role].map((section) => (
                       <EditSection
@@ -575,6 +630,11 @@ export function ProfileDashboard({
                         section={section}
                         values={form}
                         onSave={saveSection}
+                        verifiedPhone={
+                          profile.phoneVerifiedAt ? profile.phoneNumber : null
+                        }
+                        phoneLocked={phoneRequired}
+                        onVerifyNumber={() => openPhoneDialog()}
                       />
                     ))}
                   </div>
@@ -642,6 +702,8 @@ export function ProfileDashboard({
                   email={me.email}
                   since={me.createdAt}
                   phone={profile.phoneNumber}
+                  phoneVerifiedAt={profile.phoneVerifiedAt}
+                  onVerifyPhone={() => openPhoneDialog()}
                   whatsapp={profile.whatsappNumber}
                   whatsappVerified={!!profile.whatsappVerifiedAt}
                   featureFlags={featureFlags}
@@ -651,6 +713,16 @@ export function ProfileDashboard({
             </div>
           </main>
         </>
+      )}
+
+      {profile && (
+        <PhoneVerifyDialog
+          open={phoneDialog.open}
+          onOpenChange={(open) => setPhoneDialog((d) => ({ ...d, open }))}
+          currentPhone={profile.phoneNumber}
+          initialNumber={phoneDialog.initialNumber}
+          onVerified={phoneVerified}
+        />
       )}
 
       <ConfirmDialog
@@ -2188,6 +2260,8 @@ function AccountCard({
   email,
   since,
   phone,
+  phoneVerifiedAt,
+  onVerifyPhone,
   whatsapp,
   whatsappVerified,
   featureFlags,
@@ -2195,6 +2269,8 @@ function AccountCard({
   email: string;
   since: string;
   phone: string;
+  phoneVerifiedAt: string | null;
+  onVerifyPhone: () => void;
   whatsapp: string | null;
   whatsappVerified: boolean;
   featureFlags: FeatureFlags;
@@ -2214,10 +2290,29 @@ function AccountCard({
             {email}
           </dd>
         </div>
-        <div>
+        <div id="phone-verification" className="scroll-mt-24">
           <dt className="text-[var(--color-text-secondary)]">Phone number</dt>
-          <dd className="mt-1 font-medium text-[var(--color-neutral-charcoal)] tabular-nums">
-            {formatBdPhone(phone)}
+          <dd className="mt-1 flex flex-wrap items-center gap-2 font-medium text-[var(--color-neutral-charcoal)]">
+            <span className="tabular-nums">{formatBdPhone(phone)}</span>
+            <Badge
+              className={cn(
+                "px-2",
+                phoneVerifiedAt
+                  ? "bg-[var(--color-semantic-success-surface)] text-[var(--color-semantic-success-text)]"
+                  : "bg-[var(--color-surface-subtle)] text-[var(--color-text-secondary)]",
+              )}
+            >
+              {phoneVerifiedAt ? "Verified" : "Not verified"}
+            </Badge>
+            {!phoneVerifiedAt && (
+              <button
+                type="button"
+                onClick={onVerifyPhone}
+                className={cn(secondaryButton, "min-h-9 px-4")}
+              >
+                Verify
+              </button>
+            )}
           </dd>
         </div>
         {whatsapp && (

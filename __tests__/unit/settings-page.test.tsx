@@ -134,7 +134,13 @@ beforeEach(() => {
       updatedByName: null,
     },
     {
-      key: "require_phone_verification",
+      key: "require_tutor_phone_verification",
+      value: true,
+      updatedAt: null,
+      updatedByName: null,
+    },
+    {
+      key: "require_student_phone_verification",
       value: true,
       updatedAt: null,
       updatedByName: null,

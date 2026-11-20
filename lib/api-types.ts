@@ -7106,6 +7106,296 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/phone-verification": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get my phone verification status
+     * @description required is the switch for my role (students and tutors have separate switches). phoneNumber and verifiedAt come from my profile and are null when I have no profile yet. Without a profile, pendingVerification is the latest code I verified in the last 30 minutes that no profile has used yet (null otherwise), so onboarding can resume after a reload.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["PhoneVerificationStatus"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/phone-verification/send": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send a verification code by SMS
+     * @description Sends a 6-digit code that expires in 5 minutes. Limits: one code per 60 seconds per number (429 OTP_COOLDOWN with details.retryAfterSeconds), 5 codes per number and 10 per account in a rolling hour (429 OTP_SEND_LIMIT). 409 PHONE_IN_USE when another account has the number, 409 PHONE_ALREADY_VERIFIED when it is already verified on my profile. 503 SMS_UNAVAILABLE when the SMS provider fails.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SendPhoneOtpInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["PhoneOtpSent"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Temporarily unavailable */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/phone-verification/verify": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Verify the code I received
+     * @description A wrong code gives 400 OTP_INVALID with details.attemptsLeft. After 5 wrong codes the code is locked (429 OTP_TOO_MANY_ATTEMPTS) until a new one is sent. An expired code gives 400 OTP_EXPIRED. Once a newer code has been sent, an older one no longer matches (400 OTP_INVALID). When I have a profile, verifying also sets its phone number to this one and marks it verified. Without a profile, the verification is kept for 30 minutes and used when I create the profile.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["VerifyPhoneOtpInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["PhoneVerified"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/reports": {
     parameters: {
       query?: never;
@@ -13751,7 +14041,8 @@ export interface paths {
             | "online_payments_enabled"
             | "refund_window_days"
             | "require_tutor_verification"
-            | "require_phone_verification";
+            | "require_tutor_phone_verification"
+            | "require_student_phone_verification";
         };
         cookie?: never;
       };
@@ -16301,6 +16592,7 @@ export interface components {
       status: "ACTIVE" | "BLOCKED" | "DELETED";
       name: string | null;
       phoneNumber: string | null;
+      phoneVerifiedAt: string | null;
       /** Format: date-time */
       createdAt: string;
       lastLoginAt: string | null;
@@ -16338,6 +16630,7 @@ export interface components {
       status: "ACTIVE" | "BLOCKED" | "DELETED";
       name: string | null;
       phoneNumber: string | null;
+      phoneVerifiedAt: string | null;
       /** Format: date-time */
       createdAt: string;
       lastLoginAt: string | null;
@@ -18179,7 +18472,15 @@ export interface components {
       | "DISPUTE_EXISTS"
       | "DISPUTE_NOT_ALLOWED"
       | "INVALID_CASE_STATE"
-      | "UPLOADS_BLOCKED";
+      | "UPLOADS_BLOCKED"
+      | "PHONE_VERIFICATION_REQUIRED"
+      | "PHONE_ALREADY_VERIFIED"
+      | "OTP_COOLDOWN"
+      | "OTP_SEND_LIMIT"
+      | "OTP_INVALID"
+      | "OTP_EXPIRED"
+      | "OTP_TOO_MANY_ATTEMPTS"
+      | "SMS_UNAVAILABLE";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -18626,6 +18927,30 @@ export interface components {
         remaining: string;
       };
     };
+    PendingPhoneVerification: {
+      phoneNumber: string;
+      /** Format: date-time */
+      verifiedAt: string;
+    };
+    PhoneOtpSent: {
+      phoneNumber: string;
+      /** Format: date-time */
+      expiresAt: string;
+      /** Format: date-time */
+      resendAfter: string;
+    };
+    PhoneVerificationStatus: {
+      required: boolean;
+      phoneNumber: string | null;
+      verifiedAt: string | null;
+      pendingVerification:
+        components["schemas"]["PendingPhoneVerification"] | null;
+    };
+    PhoneVerified: {
+      phoneNumber: string;
+      /** Format: date-time */
+      verifiedAt: string;
+    };
     PlatformSettingItem: {
       /** @enum {string} */
       key:
@@ -18634,7 +18959,8 @@ export interface components {
         | "online_payments_enabled"
         | "refund_window_days"
         | "require_tutor_verification"
-        | "require_phone_verification";
+        | "require_tutor_phone_verification"
+        | "require_student_phone_verification";
       value: number | boolean;
       updatedAt: string | null;
       updatedByName: string | null;
@@ -18755,6 +19081,9 @@ export interface components {
         4: number;
         5: number;
       };
+    };
+    SendPhoneOtpInput: {
+      phoneNumber: string;
     };
     Session: {
       /** Format: uuid */
@@ -19494,6 +19823,10 @@ export interface components {
       };
       /** Format: date-time */
       expiresAt: string;
+    };
+    VerifyPhoneOtpInput: {
+      phoneNumber: string;
+      code: string;
     };
     Zone: {
       /** Format: uuid */

@@ -15,6 +15,7 @@ import {
   inputClass,
   type PillTone,
 } from "@/components/admin/admin-ui";
+import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/admin";
 import {
   useAdminAccounts,
@@ -209,8 +210,14 @@ function AccountRow({ account }: { account: AdminAccountSummary }) {
         <p className="mt-1 text-sm break-words text-[var(--color-text-secondary)]">
           {account.email}
         </p>
-        <p className="text-sm break-words text-[var(--color-text-secondary)] tabular-nums">
-          {account.phoneNumber ?? "No phone number"}
+        <p className="flex flex-wrap items-center gap-2 text-sm break-words text-[var(--color-text-secondary)] tabular-nums">
+          <span>{account.phoneNumber ?? "No phone number"}</span>
+          {account.phoneNumber &&
+            (account.phoneVerifiedAt ? (
+              <Badge variant="secondary">Verified</Badge>
+            ) : (
+              <Badge variant="outline">Not verified</Badge>
+            ))}
         </p>
         <p className="mt-2 text-xs text-[var(--color-text-secondary)] tabular-nums">
           {`${ROLE_LABEL[account.role]} · Created ${formatDateTime(account.createdAt)}`}

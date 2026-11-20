@@ -55,7 +55,13 @@ vi.mock("@/lib/admin-settings", async (importOriginal) => ({
           updatedByName: null,
         },
         {
-          key: "require_phone_verification",
+          key: "require_tutor_phone_verification",
+          value: true,
+          updatedAt: null,
+          updatedByName: null,
+        },
+        {
+          key: "require_student_phone_verification",
           value: true,
           updatedAt: null,
           updatedByName: null,
@@ -146,7 +152,8 @@ describe("SettingsPage", () => {
       "Processing charge",
       "Refund window",
       "Tutor verification",
-      "Phone verification",
+      "Tutor phone verification",
+      "Student phone verification",
     ]);
   });
 

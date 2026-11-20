@@ -69,10 +69,16 @@ const SETTINGS: {
     description: "Only verified tutors are listed and can apply.",
   },
   {
-    key: "require_phone_verification",
-    title: "Phone verification",
+    key: "require_tutor_phone_verification",
+    title: "Tutor phone verification",
     description:
-      "Tutors and students need a verified phone number before posting or applying.",
+      "Tutors verify their phone number by SMS at sign-up and before applying.",
+  },
+  {
+    key: "require_student_phone_verification",
+    title: "Student phone verification",
+    description:
+      "Students verify their phone number by SMS at sign-up and before posting a requirement.",
   },
 ];
 
