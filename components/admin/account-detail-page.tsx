@@ -15,6 +15,7 @@ import {
   textareaClass,
   type PillTone,
 } from "@/components/admin/admin-ui";
+import { Badge } from "@/components/ui/badge";
 import { formatDateTime, useAdminMe } from "@/lib/admin";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
@@ -358,12 +359,28 @@ function accountItems(account: AdminAccountDetail) {
   ];
 }
 
+function phoneValue(account: AdminAccountDetail): ReactNode {
+  if (!account.phoneNumber) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {account.phoneNumber}
+      {account.phoneVerifiedAt ? (
+        <Badge variant="secondary">
+          {`Verified ${formatDateTime(account.phoneVerifiedAt)}`}
+        </Badge>
+      ) : (
+        <Badge variant="outline">Not verified</Badge>
+      )}
+    </span>
+  );
+}
+
 function profileItems(account: AdminAccountDetail): {
   label: string;
   value: ReactNode;
 }[] {
   return [
-    { label: "Phone", value: account.phoneNumber },
+    { label: "Phone", value: phoneValue(account) },
     { label: "WhatsApp", value: account.whatsappNumber },
     ...(account.role === "TUTOR"
       ? [

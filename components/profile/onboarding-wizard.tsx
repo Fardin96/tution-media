@@ -8,11 +8,16 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  usePhoneVerificationStatus,
+  verifiedAtFor,
+} from "@/lib/phone-verification";
+import {
   ApiError,
   SECTIONS,
   clearSession,
   conflictField,
   emptyForm,
+  normalizeBdPhone,
   profileApi,
   profileOf,
   saveTutorLists,
@@ -21,15 +26,38 @@ import {
   type FormErrors,
   type ProfileForm,
   type ProfileRole,
+  type Section,
 } from "@/lib/profile";
+import { PhoneVerificationPanel } from "./phone-verification-panel";
 import { ProfileFields } from "./profile-fields";
-import { card, primaryButton, secondaryButton } from "./styles";
+import { card, ghostButton, primaryButton, secondaryButton } from "./styles";
 
 const WASH = [
   "radial-gradient(60% 50% at 10% 0%, color-mix(in oklab, var(--color-primary-core) 16%, transparent), transparent 70%)",
   "radial-gradient(50% 40% at 95% 10%, color-mix(in oklab, var(--color-mesh-glow) 45%, transparent), transparent 70%)",
   "radial-gradient(40% 40% at 80% 100%, var(--color-secondary-sky), transparent 70%)",
 ].join(",");
+
+const VERIFY_ID = "verify";
+
+const VERIFY_STEP: Section = {
+  id: VERIFY_ID,
+  title: "Verify phone",
+  description: "Confirm the number on your profile with a code we text you.",
+  fields: [],
+};
+
+/** The role's steps, with the phone check right after the contact step. */
+function stepsWithVerify(role: ProfileRole): Section[] {
+  const base = SECTIONS[role];
+  const at = base.findIndex((s) => s.id === "contact") + 1;
+  return [...base.slice(0, at), VERIFY_STEP, ...base.slice(at)];
+}
+
+const STEPS: Record<ProfileRole, Section[]> = {
+  STUDENT: stepsWithVerify("STUDENT"),
+  TUTOR: stepsWithVerify("TUTOR"),
+};
 
 // One error toast at a time: the next opens when the current one closes.
 function showErrorsInSequence([first, ...rest]: [string, string][]) {
@@ -52,7 +80,17 @@ export function OnboardingWizard({
   defaultName: string;
 }) {
   const router = useRouter();
-  const steps = SECTIONS[role];
+  const steps = STEPS[role];
+  const phoneStatus = usePhoneVerificationStatus();
+  // Until the status loads, the gate is open; the server still checks the profile create.
+  const required = phoneStatus.data?.required ?? false;
+  // The verified number is kept here, because a number verified before the profile exists
+  // is not on the profile yet.
+  const [verified, setVerified] = useState<{
+    phoneNumber: string;
+    verifiedAt: string;
+  } | null>(null);
+  const pending = phoneStatus.data?.pendingVerification ?? null;
   const [checking, setChecking] = useState(true);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<ProfileForm>(() => emptyForm(defaultName));
@@ -64,6 +102,20 @@ export function OnboardingWizard({
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
+  const phone = normalizeBdPhone(form.phoneNumber);
+  // A code checked before a reload is still held by the server, so onboarding resumes with it.
+  const verifiedAt = verifiedAtFor(phone, verified, pending);
+  const isVerified = verifiedAt !== null;
+  const phoneBlocked = required && !isVerified;
+  const onVerifyStep = current.id === VERIFY_ID;
+  // When verification is required, the user cannot leave the verify step (or finish) unverified.
+  // While the switch is still loading, the verify step waits for it.
+  const stepBlocked =
+    onVerifyStep && (phoneBlocked || (phoneStatus.isPending && !isVerified));
+  const finishBlocked = isLast && phoneBlocked;
+  const nextBlocked = stepBlocked || finishBlocked;
+  const verifyIndex = steps.findIndex((s) => s.id === VERIFY_ID);
+  const contactIndex = steps.findIndex((s) => s.id === "contact");
 
   // Returning users who already have a profile skip straight to the dashboard.
   useEffect(() => {
@@ -90,6 +142,8 @@ export function OnboardingWizard({
   }, [step]);
 
   const update = (patch: Partial<ProfileForm>) => {
+    // Editing the number discards the verification of the old one.
+    if ("phoneNumber" in patch) setVerified(null);
     setForm((f) => ({ ...f, ...patch }));
     setErrors((e) => {
       const next = { ...e };
@@ -120,6 +174,18 @@ export function OnboardingWizard({
         router.replace("/sign-in");
         return;
       }
+      if (
+        err instanceof ApiError &&
+        err.code === "PHONE_VERIFICATION_REQUIRED"
+      ) {
+        // Verified more than 30 minutes ago, or never: back to the verify step.
+        setVerified(null);
+        void phoneStatus.refetch();
+        setStep(verifyIndex);
+        toast.error("Verify your phone number to finish signing up.");
+        setSaving(false);
+        return;
+      }
       const field = conflictField(err);
       if (field) {
         setStep(steps.findIndex((s) => s.fields.some((f) => f.key === field)));
@@ -144,8 +210,18 @@ export function OnboardingWizard({
       focusFirstInvalid();
       return;
     }
-    if (isLast) void submit();
-    else setStep((s) => s + 1);
+    // Enter in the code field must not skip a required check.
+    if (stepBlocked) return;
+    if (!isLast) {
+      setStep((s) => s + 1);
+      return;
+    }
+    // Enter in a field can submit while the number is unverified; send the user to the check.
+    if (finishBlocked) {
+      setStep(verifyIndex);
+      return;
+    }
+    void submit();
   };
 
   return (
@@ -272,17 +348,55 @@ export function OnboardingWizard({
                   <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
                     {current.description}
                   </p>
-                  <div className="mt-6">
-                    <ProfileFields
-                      fields={current.fields}
-                      form={form}
-                      errors={errors}
-                      onChange={update}
-                      inlineErrors={false}
-                    />
-                  </div>
+                  {current.id === VERIFY_ID ? (
+                    <div className="mt-6 grid gap-4">
+                      {phone ? (
+                        <PhoneVerificationPanel
+                          key={phone}
+                          phoneNumber={phone}
+                          verifiedAt={verifiedAt}
+                          onVerified={(result) => setVerified(result)}
+                          onChangeNumber={() => setStep(contactIndex)}
+                        />
+                      ) : (
+                        <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
+                          Enter a valid phone number on the contact step first.
+                        </p>
+                      )}
+                      {phone && !isVerified && !required && (
+                        <button
+                          type="button"
+                          onClick={() => setStep((s) => s + 1)}
+                          className={cn(ghostButton, "justify-self-start")}
+                        >
+                          Verify later
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-6">
+                      <ProfileFields
+                        fields={current.fields}
+                        form={form}
+                        errors={errors}
+                        onChange={update}
+                        inlineErrors={false}
+                      />
+                    </div>
+                  )}
                 </motion.div>
               </AnimatePresence>
+            )}
+
+            {nextBlocked && !phoneStatus.isPending && (
+              <p
+                id="finish-blocked-reason"
+                className="mt-6 text-sm font-medium text-pretty text-[var(--color-semantic-warning-text)]"
+              >
+                {finishBlocked
+                  ? "Verify your phone number to finish setup."
+                  : "Verify your phone number to continue."}
+              </p>
             )}
 
             <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -301,7 +415,12 @@ export function OnboardingWizard({
               )}
               <button
                 type="submit"
-                disabled={checking || saving}
+                disabled={checking || saving || nextBlocked}
+                aria-describedby={
+                  nextBlocked && !phoneStatus.isPending
+                    ? "finish-blocked-reason"
+                    : undefined
+                }
                 className={cn(primaryButton, "sm:min-w-40")}
               >
                 {saving ? (

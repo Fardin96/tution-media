@@ -65,6 +65,14 @@ export const ERROR_CODES = {
   DisputeNotAllowed: "DISPUTE_NOT_ALLOWED",
   InvalidCaseState: "INVALID_CASE_STATE",
   UploadsBlocked: "UPLOADS_BLOCKED",
+  PhoneVerificationRequired: "PHONE_VERIFICATION_REQUIRED",
+  PhoneAlreadyVerified: "PHONE_ALREADY_VERIFIED",
+  OtpCooldown: "OTP_COOLDOWN",
+  OtpSendLimit: "OTP_SEND_LIMIT",
+  OtpInvalid: "OTP_INVALID",
+  OtpExpired: "OTP_EXPIRED",
+  OtpTooManyAttempts: "OTP_TOO_MANY_ATTEMPTS",
+  SmsUnavailable: "SMS_UNAVAILABLE",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -228,6 +236,28 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     const note = err.details?.note;
     return typeof note === "string" && note ? `${base} Note: ${note}` : base;
   },
+  PHONE_VERIFICATION_REQUIRED: "Verify your phone number to continue.",
+  PHONE_ALREADY_VERIFIED: "This number is already verified.",
+  OTP_COOLDOWN: (err) => {
+    const seconds = err.details?.retryAfterSeconds;
+    return typeof seconds === "number"
+      ? `Wait ${seconds} seconds before asking for another code.`
+      : "Wait a minute before asking for another code.";
+  },
+  OTP_SEND_LIMIT: "You've asked for too many codes. Try again in an hour.",
+  // The attempts left come from the server; without them the message still tells the user what to do.
+  OTP_INVALID: (err) => {
+    const left = err.details?.attemptsLeft;
+    if (typeof left !== "number")
+      return "That code isn't right. Check it and try again.";
+    return left === 1
+      ? "That code isn't right. 1 try left."
+      : `That code isn't right. ${left} tries left.`;
+  },
+  OTP_EXPIRED: "This code has expired. Send a new one.",
+  OTP_TOO_MANY_ATTEMPTS: "Too many wrong codes. Send a new one.",
+  SMS_UNAVAILABLE:
+    "We couldn't send the SMS right now. Try again in a few minutes.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

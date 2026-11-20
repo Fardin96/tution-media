@@ -28,7 +28,7 @@ const FIXES: Record<string, ReadinessFix> = {
   phone_number: { label: "Add your phone number", href: PROFILE_HREF },
   phone_verification: {
     label: "Verify your phone number",
-    href: PROFILE_HREF,
+    href: "/dashboard#phone-verification",
   },
   verification: {
     label: "Get your profile verified",

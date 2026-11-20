@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { Check, Circle, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import {
   searchAreas,
   searchSubjects,
   type FieldDef,
+  type FieldKey,
   type FormErrors,
   type Gender,
   type Option,
@@ -31,6 +32,14 @@ interface ProfileFieldsProps {
   onChange: (patch: Partial<ProfileForm>) => void;
   /** false: messages are shown elsewhere (e.g. toasts); the field still gets aria-invalid. */
   inlineErrors?: boolean;
+  /** One field shown read-only with its own hint and an action (e.g. a phone that must be verified to change). */
+  locked?: LockedField;
+}
+
+export interface LockedField {
+  key: FieldKey;
+  hint: string;
+  action?: ReactNode;
 }
 
 export function ProfileFields({
@@ -39,6 +48,7 @@ export function ProfileFields({
   errors,
   onChange,
   inlineErrors = true,
+  locked,
 }: ProfileFieldsProps) {
   return (
     <div className="grid gap-6">
@@ -50,6 +60,7 @@ export function ProfileFields({
           error={errors[field.key]}
           onChange={onChange}
           inlineErrors={inlineErrors}
+          locked={locked?.key === field.key ? locked : undefined}
         />
       ))}
     </div>
@@ -62,29 +73,33 @@ function Field({
   error,
   onChange,
   inlineErrors,
+  locked,
 }: {
   field: FieldDef;
   form: ProfileForm;
   error?: string;
   onChange: ProfileFieldsProps["onChange"];
   inlineErrors: boolean;
+  locked?: LockedField;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const shownError = inlineErrors ? error : undefined;
+  const hint = locked ? locked.hint : field.hint;
   const describedBy =
-    [field.hint && hintId, shownError && errorId].filter(Boolean).join(" ") ||
+    [hint && hintId, shownError && errorId].filter(Boolean).join(" ") ||
     undefined;
 
   const meta = (
     <>
-      {field.hint && (
+      {hint && (
         <p id={hintId} className="text-sm text-[var(--color-text-secondary)]">
-          {field.hint}
+          {hint}
         </p>
       )}
       <FieldError id={errorId} message={shownError} />
+      {locked?.action}
     </>
   );
 
@@ -185,6 +200,7 @@ function Field({
     id,
     name: field.key,
     value: form[key],
+    readOnly: !!locked,
     placeholder: field.placeholder,
     autoComplete: field.autoComplete ?? "off",
     maxLength: field.maxLength,
@@ -219,7 +235,11 @@ function Field({
           {...common}
           type={field.kind === "tel" ? "tel" : "text"}
           inputMode={field.kind === "tel" ? "tel" : undefined}
-          className={cn(control, "h-12")}
+          className={cn(
+            control,
+            "h-12",
+            locked && "bg-[var(--color-surface-subtle)]",
+          )}
         />
       )}
       {meta}

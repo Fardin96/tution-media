@@ -32,6 +32,12 @@ test.describe("Onboarding", () => {
     await page.getByLabel("WhatsApp number").fill("01712 345678");
     await page.getByRole("button", { name: "Continue" }).click();
 
+    // Verification is optional while the switch is off.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Verify phone",
+    );
+    await page.getByRole("button", { name: "Verify later" }).click();
+
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Location",
     );
@@ -86,6 +92,52 @@ test.describe("Onboarding", () => {
     });
   });
 
+  test("required phone verification blocks the step until the code is verified", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([sessionCookie("STUDENT")]);
+    await mockApi(context, "STUDENT", {
+      onboarded: false,
+      phoneRequired: true,
+    });
+    await page.goto("/onboarding");
+
+    await page.getByLabel("Student ID number").fill("NDC-1");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("Phone number").fill("01811111111");
+    await page.getByLabel("Emergency contact number").fill("01911111111");
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Verify phone",
+    );
+    const next = page.getByRole("button", { name: "Continue" });
+    await expect(next).toBeDisabled();
+    await expect(
+      page.getByText("Verify your phone number to continue."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Verify later" }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Send code" }).click();
+    const code = page.getByLabel("Verification code");
+    await code.fill("111111");
+    await expect(
+      page.getByText("That code isn't right. 4 tries left."),
+    ).toBeVisible();
+    await expect(next).toBeDisabled();
+
+    await code.fill("123456");
+    await expect(page.getByText("Verified", { exact: true })).toBeVisible();
+    await expect(next).toBeEnabled();
+    await next.click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Location",
+    );
+  });
+
   test("tutor saves profile, subjects and areas", async ({ page, context }) => {
     await context.addCookies([sessionCookie("TUTOR")]);
     const writes = await mockApi(context, "TUTOR", { onboarded: false });
@@ -101,6 +153,11 @@ test.describe("Onboarding", () => {
     await page.getByLabel("Emergency contact number").fill("01911111111");
     await page.getByLabel("Address").fill("Mirpur 10");
     await page.getByRole("button", { name: "Continue" }).click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Verify phone",
+    );
+    await page.getByRole("button", { name: "Verify later" }).click();
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Teaching",

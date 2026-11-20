@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   conflictField,
   formatBdPhone,
+  normalizeBdPhone,
   optionName,
   validate,
   type FieldDef,
@@ -28,10 +29,18 @@ export function EditSection({
   section,
   values,
   onSave,
+  verifiedPhone = null,
+  phoneLocked = false,
+  onVerifyNumber,
 }: {
   section: Section;
   values: ProfileForm;
   onSave: (next: ProfileForm, fields: FieldDef[]) => Promise<void>;
+  /** The profile's verified number (E.164), or null. Editing it away means verifying the new one. */
+  verifiedPhone?: string | null;
+  /** The role requires a verified phone: the number changes only through verification. */
+  phoneLocked?: boolean;
+  onVerifyNumber?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(values);
@@ -40,6 +49,13 @@ export function EditSection({
   const editRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const titleId = `section-${section.id}`;
+  const hasPhone = section.fields.some((f) => f.key === "phoneNumber");
+  const lockPhone = phoneLocked && hasPhone;
+  const changesVerifiedPhone =
+    !lockPhone &&
+    !!verifiedPhone &&
+    hasPhone &&
+    normalizeBdPhone(draft.phoneNumber) !== verifiedPhone;
 
   useEffect(() => {
     if (editing)
@@ -126,6 +142,26 @@ export function EditSection({
             fields={section.fields}
             form={draft}
             errors={errors}
+            locked={
+              lockPhone
+                ? {
+                    key: "phoneNumber",
+                    hint: "To change it, verify the new number.",
+                    action: onVerifyNumber && (
+                      <button
+                        type="button"
+                        onClick={onVerifyNumber}
+                        className={cn(
+                          secondaryButton,
+                          "min-h-10 justify-self-start px-4",
+                        )}
+                      >
+                        Change number
+                      </button>
+                    ),
+                  }
+                : undefined
+            }
             onChange={(patch) => {
               setDraft((d) => ({ ...d, ...patch }));
               setErrors((e) => {
@@ -136,6 +172,12 @@ export function EditSection({
               });
             }}
           />
+          {changesVerifiedPhone && (
+            <p className="mt-4 text-sm text-pretty text-[var(--color-semantic-warning-text)]">
+              This is a new number. It won&apos;t count as verified until you
+              confirm it with a code.
+            </p>
+          )}
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"

@@ -43,7 +43,7 @@ describe("ReadinessChecklist", () => {
       ["Pin your location on the map", "/dashboard#profile"],
       ["Add a teaching area", "/dashboard#profile"],
       ["Add your phone number", "/dashboard#profile"],
-      ["Verify your phone number", "/dashboard#profile"],
+      ["Verify your phone number", "/dashboard#phone-verification"],
       ["Get your profile verified", "/dashboard#verification"],
       ["Create a default requirement set", "/dashboard/tutor/requirements/new"],
     ];
