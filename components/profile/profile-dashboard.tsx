@@ -35,7 +35,11 @@ import {
 import type { UserSession } from "@/lib/auth";
 import { tutors as sampleTutors } from "@/lib/tutors";
 import { cn } from "@/lib/utils";
-import { queryKeys, invalidateTutorRequirements } from "@/lib/query-keys";
+import {
+  queryKeys,
+  invalidateTutorProfile,
+  invalidateTutorRequirements,
+} from "@/lib/query-keys";
 import {
   blockedFromServerError,
   describeRemoval,
@@ -422,6 +426,9 @@ export function ProfileDashboard({
       queryClient.invalidateQueries({
         queryKey: queryKeys.tutor.profileSubjects,
       });
+    }
+    if (role === "TUTOR" && profile) {
+      void invalidateTutorProfile(queryClient, profile.id);
     }
     setForm(
       (f) =>
@@ -940,6 +947,14 @@ function Hero({
                 />
                 Joined {monthYear(profile.createdAt)}
               </span>
+              {role === "TUTOR" && (
+                <Link
+                  href={`/tutors/${profile.id}`}
+                  className={cn(ghostButton, "min-h-10 px-3")}
+                >
+                  View public profile
+                </Link>
+              )}
             </div>
           </div>
         </div>

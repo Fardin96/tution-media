@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { TutorSetSection } from "@/components/applications/tutor-details";
-import type { ApplicationTutorSet } from "@/lib/applications";
+import {
+  TutorProfileSection,
+  TutorSetSection,
+} from "@/components/applications/tutor-details";
+import type {
+  ApplicationTutorProfile,
+  ApplicationTutorSet,
+} from "@/lib/applications";
 
 const SUBJECT_OPTIONS = [
   "Bangla",
@@ -24,6 +30,24 @@ vi.mock("@/lib/subjects", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/subjects")>()),
   useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
 }));
+
+function tutorProfile(
+  overrides: Partial<ApplicationTutorProfile> = {},
+): ApplicationTutorProfile {
+  return {
+    id: "tutor-profile-7",
+    name: "Rafiq Ahmed",
+    gender: "MALE",
+    instituteName: "University of Dhaka",
+    ratingAvg: 4.5,
+    ratingCount: 12,
+    verificationStatus: "APPROVED",
+    areas: [{ id: 1, name: "Dhanmondi" }],
+    subjects: [{ id: 5, name: "Physics" }],
+    credentials: [],
+    ...overrides,
+  };
+}
 
 function tutorSet(
   overrides: Partial<ApplicationTutorSet> = {},
@@ -97,5 +121,13 @@ describe("TutorSetSection", () => {
       screen.queryByRole("region", { name: "The set behind this package" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/None of this tutor/)).not.toBeInTheDocument();
+  });
+
+  it("links to the tutor's full public profile", () => {
+    render(<TutorProfileSection profile={tutorProfile()} />);
+
+    expect(
+      screen.getByRole("link", { name: "View full profile" }),
+    ).toHaveAttribute("href", "/tutors/tutor-profile-7");
   });
 });

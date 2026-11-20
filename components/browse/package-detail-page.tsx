@@ -186,7 +186,12 @@ export function PackageDetailPage({ id }: { id: string }) {
               <TutorInitial name={pkg.tutor.name} />
               <div className="min-w-0">
                 <p className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
-                  {pkg.tutor.name}
+                  <Link
+                    href={`/tutors/${pkg.tutor.id}`}
+                    className="rounded-sm hover:underline"
+                  >
+                    {pkg.tutor.name}
+                  </Link>
                 </p>
                 <RatingInline
                   ratingAvg={pkg.tutor.ratingAvg}
@@ -194,6 +199,12 @@ export function PackageDetailPage({ id }: { id: string }) {
                 />
               </div>
             </div>
+            <Link
+              href={`/tutors/${pkg.tutor.id}`}
+              className={cn(secondaryButton, "min-h-10 px-4")}
+            >
+              View profile
+            </Link>
           </section>
 
           <section

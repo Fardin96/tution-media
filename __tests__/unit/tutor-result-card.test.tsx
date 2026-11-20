@@ -107,6 +107,15 @@ describe("TutorResultCard", () => {
     ).toEqual(["Physics", "Chemistry"]);
   });
 
+  it("links the name to the tutor's profile page", () => {
+    renderCard(tutor);
+
+    expect(screen.getByRole("link", { name: "Nusrat Jahan" })).toHaveAttribute(
+      "href",
+      "/tutors/t-1",
+    );
+  });
+
   it("omits the lines that have no data", () => {
     renderCard({
       id: "t-2",

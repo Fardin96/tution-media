@@ -46,7 +46,15 @@ export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--color-neutral-charcoal)]">
-        <span>Taught by {pkg.tutor.name}</span>
+        <span>
+          Taught by{" "}
+          <Link
+            href={`/tutors/${pkg.tutor.id}`}
+            className="rounded-sm font-medium text-[var(--color-neutral-charcoal)] underline-offset-4 hover:underline focus-visible:underline"
+          >
+            {pkg.tutor.name}
+          </Link>
+        </span>
         <RatingInline
           ratingAvg={pkg.tutor.ratingAvg}
           ratingCount={pkg.tutor.ratingCount}

@@ -23,7 +23,12 @@ function ApplicantCard({ application }: { application: Application }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
-            {tutor.name}
+            <Link
+              href={`/tutors/${tutor.id}`}
+              className="rounded-sm hover:underline"
+            >
+              {tutor.name}
+            </Link>
           </h2>
           {tutor.instituteName && (
             <p className="mt-0.5 flex items-center gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">

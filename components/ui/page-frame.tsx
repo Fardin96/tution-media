@@ -11,12 +11,17 @@ const WASH = [
   "radial-gradient(40% 40% at 80% 100%, var(--color-secondary-sky), transparent 70%)",
 ].join(",");
 
-/** Shared chrome for the applications and browse pages: logo row, optional header action, then the content column. */
+/**
+ * Shared chrome for the applications and browse pages: logo row, optional header action, then the content column.
+ * Public pages pass `signedIn={false}`: the logo goes home and the bell, which needs an account, is left out.
+ */
 export function PageFrame({
   headerAction,
+  signedIn = true,
   children,
 }: {
   headerAction?: React.ReactNode;
+  signedIn?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -25,7 +30,10 @@ export function PageFrame({
       style={{ backgroundImage: WASH }}
     >
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 pt-6 sm:px-6">
-        <Link href="/dashboard" aria-label="Masters Hub Home">
+        <Link
+          href={signedIn ? "/dashboard" : "/"}
+          aria-label="Masters Hub Home"
+        >
           <Image
             src="/assets/ic-demo/Icon-blue.png"
             alt="Masters Hub"
@@ -36,7 +44,7 @@ export function PageFrame({
           />
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <NotificationBell />
+          {signedIn && <NotificationBell />}
           {headerAction}
         </div>
       </header>
