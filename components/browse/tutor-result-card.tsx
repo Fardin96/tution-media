@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { GraduationCap, MapPin } from "lucide-react";
-import { card } from "@/components/profile/styles";
+import { card, focusRing } from "@/components/profile/styles";
 import { formatDistanceKm } from "@/lib/browse";
 import { cn } from "@/lib/utils";
 import { RatingInline, TutorInitial } from "./browse-ui";
@@ -16,7 +17,10 @@ export interface TutorResult {
   distanceMeters?: number;
 }
 
-/** Renders an `<li>`; the parent list is a `<ul>`. There is no tutor profile page yet, so no link. */
+/**
+ * Renders an `<li>`; the parent list is a `<ul>`. The name link stretches over
+ * the whole card, so clicking anywhere on the card opens the tutor's profile.
+ */
 export function TutorResultCard({ tutor }: { tutor: TutorResult }) {
   const institute = tutor.instituteName?.trim();
   const areaNames = (tutor.areas ?? []).map((a) => a.name).join(", ");
@@ -27,13 +31,21 @@ export function TutorResultCard({ tutor }: { tutor: TutorResult }) {
   const subjects = tutor.subjects ?? [];
 
   return (
-    <li className={cn(card, "flex flex-col gap-4 p-5")}>
+    <li className={cn(card, "relative flex flex-col gap-4 p-5")}>
       <div className="grid gap-2">
         <div className="flex items-center gap-3">
           <TutorInitial name={tutor.name} />
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
             <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
-              {tutor.name}
+              <Link
+                href={`/tutors/${tutor.id}`}
+                className={cn(
+                  "rounded-sm after:absolute after:inset-0 after:rounded-[24px] hover:underline",
+                  focusRing,
+                )}
+              >
+                {tutor.name}
+              </Link>
             </h3>
             <div className="shrink-0">
               <RatingInline

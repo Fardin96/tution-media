@@ -135,6 +135,16 @@ describe("RequirementApplicantsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("links the tutor's name to their profile page", async () => {
+    mockApplicants([application()]);
+    renderPage();
+
+    const heading = await screen.findByRole("heading", { name: "Rafiq Ahmed" });
+    expect(
+      within(heading).getByRole("link", { name: "Rafiq Ahmed" }),
+    ).toHaveAttribute("href", "/tutors/t1");
+  });
+
   it("links back to the dashboard with one back control", async () => {
     mockApplicants([]);
     renderPage();

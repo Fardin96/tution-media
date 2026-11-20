@@ -172,6 +172,18 @@ describe("PackageCard", () => {
     expect(valueOf(card, "Place")).toHaveTextContent("Online or in person");
   });
 
+  it("links the Taught by name to the tutor's profile page", async () => {
+    renderCard(pkg({ tutor: { ...pkg().tutor, id: "tutor-42" } }));
+    const card = screen.getByRole("listitem");
+
+    expect(
+      within(card).getByText("Taught by", { exact: false }),
+    ).toHaveTextContent("Taught by Nusrat Jahan");
+    expect(
+      within(card).getByRole("link", { name: "Nusrat Jahan" }),
+    ).toHaveAttribute("href", "/tutors/tutor-42");
+  });
+
   it("links an open package to its detail page", async () => {
     renderCard(pkg({ id: "pkg-open" }));
 

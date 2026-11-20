@@ -100,6 +100,10 @@ export const queryKeys = {
     attempt: (feeId: string, tranId: string) =>
       ["fees", "attempt", feeId, tranId] as const,
   },
+  /** Public GET /tutors/:id. Shared by the public profile page and any profile-data reader. */
+  tutors: {
+    profile: (id: string) => ["tutors", "profile", id] as const,
+  },
   lookups: { education: ["lookups", "education"] as const },
   /** GET /files/upload-status: whether an admin paused the caller's uploads. */
   uploadStatus: ["upload-status"] as const,
@@ -192,6 +196,16 @@ export function invalidatePackages(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: queryKeys.packages.mine }),
     invalidateApplications(queryClient),
   ]);
+}
+
+/** Profile writes (#28-31) change what the public tutor profile shows: details, areas, subjects. */
+export function invalidateTutorProfile(
+  queryClient: QueryClient,
+  tutorId: string,
+) {
+  return queryClient.invalidateQueries({
+    queryKey: queryKeys.tutors.profile(tutorId),
+  });
 }
 
 /** Zone writes change the zone list and, through cascades, requirement sets and apply readiness. */

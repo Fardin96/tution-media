@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
+import { secondaryButton } from "@/components/profile/styles";
+import { cn } from "@/lib/utils";
 import { RatingInline, TutorInitial } from "@/components/browse/browse-ui";
 import { Rows, Section } from "@/components/applications/detail-sections";
 import { TonePill } from "@/components/applications/status-pill";
@@ -89,6 +92,14 @@ export function TutorProfileSection({
             </ul>
           </div>
         )}
+        <div>
+          <Link
+            href={`/tutors/${profile.id}`}
+            className={cn(secondaryButton, "min-h-10 px-4")}
+          >
+            View full profile
+          </Link>
+        </div>
       </div>
     </Section>
   );

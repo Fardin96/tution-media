@@ -2104,7 +2104,7 @@ export interface paths {
     };
     /**
      * Get a tutor's public profile
-     * @description Name, gender, rating, areas, subjects, credentials and approved videos. Contact details and address are never included.
+     * @description Name, gender, rating, areas, subjects, credentials and approved videos. Contact details and address are never included. An unlisted tutor (isListed false) answers 200 only to that tutor, to an ACTIVE admin, and to a student with an application with this tutor; anyone else gets the same 404 as an unknown id. Unlisted responses, 404s included, send Cache-Control: private, no-store.
      *
      *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
      *
