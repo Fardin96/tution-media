@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { isRemoteSrc } from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
 type VideoCardProps = {
@@ -60,6 +61,7 @@ export function VideoCard({
         src={thumbnail}
         alt=""
         fill
+        {...(isRemoteSrc(thumbnail) && { unoptimized: true })}
         sizes={sizes}
         className="object-cover"
       />

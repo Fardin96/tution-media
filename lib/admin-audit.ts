@@ -58,6 +58,7 @@ const ACTION_LABELS: Record<string, string> = {
   "verification.decide": "Decided an ID verification",
   "video.moderate": "Decided a tutor video",
   "video.update": "Changed a video's order",
+  "story.moderate": "Reviewed a story",
   "file.view": "Opened a private file",
   "file.delete": "Deleted a file",
   "file.remove": "Removed a user's file",
@@ -76,6 +77,9 @@ const ACTION_LABELS: Record<string, string> = {
   "matching.update": "Matching rules updated",
   "city.upsert": "City boundary saved",
   "city.update": "City updated",
+  "site_content.update": "Changed site content",
+  "site_content.reset": "Reset site content to the default",
+  "site_content.source_removed": "Took a submission off the home page",
 };
 
 export function actionLabel(action: string): string {

@@ -5,52 +5,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { SectionHeader } from "@/components/section-header";
 import { ArrowLinkButton } from "@/components/arrow-link-button";
+import type { FaqBlock } from "@/lib/site-content";
 
-type Faq = { id: string; question: string; answer: string };
-
-// ponytail: placeholder copy. Split into the two Figma columns; on phones they stack 01→05.
-const columns: Faq[][] = [
-  [
-    {
-      id: "faq-1",
-      question: "How do I create an account as a guardian or student?",
-      answer:
-        "Tap Register Now, choose Guardian or Student, and sign up with your phone number or email. Add your area, class and the subjects you need, and we will start showing matching tutors right away. It takes about two minutes and is completely free.",
-    },
-    {
-      id: "faq-2",
-      question: "How do I find and hire the right tutor?",
-      answer:
-        "Search by subject and location, then filter by class, budget and rating. Open a profile to see qualifications, reviews and teaching videos. When you find a good fit, send a request; most tutors reply within a day and many offer a free trial class.",
-    },
-    {
-      id: "faq-3",
-      question: "How can I track my child's progress?",
-      answer:
-        "After each session the tutor logs what was covered and any homework. You get a short progress report every two weeks, and you can message the tutor anytime from your dashboard if you want to discuss weak areas or upcoming exams.",
-    },
-  ],
-  [
-    {
-      id: "faq-4",
-      question: "How are tutors on Masters Hub verified?",
-      answer:
-        "Every tutor submits a national ID and proof of their latest qualification, which our team checks by hand before the profile goes live. We also review ratings from guardians and students, and tutors who fall below our standards are removed from search.",
-    },
-    {
-      id: "faq-5",
-      question:
-        "Is there a cost to use Masters Hub, and what features are free?",
-      answer:
-        "Searching, comparing profiles, reading reviews and messaging tutors are all free. You only pay the tutor's fee once you start classes, and packages show the full price upfront. There are no hidden charges or subscription fees.",
-    },
-  ],
-];
-
-const numbered = columns.flat().map((f, i) => [f.id, i + 1] as const);
-const numberOf = Object.fromEntries(numbered);
-
-export function Faq() {
+export function Faq({ content }: { content: FaqBlock }) {
+  // Two stacked columns on phones, side by side from lg; the first column takes the extra item.
+  const split = Math.ceil(content.items.length / 2);
+  const columns = [content.items.slice(0, split), content.items.slice(split)];
   return (
     <section
       id="faq"
@@ -61,42 +21,46 @@ export function Faq() {
         <SectionHeader
           align="start"
           titleId="faq-title"
-          title="Frequently asked Questions"
+          title={content.title}
         />
 
-        {/* One root so only one answer is open at a time; 04 starts open as in Figma.
+        {/* One root so only one answer is open at a time; openIndex starts open (Figma: 04).
             Each column is its own stack, so opening an item only pushes its own column. */}
         <Accordion.Root
           type="single"
           collapsible
-          defaultValue="faq-4"
+          defaultValue={
+            content.openIndex === null
+              ? undefined
+              : `faq-${content.openIndex + 1}`
+          }
           className="mt-8 grid items-start gap-4 lg:mt-[35px] lg:grid-cols-2 lg:gap-[30px]"
         >
           {columns.map((col, c) => (
             <div key={c} className="flex flex-col gap-4 lg:gap-[30px]">
-              {col.map((f) => (
-                <FaqItem key={f.id} faq={f} n={numberOf[f.id]} />
+              {col.map((f, i) => (
+                <FaqItem key={i} faq={f} n={c * split + i + 1} />
               ))}
             </div>
           ))}
         </Accordion.Root>
 
         <ArrowLinkButton
-          href="/sign-in"
+          href={content.cta.href}
           variant="solid"
           className="mt-10 self-center"
         >
-          View All
+          {content.cta.label}
         </ArrowLinkButton>
       </div>
     </section>
   );
 }
 
-function FaqItem({ faq, n }: { faq: Faq; n: number }) {
+function FaqItem({ faq, n }: { faq: FaqBlock["items"][number]; n: number }) {
   return (
     <Accordion.Item
-      value={faq.id}
+      value={`faq-${n}`}
       className="group/faq rounded-[20px] border border-[var(--color-card-border)] bg-[var(--color-neutral-white)] transition-[background-color,border-color,box-shadow] duration-200 ease-out data-[state=open]:border-[color-mix(in_oklab,var(--color-primary-core)_35%,white)] data-[state=open]:bg-[color-mix(in_oklab,var(--color-primary-core)_6%,white)] data-[state=open]:shadow-[0_12px_32px_-16px_color-mix(in_oklab,var(--color-primary-core)_35%,transparent)]"
     >
       <Accordion.Header>

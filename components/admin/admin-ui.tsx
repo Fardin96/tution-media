@@ -364,7 +364,8 @@ export function DialogActions({ children }: { children: React.ReactNode }) {
 
 type FieldProps = {
   label: string;
-  hint?: string;
+  /** Text, or a node such as a character counter. */
+  hint?: React.ReactNode;
   error?: string;
   children: (ids: {
     id: string;

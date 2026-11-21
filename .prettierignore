@@ -2,3 +2,5 @@
 node_modules
 yarn.lock
 coverage
+lib/site-content-defaults.json
+lib/site-content-schema.ts

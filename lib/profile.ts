@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { api } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { loadAreas } from "./areas";
@@ -594,6 +595,15 @@ export const profileApi = {
       }),
     ),
 
+  /** Agrees (true) or withdraws (false) that an admin may show the video on the home page. */
+  setVideoHomePage: async (id: string, show: boolean) =>
+    unwrap(
+      client.PATCH("/api/v1/tutors/me/videos/{id}", {
+        params: { path: { id } },
+        body: { showOnHomePage: show },
+      }),
+    ),
+
   verifications: async () =>
     (await unwrap(client.GET("/api/v1/tutors/me/verifications"))).verifications,
 
@@ -623,6 +633,18 @@ export async function saveTutorLists(form: ProfileForm, keys: FieldKey[]) {
 }
 
 export const profileOf = (me: Me) => me.student ?? me.tutor;
+
+/**
+ * Saves a video's home-page agreement. The dashboard keeps its video list in state, not in the
+ * query cache, so `onSaved` receives the server's copy and the dashboard swaps it in.
+ */
+export function useSetVideoHomePage(onSaved?: (video: Video) => void) {
+  return useMutation({
+    mutationFn: ({ id, show }: { id: string; show: boolean }) =>
+      profileApi.setVideoHomePage(id, show),
+    onSuccess: (video) => onSaved?.(video),
+  });
+}
 
 /** Drops tokens and the session cookie, e.g. when the API says the session is gone. */
 export async function clearSession() {

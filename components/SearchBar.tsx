@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation";
 import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input";
 
 // ponytail: sizes estimated from the design screenshot (Figma MCP was rate-limited); swap for exact specs.
-const SKILLS = [
-  "e.g. SSC package",
-  "e.g. Math Tutor",
-  "e.g. English Specialist",
-  "e.g. Physics Teacher",
-];
-const PLACES = [
-  "e.g. Gulshan, Dhaka",
-  "e.g. Uttara, Dhaka",
-  "e.g. Motijheel, Dhaka",
-];
-
 const field = "flex min-h-12 flex-1 items-center gap-2 ps-4 pe-2";
 
-export default function SearchBar({ className = "" }: { className?: string }) {
+type SearchBarProps = {
+  className?: string;
+  skillPlaceholders: string[];
+  placePlaceholders: string[];
+  searchLabel: string;
+};
+
+export default function SearchBar({
+  className = "",
+  skillPlaceholders,
+  placePlaceholders,
+  searchLabel,
+}: SearchBarProps) {
   const router = useRouter();
 
   return (
@@ -45,7 +45,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
             name="q"
             type="search"
             label="Skill or role"
-            placeholders={SKILLS}
+            placeholders={skillPlaceholders}
           />
         </div>
 
@@ -62,7 +62,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
             name="location"
             label="Location"
             autoComplete="address-level2"
-            placeholders={PLACES}
+            placeholders={placePlaceholders}
           />
         </div>
 
@@ -70,7 +70,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
           type="submit"
           className="rounded-chip min-h-12 shrink-0 bg-[var(--color-primary-core)] px-8 text-base font-semibold whitespace-nowrap text-white transition-[background-color,transform] duration-150 ease-out hover:bg-[var(--color-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.97] active:bg-[var(--color-primary-pressed)] motion-reduce:active:scale-100"
         >
-          Search
+          {searchLabel}
         </button>
       </form>
     </div>

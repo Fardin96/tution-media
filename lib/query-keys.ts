@@ -61,6 +61,11 @@ export const queryKeys = {
       ["admin", "areas", filters] as const,
     areasAll: ["admin", "areas"] as const,
     settings: ["admin", "settings"] as const,
+    /** Every landing block and page, as the admin editor lists them. */
+    siteContent: ["admin", "site-content"] as const,
+    /** Submissions an admin can add to a testimonials or showcase list. */
+    siteSources: (list: "testimonials" | "showcase") =>
+      ["admin", "site-content", "sources", list] as const,
     auditLogs: <F extends object>(filters: F) =>
       ["admin", "audit-logs", filters] as const,
     verificationsAll: ["admin", "verifications"] as const,
@@ -69,6 +74,9 @@ export const queryKeys = {
     videosAll: ["admin", "videos"] as const,
     videos: <F extends object>(filters: F) =>
       ["admin", "videos", filters] as const,
+    storiesAll: ["admin", "stories"] as const,
+    stories: <F extends object>(filters: F) =>
+      ["admin", "stories", filters] as const,
     filesAll: ["admin", "files"] as const,
     files: <F extends object>(filters: F) =>
       ["admin", "files", "list", filters] as const,
@@ -141,6 +149,11 @@ export const queryKeys = {
       ["reviews", "mine", { applicationId: applicationId ?? null }] as const,
     tutor: (tutorId: string) => ["reviews", "tutor", tutorId] as const,
     student: (studentId: string) => ["reviews", "student", studentId] as const,
+  },
+  /** The signed-in student's or tutor's own stories (GET /me/stories). */
+  stories: {
+    all: ["stories"] as const,
+    mine: ["stories", "mine"] as const,
   },
   /** Reports and disputes the signed-in user filed. */
   cases: {

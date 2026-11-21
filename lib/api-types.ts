@@ -835,6 +835,267 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/me/stories": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my stories
+     * @description Your stories, newest first, with a limit of 3 (any status) and one pending review at a time. canSubmit and blockedReason (LIMIT or PENDING) say whether a new one can be sent. note is the admin's note only when it was shared with you. onLanding is true while a testimonials or showcase card on the landing page uses the story.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["StoryList"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Send a story for review
+     * @description Students send a headline (one line, 85 characters at most), a body (700 characters and 90 words at most), an optional photo and an optional video (mp4 or webm, 25 MB). Tutors send a body (300 characters at most) and an optional photo; a tutor sending a headline or a video gets 400. consent must be true. Files must be yours, purpose STORY_IMAGE or STORY_VIDEO, and finished uploading. Answers 201 with the story, which waits for an admin. 409 STORY_LIMIT_REACHED at 3 stories, 409 STORY_PENDING while another waits for a decision.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateStoryInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Story"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/me/stories/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete one of my stories
+     * @description Removes the story and its files. A card on the landing page that uses it is removed first. Replies 204 with no body. 404 when the story is not yours.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/students/me": {
     parameters: {
       query?: never;
@@ -2815,7 +3076,94 @@ export interface paths {
     };
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Agree to show a video on the home page
+     * @description showOnHomePage true lets an admin use this approved video on the landing page; false withdraws that agreement and takes the video off the landing page at once. Replies with the video. 404 when the video is not yours.
+     *
+     *     **Who:** TUTOR.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SetVideoHomePageInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["TutorVideo"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
     trace?: never;
   };
   "/api/v1/tutors/me/requirements": {
@@ -9482,6 +9830,139 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/site-content": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the landing page content
+     * @description The ten landing blocks: hero, nav, categories, testimonials, showcase, how_it_works, faq, cta_banner, footer and seo. A block with no row, or a stored row that no longer fits, shows its default.
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["SiteContent"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/site-content/pages/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a static page
+     * @description One of about-us, terms, privacy or contact. updatedAt is null while the page shows its default.
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          slug: "about-us" | "terms" | "privacy" | "contact";
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["SitePage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/lookups/education": {
     parameters: {
       query?: never;
@@ -15858,6 +16339,211 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/admin/stories": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List author stories
+     * @description status defaults to PENDING. Newest first for every status. role narrows to STUDENT or TUTOR stories. Cursor-paginated (limit 1 to 100, default 25). onLanding is true while a testimonials or showcase card uses the story.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          status?: "PENDING" | "APPROVED" | "REJECTED";
+          role?: "STUDENT" | "TUTOR" | "ADMIN";
+          cursor?: string;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminStoryPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/stories/{id}/moderate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Approve or reject a story
+     * @description APPROVE publishes the story's photo and clip. REJECT needs a note that tells the author why, takes the story off the landing page if a card uses it, and takes its files down. noteVisible false keeps the note between admins: the author sees a generic message. Each decision sends the author an alert (STORY_APPROVED or STORY_REJECTED). 409 STORY_ALREADY_MODERATED when the story already has that decision.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ModerateStoryInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminStory"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/admin/files": {
     parameters: {
       query?: never;
@@ -15881,7 +16567,11 @@ export interface paths {
             | "TUTOR_ID"
             | "CREDENTIAL"
             | "TUTOR_VIDEO"
-            | "BLOG_COVER";
+            | "BLOG_COVER"
+            | "SITE_IMAGE"
+            | "SITE_VIDEO"
+            | "STORY_IMAGE"
+            | "STORY_VIDEO";
           status?: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
           ownerAccountId?: string;
           unattached?: "true" | "false";
@@ -16706,6 +17396,391 @@ export interface paths {
         };
       };
     };
+    trace?: never;
+  };
+  "/api/v1/admin/site-content": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List site content
+     * @description Every landing block and static page in a fixed order, with the default, whether a row exists (isDefault) and who saved it last.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminSiteContentList"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/site-content/sources": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List submissions that can be added to a card list
+     * @description for=testimonials lists approved student stories by active students. for=showcase lists approved tutor stories (comment cards) and approved tutor videos the tutor agreed to show on the home page (video cards). Newest first, at most 100. Each row says whether it is already on the landing page (onLanding). Adding one to a list is a PUT of that block with `source` set on the card.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query: {
+          for: "testimonials" | "showcase";
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminSiteSourceList"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/site-content/{key}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update a site content block
+     * @description Any admin. The whole block is replaced, so send every field. expectedUpdatedAt is the updatedAt the editor loaded, or null when it loaded the default. A mismatch answers 409 SITE_CONTENT_CONFLICT. Unknown fields are dropped. Saving the same value again changes nothing.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          key:
+            | "hero"
+            | "nav"
+            | "categories"
+            | "testimonials"
+            | "showcase"
+            | "how_it_works"
+            | "faq"
+            | "cta_banner"
+            | "footer"
+            | "seo"
+            | "about_page"
+            | "terms_page"
+            | "privacy_page"
+            | "contact_page";
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateSiteContentInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminSiteContentItem"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    /**
+     * Reset a site content block to its default
+     * @description Any admin. Deletes the row, so the block follows the defaults again. expectedUpdatedAt is optional; when sent and it does not match, answers 409 SITE_CONTENT_CONFLICT. A block with no row answers 200 with its default.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: {
+          expectedUpdatedAt?: string;
+        };
+        header?: never;
+        path: {
+          key:
+            | "hero"
+            | "nav"
+            | "categories"
+            | "testimonials"
+            | "showcase"
+            | "how_it_works"
+            | "faq"
+            | "cta_banner"
+            | "footer"
+            | "seo"
+            | "about_page"
+            | "terms_page"
+            | "privacy_page"
+            | "contact_page";
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminSiteContentItem"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/api/v1/admin/reviews": {
@@ -17887,7 +18962,15 @@ export interface components {
       id: string;
       /** @enum {string} */
       purpose:
-        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+        | "STUDENT_ID"
+        | "TUTOR_ID"
+        | "CREDENTIAL"
+        | "TUTOR_VIDEO"
+        | "BLOG_COVER"
+        | "SITE_IMAGE"
+        | "SITE_VIDEO"
+        | "STORY_IMAGE"
+        | "STORY_VIDEO";
       contentType: string;
       sizeBytes: number;
       /** @enum {string} */
@@ -17913,7 +18996,11 @@ export interface components {
           | "TUTOR_ID"
           | "CREDENTIAL"
           | "TUTOR_VIDEO"
-          | "BLOG_COVER";
+          | "BLOG_COVER"
+          | "SITE_IMAGE"
+          | "SITE_VIDEO"
+          | "STORY_IMAGE"
+          | "STORY_VIDEO";
         /** @enum {string} */
         status: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
         count: number;
@@ -18371,6 +19458,113 @@ export interface components {
       reviews: components["schemas"]["AdminReview"][];
       nextCursor: string | null;
     };
+    AdminSiteContentItem: {
+      /** @enum {string} */
+      key:
+        | "hero"
+        | "nav"
+        | "categories"
+        | "testimonials"
+        | "showcase"
+        | "how_it_works"
+        | "faq"
+        | "cta_banner"
+        | "footer"
+        | "seo"
+        | "about_page"
+        | "terms_page"
+        | "privacy_page"
+        | "contact_page";
+      value: unknown;
+      defaultValue: unknown;
+      media: {
+        [key: string]: {
+          url: string | null;
+          contentType: string;
+          originalName: string | null;
+          /** @enum {string} */
+          purpose:
+            | "SITE_IMAGE"
+            | "SITE_VIDEO"
+            | "STORY_IMAGE"
+            | "STORY_VIDEO"
+            | "TUTOR_VIDEO";
+        };
+      };
+      isDefault: boolean;
+      updatedAt: string | null;
+      updatedByName: string | null;
+    };
+    AdminSiteContentList: {
+      items: components["schemas"]["AdminSiteContentItem"][];
+    };
+    AdminSiteSource: {
+      source: components["schemas"]["SiteCardSource"];
+      authorName: string;
+      /** @enum {string} */
+      role: "STUDENT" | "TUTOR";
+      headline: string | null;
+      body: string | null;
+      title: string | null;
+      imageRef: string | null;
+      videoRef: string | null;
+      media: {
+        [key: string]: {
+          url: string | null;
+          contentType: string;
+          originalName: string | null;
+          /** @enum {string} */
+          purpose:
+            | "SITE_IMAGE"
+            | "SITE_VIDEO"
+            | "STORY_IMAGE"
+            | "STORY_VIDEO"
+            | "TUTOR_VIDEO";
+        };
+      };
+      subjectHint: string | null;
+      instituteHint: string | null;
+      /** Format: date-time */
+      consentAt: string;
+      onLanding: boolean;
+    };
+    AdminSiteSourceList: {
+      sources: components["schemas"]["AdminSiteSource"][];
+    };
+    AdminStory: {
+      id: string;
+      author: {
+        accountId: string;
+        name: string;
+        /** @enum {string} */
+        role: "STUDENT" | "TUTOR" | "ADMIN";
+      };
+      /** @enum {string} */
+      role: "STUDENT" | "TUTOR" | "ADMIN";
+      headline: string | null;
+      body: string;
+      /** @enum {string} */
+      status: "PENDING" | "APPROVED" | "REJECTED";
+      note: string | null;
+      noteVisible: boolean;
+      image: components["schemas"]["AdminStoryMedia"] | null;
+      video: components["schemas"]["AdminStoryMedia"] | null;
+      /** Format: date-time */
+      consentAt: string;
+      /** Format: date-time */
+      createdAt: string;
+      decidedAt: string | null;
+      onLanding: boolean;
+    };
+    AdminStoryMedia: {
+      url: string | null;
+      contentType: string;
+      originalName: string | null;
+    };
+    AdminStoryPage: {
+      stories: components["schemas"]["AdminStory"][];
+      nextCursor: string | null;
+    };
     AdminStudentVerification: {
       studentId: string;
       /** @enum {string} */
@@ -18522,7 +19716,9 @@ export interface components {
         | "FILE_REMOVED"
         | "UPLOADS_BLOCKED"
         | "UPLOADS_UNBLOCKED"
-        | "REQUIREMENT_INVITED";
+        | "REQUIREMENT_INVITED"
+        | "STORY_APPROVED"
+        | "STORY_REJECTED";
       applicationId: string | null;
       requirementId: string | null;
       listingKind: ("REQUIREMENT" | "PACKAGE") | null;
@@ -18535,6 +19731,10 @@ export interface components {
             | "CREDENTIAL"
             | "TUTOR_VIDEO"
             | "BLOG_COVER"
+            | "SITE_IMAGE"
+            | "SITE_VIDEO"
+            | "STORY_IMAGE"
+            | "STORY_VIDEO"
           )
         | null;
       blocksVideos: boolean | null;
@@ -19269,6 +20469,16 @@ export interface components {
       rating: number;
       comment?: string | null;
     };
+    CreateStoryInput: {
+      headline?: string;
+      body: string;
+      /** Format: uuid */
+      imageFileId?: string;
+      /** Format: uuid */
+      videoFileId?: string;
+      /** @constant */
+      consent: true;
+    };
     CreateStudentProfileInput: {
       name: string;
       areaId: number;
@@ -19357,7 +20567,15 @@ export interface components {
     CreateUploadUrlInput: {
       /** @enum {string} */
       purpose:
-        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+        | "STUDENT_ID"
+        | "TUTOR_ID"
+        | "CREDENTIAL"
+        | "TUTOR_VIDEO"
+        | "BLOG_COVER"
+        | "SITE_IMAGE"
+        | "SITE_VIDEO"
+        | "STORY_IMAGE"
+        | "STORY_VIDEO";
       contentType: string;
       sizeBytes: number;
       fileName?: string;
@@ -19505,6 +20723,7 @@ export interface components {
       | "INVALID_VERIFICATION_STATE"
       | "VIDEO_ALREADY_MODERATED"
       | "BLOG_SLUG_EXISTS"
+      | "SITE_CONTENT_CONFLICT"
       | "INVALID_POST_STATE"
       | "REVIEW_EXISTS"
       | "REVIEW_NOT_ALLOWED"
@@ -19525,7 +20744,10 @@ export interface components {
       | "SMS_UNAVAILABLE"
       | "INVITE_EXISTS"
       | "INVITE_LIMIT_REACHED"
-      | "REQUIREMENT_DUPLICATE";
+      | "REQUIREMENT_DUPLICATE"
+      | "STORY_LIMIT_REACHED"
+      | "STORY_PENDING"
+      | "STORY_ALREADY_MODERATED";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -19566,7 +20788,15 @@ export interface components {
       id: string;
       /** @enum {string} */
       purpose:
-        "STUDENT_ID" | "TUTOR_ID" | "CREDENTIAL" | "TUTOR_VIDEO" | "BLOG_COVER";
+        | "STUDENT_ID"
+        | "TUTOR_ID"
+        | "CREDENTIAL"
+        | "TUTOR_VIDEO"
+        | "BLOG_COVER"
+        | "SITE_IMAGE"
+        | "SITE_VIDEO"
+        | "STORY_IMAGE"
+        | "STORY_VIDEO";
       contentType: string;
       sizeBytes: number;
       /** @enum {string} */
@@ -19992,6 +21222,13 @@ export interface components {
       /** @enum {string} */
       status: "VISIBLE" | "HIDDEN";
       note: string;
+    };
+    ModerateStoryInput: {
+      /** @enum {string} */
+      decision: "APPROVE" | "REJECT";
+      note?: string;
+      /** @default true */
+      noteVisible?: boolean;
     };
     ModerateVideoInput: {
       /** @enum {string} */
@@ -20485,6 +21722,191 @@ export interface components {
     SessionList: {
       sessions: components["schemas"]["Session"][];
     };
+    SetVideoHomePageInput: {
+      showOnHomePage: boolean;
+    };
+    SiteCardSource: {
+      /** @enum {string} */
+      kind: "story" | "tutor_video";
+      /** Format: uuid */
+      id: string;
+    };
+    SiteCategoriesBlock: {
+      title: string;
+      description: string;
+      cta: {
+        label: string;
+        href: string;
+      };
+    };
+    SiteContent: {
+      hero: components["schemas"]["SiteHeroBlock"];
+      nav: components["schemas"]["SiteNavBlock"];
+      categories: components["schemas"]["SiteCategoriesBlock"];
+      testimonials: components["schemas"]["SiteTestimonialsBlock"];
+      showcase: components["schemas"]["SiteShowcaseBlock"];
+      how_it_works: components["schemas"]["SiteHowItWorksBlock"];
+      faq: components["schemas"]["SiteFaqBlock"];
+      cta_banner: components["schemas"]["SiteCtaBannerBlock"];
+      footer: components["schemas"]["SiteFooterBlock"];
+      seo: components["schemas"]["SiteSeoBlock"];
+    };
+    SiteCtaBannerBlock: {
+      heading: string;
+      text: string;
+      cta: {
+        label: string;
+        href: string;
+      };
+    };
+    SiteFaqBlock: {
+      enabled: boolean;
+      title: string;
+      items: {
+        question: string;
+        answer: string;
+      }[];
+      openIndex: number | null;
+      cta: {
+        label: string;
+        href: string;
+      };
+    };
+    SiteFooterBlock: {
+      about: string;
+      address: string;
+      phone: string;
+      /** Format: email */
+      email: string;
+      columns: {
+        heading: string;
+        links: {
+          label: string;
+          href: string;
+        }[];
+      }[];
+      socials: {
+        /** @enum {string} */
+        platform: "instagram" | "telegram" | "tiktok" | "youtube";
+        href: string;
+      }[];
+      brandName: string;
+    };
+    SiteHeroBlock: {
+      tagline: string;
+      headline: string;
+      subline: string;
+      skillPlaceholders: string[];
+      placePlaceholders: string[];
+      searchLabel: string;
+    };
+    SiteHowItWorksBlock: {
+      enabled: boolean;
+      title: string;
+      find: components["schemas"]["SiteHowItWorksFlow"];
+      become: components["schemas"]["SiteHowItWorksFlow"];
+    };
+    SiteHowItWorksFlow: {
+      label: string;
+      video: {
+        title: string;
+        subtitle: string;
+        thumbnail: string;
+        video: string;
+      };
+      steps: {
+        title: string;
+        description: string;
+        /** @enum {string} */
+        icon: "signup" | "details" | "search" | "documents" | "discovered";
+      }[];
+    };
+    SiteNavBlock: {
+      links: {
+        label: string;
+        href: string;
+      }[];
+      cta: {
+        label: string;
+        href: string;
+      };
+    };
+    SitePage: {
+      slug: string;
+      title: string;
+      description: string;
+      body: string;
+      updatedAt: string | null;
+    };
+    SiteSeoBlock: {
+      title: string;
+      description: string;
+    };
+    SiteShowcaseBlock: {
+      enabled: boolean;
+      title: string;
+      items: components["schemas"]["SiteShowcaseItem"][];
+    };
+    SiteShowcaseItem:
+      | {
+          /** @constant */
+          kind: "video";
+          name: string;
+          subject: string;
+          thumbnail: string;
+          source?: components["schemas"]["SiteCardSource"];
+          video: string;
+        }
+      | {
+          /** @constant */
+          kind: "comment";
+          name: string;
+          subject: string;
+          thumbnail: string;
+          source?: components["schemas"]["SiteCardSource"];
+          university: string;
+          comment: string;
+        };
+    SiteTestimonial: {
+      name: string;
+      role: string;
+      photo: string;
+      quote: string;
+      comment: string;
+      video?: string;
+      source?: components["schemas"]["SiteCardSource"];
+    };
+    SiteTestimonialsBlock: {
+      enabled: boolean;
+      title: string;
+      items: components["schemas"]["SiteTestimonial"][];
+    };
+    Story: {
+      id: string;
+      /** @enum {string} */
+      role: "STUDENT" | "TUTOR" | "ADMIN";
+      headline: string | null;
+      body: string;
+      /** @enum {string} */
+      status: "PENDING" | "APPROVED" | "REJECTED";
+      note: string | null;
+      image: components["schemas"]["StoryMedia"] | null;
+      video: components["schemas"]["StoryMedia"] | null;
+      /** Format: date-time */
+      createdAt: string;
+      decidedAt: string | null;
+      onLanding: boolean;
+    };
+    StoryList: {
+      stories: components["schemas"]["Story"][];
+      max: number;
+      canSubmit: boolean;
+      blockedReason: ("LIMIT" | "PENDING") | null;
+    };
+    StoryMedia: {
+      url: string | null;
+      contentType: string;
+    };
     StudentProfile: {
       id: string;
       accountId: string;
@@ -20904,6 +22326,7 @@ export interface components {
       /** @enum {string} */
       status: "PENDING" | "APPROVED" | "REJECTED";
       moderationNote: string | null;
+      showOnHomePage: boolean;
       sortOrder: number;
       createdAt: string;
       url: string | null;
@@ -21043,6 +22466,10 @@ export interface components {
     UpdateSettingInput: {
       value: number | boolean;
     };
+    UpdateSiteContentInput: {
+      value: unknown;
+      expectedUpdatedAt: string | null;
+    };
     UpdateStudentProfileInput: {
       name?: string;
       areaId?: number;
@@ -21179,6 +22606,10 @@ export interface components {
             | "CREDENTIAL"
             | "TUTOR_VIDEO"
             | "BLOG_COVER"
+            | "SITE_IMAGE"
+            | "SITE_VIDEO"
+            | "STORY_IMAGE"
+            | "STORY_VIDEO"
           )
         | null;
       fileName: string | null;

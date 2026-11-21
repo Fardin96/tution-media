@@ -217,7 +217,7 @@ test.describe("Admin disputes", () => {
 });
 
 test.describe("Admin navigation", () => {
-  test("lists Reviews, Reports and Disputes after Videos", async ({
+  test("lists Reviews, Stories, Reports and Disputes after Videos", async ({
     page,
     context,
   }) => {
@@ -229,8 +229,9 @@ test.describe("Admin navigation", () => {
     const trimmed = labels.map((l) => l.trim().split("\n")[0]);
     const videos = trimmed.indexOf("Videos");
     expect(videos).toBeGreaterThan(-1);
-    expect(trimmed.slice(videos + 1, videos + 4)).toEqual([
+    expect(trimmed.slice(videos + 1, videos + 5)).toEqual([
       "Reviews",
+      "Stories",
       "Reports",
       "Disputes",
     ]);

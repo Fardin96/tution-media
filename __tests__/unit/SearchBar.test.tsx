@@ -1,11 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SearchBar from "@/components/SearchBar";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
+
+const hero = SITE_CONTENT_DEFAULTS.hero;
 
 describe("SearchBar", () => {
   beforeEach(() => {
@@ -13,7 +16,7 @@ describe("SearchBar", () => {
   });
 
   it("renders two inputs and a submit button", () => {
-    render(<SearchBar />);
+    render(<SearchBar {...hero} />);
     expect(
       screen.getByRole("searchbox", { name: /skill or role/i }),
     ).toBeInTheDocument();
@@ -24,7 +27,7 @@ describe("SearchBar", () => {
   });
 
   it("navigates to /talents with query params on submit", async () => {
-    render(<SearchBar />);
+    render(<SearchBar {...hero} />);
     const skillInput = screen.getByRole("searchbox", {
       name: /skill or role/i,
     });
@@ -40,7 +43,7 @@ describe("SearchBar", () => {
   });
 
   it("omits empty params from the query string", async () => {
-    render(<SearchBar />);
+    render(<SearchBar {...hero} />);
     await userEvent.type(
       screen.getByRole("searchbox", { name: /skill or role/i }),
       "Physics",

@@ -31,6 +31,8 @@ type FilePickerProps = {
   disabled?: boolean;
   /** Called while an upload is running, so the form can hold its submit button. */
   onBusyChange?: (busy: boolean) => void;
+  /** Called with the picked file before it uploads, e.g. to preview it. */
+  onPick?: (file: File) => void;
 };
 
 /**
@@ -47,6 +49,7 @@ export function FilePicker({
   invalid,
   disabled,
   onBusyChange,
+  onPick,
 }: FilePickerProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { state, start, cancel, reset, refuse } = useFileUpload(purpose);
@@ -60,6 +63,7 @@ export function FilePicker({
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    onPick?.(file);
     const asset = await start(file);
     if (asset) onChange(asset);
   };

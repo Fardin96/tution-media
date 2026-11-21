@@ -19,7 +19,6 @@ import {
   Flag,
   MapPin,
   MessageCircle,
-  PauseCircle,
   Pencil,
   PlayCircle,
   Plus,
@@ -68,6 +67,7 @@ import {
   ApiError,
   SECTIONS,
   clearSession,
+  useSetVideoHomePage,
   formatBdPhone,
   formFromProfile,
   normalizeBdPhone,
@@ -109,6 +109,7 @@ import {
   type ConfirmAction,
 } from "@/components/ui/confirm-dialog";
 import { TutorPackagesSection } from "@/components/packages/dashboard-section";
+import { StoriesSection } from "@/components/stories/stories-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
 import { PhoneVerifyDialog } from "./phone-verify-dialog";
@@ -118,6 +119,15 @@ import {
   type SubmittedVerification,
 } from "./verification-upload-dialog";
 import { VideoDialog } from "./video-dialog";
+import {
+  AddButton,
+  EmptyState,
+  loadFailed,
+  PausedNotice,
+  Pill,
+  SectionHeading,
+  type Tone,
+} from "./dashboard-kit";
 import {
   card,
   focusRing,
@@ -131,20 +141,6 @@ const WASH = [
   "radial-gradient(45% 70% at 100% 0%, color-mix(in oklab, var(--color-mesh-glow) 50%, transparent), transparent 70%)",
   "radial-gradient(40% 60% at 70% 100%, var(--color-secondary-sky), transparent 70%)",
 ].join(",");
-
-type Tone = "success" | "warning" | "error" | "neutral" | "info";
-
-const TONE: Record<Tone, string> = {
-  success:
-    "bg-[var(--color-semantic-success-surface)] text-[var(--color-semantic-success-text)]",
-  warning:
-    "bg-[var(--color-semantic-warning-surface)] text-[var(--color-semantic-warning-text)]",
-  error:
-    "bg-[var(--color-semantic-error-surface)] text-[var(--color-semantic-error-text)]",
-  neutral:
-    "bg-[var(--color-surface-subtle)] text-[var(--color-text-secondary)]",
-  info: "bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]",
-};
 
 const VERIFICATION: Record<VerificationStatus, { tone: Tone; label: string }> =
   {
@@ -494,6 +490,14 @@ export function ProfileDashboard({
     }));
   };
 
+  // The server's copy after a home-page change, so the box and the landing state agree.
+  const updateVideo = (video: Video) => {
+    setTutorData((d) => ({
+      ...d,
+      videos: d.videos?.map((v) => (v.id === video.id ? video : v)) ?? null,
+    }));
+  };
+
   const phoneVerified = (result: {
     phoneNumber: string;
     verifiedAt: string;
@@ -655,7 +659,9 @@ export function ProfileDashboard({
                       videos={tutorData.videos}
                       onRemove={removeVideo}
                       onAdded={addVideo}
+                      onUpdated={updateVideo}
                     />
+                    <StoriesSection role="TUTOR" />
                     <TutorPackagesSection />
                     <TeachingZonesCard />
                     <FindWorkCard />
@@ -678,6 +684,7 @@ export function ProfileDashboard({
                         }}
                       />
                     </Suspense>
+                    <StoriesSection role="STUDENT" />
                     <ApplicationsCard />
                     <ReportsCard />
                     <RecommendedTutors />
@@ -822,73 +829,6 @@ function Avatar({
     >
       {initials || "?"}
     </span>
-  );
-}
-
-function Pill({
-  tone,
-  children,
-  className,
-}: {
-  tone: Tone;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-        TONE[tone],
-        className,
-      )}
-    >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-      {children}
-    </span>
-  );
-}
-
-function SampleTag() {
-  return (
-    <span className="rounded-full bg-[var(--color-surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
-      Sample data
-    </span>
-  );
-}
-
-function SectionHeading({
-  id,
-  title,
-  description,
-  sample,
-  action,
-}: {
-  id: string;
-  title: string;
-  description?: string;
-  sample?: boolean;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2
-            id={id}
-            className="text-xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] sm:text-2xl"
-          >
-            {title}
-          </h2>
-          {sample && <SampleTag />}
-        </div>
-        {description && (
-          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
-            {description}
-          </p>
-        )}
-      </div>
-      {action}
-    </div>
   );
 }
 
@@ -1359,49 +1299,6 @@ function VideoPreview({ video }: { video: Video }) {
   );
 }
 
-function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(secondaryButton, "min-h-10")}
-    >
-      <Plus aria-hidden="true" className="size-4" />
-      {label}
-    </button>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
-        {icon}
-      </span>
-      <p className="mt-1 font-semibold text-[var(--color-neutral-charcoal)]">
-        {title}
-      </p>
-      <p className="max-w-sm text-sm text-pretty text-[var(--color-text-secondary)]">
-        {body}
-      </p>
-    </div>
-  );
-}
-
-const loadFailed = (
-  <p className="px-6 py-10 text-center text-sm text-[var(--color-text-secondary)]">
-    Couldn&apos;t load this list. Refresh the page to try again.
-  </p>
-);
-
 function CredentialsSection({
   credentials,
   onRemove,
@@ -1480,14 +1377,16 @@ function CredentialsSection({
   );
 }
 
-function VideosSection({
+export function VideosSection({
   videos,
   onRemove,
   onAdded,
+  onUpdated,
 }: {
   videos: Video[] | null;
   onRemove: (id: string) => Promise<void>;
   onAdded: (video: Video) => void;
+  onUpdated: (video: Video) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const uploadStatus = useUploadStatus();
@@ -1495,6 +1394,14 @@ function VideosSection({
   // Without the list the count is unknown, so the add button waits for a reload.
   const full = videos !== null && videoLimitReached(videos.length);
   const canAdd = videos !== null && !full && !blockedText;
+  const setHomePage = useSetVideoHomePage(onUpdated);
+  // The box stays on the saved value until the server answers, so a failed save reverts it.
+  const saveHomePage = (video: Video, show: boolean) => {
+    setHomePage
+      .mutateAsync({ id: video.id, show })
+      .then(() => toast.success("Saved"))
+      .catch((err) => toastError("Couldn't save that.", err));
+  };
   return (
     <section
       id="videos"
@@ -1529,6 +1436,8 @@ function VideosSection({
           <ul className="divide-y divide-[var(--color-neutral-border)]">
             {videos.map((v) => {
               const s = VIDEO_STATUS[v.status];
+              const saving =
+                setHomePage.isPending && setHomePage.variables?.id === v.id;
               return (
                 <RemovableRow
                   key={v.id}
@@ -1536,6 +1445,24 @@ function VideosSection({
                   title={v.title}
                   meta={`Added ${monthYear(v.createdAt)}`}
                   badge={<Pill tone={s.tone}>{s.label}</Pill>}
+                  action={
+                    <label className="flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--color-neutral-charcoal)]">
+                      <input
+                        type="checkbox"
+                        aria-label={`Show on our home page for ${v.title}`}
+                        checked={v.showOnHomePage}
+                        disabled={saving}
+                        onChange={(event) =>
+                          saveHomePage(v, event.target.checked)
+                        }
+                        className={cn(
+                          "size-5 shrink-0 accent-[var(--color-primary-core)]",
+                          focusRing,
+                        )}
+                      />
+                      Show on our home page
+                    </label>
+                  }
                   preview={<VideoPreview video={v} />}
                   onRemove={() => onRemove(v.id)}
                 />
@@ -1544,6 +1471,12 @@ function VideosSection({
           </ul>
         )}
       </div>
+      {videos !== null && videos.length > 0 && (
+        <p className="mt-3 text-sm text-pretty text-[var(--color-text-secondary)]">
+          Ticking it lets admins add the video to our home page. Untick it to
+          take it off at once.
+        </p>
+      )}
       {full && (
         <p className="mt-3 text-sm text-pretty text-[var(--color-text-secondary)]">
           You have {MAX_TUTOR_VIDEOS} videos, the most allowed. Remove one to
@@ -2160,24 +2093,6 @@ function RecommendedTutors() {
 /* ───────── Paused uploads ───────── */
 
 /** Static warning that replaces an upload button while an admin has paused that kind of upload. */
-function PausedNotice({
-  text,
-  note,
-}: {
-  text: string;
-  note: string | null | undefined;
-}) {
-  return (
-    <div className="flex items-start gap-3 rounded-[12px] bg-[var(--color-semantic-warning-surface)] px-3 py-3 text-sm text-pretty text-[var(--color-semantic-warning-text)]">
-      <PauseCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 break-words">
-        <p className="font-semibold">{text}</p>
-        {note && <p className="mt-1">Admin note: {note}</p>}
-      </div>
-    </div>
-  );
-}
-
 /* ───────── Aside ───────── */
 
 function VerificationCard({
