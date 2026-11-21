@@ -32,6 +32,8 @@ interface EducationLevelPickerProps {
   value: EducationFields;
   onChange: (next: EducationFields) => void;
   errors: Partial<Record<keyof EducationFields, string>>;
+  /** Extra hint under the class picker, linked to it. */
+  classHint?: string;
 }
 
 export function EducationLevelPicker({
@@ -39,6 +41,7 @@ export function EducationLevelPicker({
   value,
   onChange,
   errors,
+  classHint,
 }: EducationLevelPickerProps) {
   const query = useEducationLookup();
   const lookup = query.data;
@@ -97,6 +100,7 @@ export function EducationLevelPicker({
 
   const curriculumLabelId = `${idPrefix}-curriculum-label`;
   const levelHintId = `${idPrefix}-level-hint`;
+  const classHintId = `${idPrefix}-class-hint`;
   const levelErrorId = `${idPrefix}-levelCode-error`;
 
   return (
@@ -145,6 +149,7 @@ export function EducationLevelPicker({
           disabled={!curriculum}
           aria-invalid={errors.levelCode ? true : undefined}
           aria-describedby={describedBy(
+            classHint && classHintId,
             offersAdmission && levelHintId,
             errors.levelCode && levelErrorId,
           )}
@@ -165,6 +170,11 @@ export function EducationLevelPicker({
             </option>
           ))}
         </select>
+        {classHint && (
+          <p id={classHintId} className={hintClass}>
+            {classHint}
+          </p>
+        )}
         {offersAdmission && (
           <p id={levelHintId} className={hintClass}>
             {ADMISSION_HINT}

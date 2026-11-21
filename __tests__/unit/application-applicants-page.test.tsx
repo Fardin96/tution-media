@@ -88,11 +88,14 @@ function respond(body: unknown, status = 200) {
   });
 }
 
-function mockApplicants(applications: Application[]) {
+function mockApplicants(applications: Application[], status?: string) {
   vi.mocked(apiFetch).mockImplementation(async (input) => {
     const { pathname } = new URL(input, "http://localhost");
     if (pathname === `/api/v1/requirements/${REQUIREMENT_ID}/applications`) {
       return respond({ applications, nextCursor: null });
+    }
+    if (pathname === `/api/v1/requirements/${REQUIREMENT_ID}` && status) {
+      return respond({ id: REQUIREMENT_ID, status });
     }
     return respond({ message: "Not mocked" }, 404);
   });
@@ -170,5 +173,29 @@ describe("RequirementApplicantsPage", () => {
     expect(
       screen.getByRole("link", { name: "View tutor" }),
     ).toBeInTheDocument();
+  });
+
+  it.each(["CLOSED", "FILLED", "EXPIRED"])(
+    "offers Post again for a %s requirement",
+    async (status) => {
+      mockApplicants([], status);
+      renderPage();
+
+      const link = await screen.findByRole("link", { name: "Post again" });
+      expect(link).toHaveAttribute(
+        "href",
+        `/dashboard/requirements/new?from=${REQUIREMENT_ID}`,
+      );
+    },
+  );
+
+  it("does not offer Post again while the requirement is open", async () => {
+    mockApplicants([application()], "OPEN");
+    renderPage();
+
+    await screen.findByRole("heading", { name: "Rafiq Ahmed" });
+    expect(
+      screen.queryByRole("link", { name: "Post again" }),
+    ).not.toBeInTheDocument();
   });
 });

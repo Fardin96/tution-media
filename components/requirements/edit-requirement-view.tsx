@@ -1,12 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { RequirementForm } from "@/components/requirements/requirement-form";
-import { requirementApi, type Requirement } from "@/lib/requirements";
+import {
+  isPastRequirement,
+  postAgainHref,
+  requirementApi,
+  type Requirement,
+} from "@/lib/requirements";
 import { card, primaryButton } from "@/components/profile/styles";
+
+function blockedCopy(status: string): string {
+  if (status === "FILLED") {
+    return "A tutor is hired for this requirement, so it can't be edited.";
+  }
+  if (status === "EXPIRED") {
+    return "This requirement has expired, so it can't be edited.";
+  }
+  return "This requirement is closed, so it can't be edited.";
+}
 
 export function EditRequirementView({ id }: { id: string }) {
   const [requirement, setRequirement] = useState<Requirement | null>(null);
@@ -19,11 +35,7 @@ export function EditRequirementView({ id }: { id: string }) {
       .get(id)
       .then((data) => {
         if (!live) return;
-        if (data.status === "CLOSED") {
-          setError("This requirement is closed, so it can't be edited.");
-        } else {
-          setRequirement(data);
-        }
+        setRequirement(data);
       })
       .catch((err) => {
         if (!live) return;
@@ -47,6 +59,11 @@ export function EditRequirementView({ id }: { id: string }) {
     };
   }, [id]);
 
+  // A past requirement is shown as blocked, with a way to post it again.
+  const blocked =
+    requirement && isPastRequirement(requirement.status) ? requirement : null;
+  const message = blocked ? blockedCopy(blocked.status) : error;
+
   return (
     <RequirementPageShell
       title="Edit requirement"
@@ -63,30 +80,36 @@ export function EditRequirementView({ id }: { id: string }) {
             <div className="h-12 animate-pulse rounded-[12px] bg-[var(--color-surface-subtle)] motion-reduce:animate-none" />
           </div>
         </div>
-      ) : error ? (
+      ) : message ? (
         <div className={cn(card, "mt-6 p-6 text-center sm:p-8")} role="alert">
           <h2 className="text-lg font-semibold text-[var(--color-neutral-charcoal)] sm:text-xl">
-            {error}
+            {message}
           </h2>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                requirementApi
-                  .get(id)
-                  .then((d) => setRequirement(d))
-                  .catch((e) =>
-                    setError(e instanceof Error ? e.message : "Error"),
-                  )
-                  .finally(() => setLoading(false));
-              }}
-              className={primaryButton}
-            >
-              <RotateCw aria-hidden="true" className="size-4" />
-              Try again
-            </button>
+            {blocked ? (
+              <Link href={postAgainHref(id)} className={primaryButton}>
+                Post again
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  requirementApi
+                    .get(id)
+                    .then((d) => setRequirement(d))
+                    .catch((e) =>
+                      setError(e instanceof Error ? e.message : "Error"),
+                    )
+                    .finally(() => setLoading(false));
+                }}
+                className={primaryButton}
+              >
+                <RotateCw aria-hidden="true" className="size-4" />
+                Try again
+              </button>
+            )}
           </div>
         </div>
       ) : (

@@ -75,6 +75,7 @@ export const ERROR_CODES = {
   SmsUnavailable: "SMS_UNAVAILABLE",
   InviteExists: "INVITE_EXISTS",
   InviteLimitReached: "INVITE_LIMIT_REACHED",
+  RequirementDuplicate: "REQUIREMENT_DUPLICATE",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -262,6 +263,8 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "We couldn't send the SMS right now. Try again in a few minutes.",
   INVITE_EXISTS: "You already invited this tutor.",
   INVITE_LIMIT_REACHED: "You can invite up to 20 tutors to one tuition.",
+  REQUIREMENT_DUPLICATE:
+    "You already have an open requirement like this one. Edit it instead.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

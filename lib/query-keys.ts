@@ -6,6 +6,11 @@ export type ZoneRequestStatus = "PENDING" | "APPROVED" | "DENIED";
 export const queryKeys = {
   me: ["me"] as const,
   match: ["match"] as const,
+  /** The signed-in student's own requirements. */
+  requirements: {
+    mine: ["requirements", "mine"] as const,
+    detail: (id: string) => ["requirements", "detail", id] as const,
+  },
   tutor: {
     requirements: {
       all: ["tutor", "requirements"] as const,

@@ -4,7 +4,7 @@ import {
   type Curriculum,
   type EducationFields,
 } from "./education";
-import type { TUITION_TYPES } from "./profile";
+import { TUITION_TYPES } from "./profile";
 import { daysPerWeekError, EVERY_DAY } from "./days";
 
 export type TuitionType = (typeof TUITION_TYPES)[number];
@@ -35,6 +35,33 @@ export type RequirementForm = EducationFields & {
 export type RequirementFormErrors = Partial<
   Record<keyof RequirementForm, string>
 >;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const DHAKA_DATE = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "Asia/Dhaka",
+});
+
+/** Calendar date (YYYY-MM-DD) in Asia/Dhaka, the zone the product runs in. */
+export function dhakaIsoDate(date: Date): string {
+  return DHAKA_DATE.format(date);
+}
+
+const POSTED_DATE = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "Asia/Dhaka",
+});
+
+/** "12 Mar 2026" in Asia/Dhaka. Unparseable input comes back unchanged. */
+export function formatPostedDate(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : POSTED_DATE.format(date);
+}
 
 export function getLocalIsoDate(date = new Date()): string {
   const year = date.getFullYear();
@@ -85,10 +112,10 @@ export function statusMeta(status: ListingStatus | string): {
 // A new requirement starts on Bangla Medium; a saved one keeps whatever it has (null on old drafts).
 export const DEFAULT_CURRICULUM: Curriculum = "BANGLA_MEDIUM";
 
-export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
-  const in14Days = new Date();
-  in14Days.setDate(in14Days.getDate() + 14);
-
+export function emptyRequirementForm(
+  defaultAreaId?: number,
+  now = new Date(),
+): RequirementForm {
   return {
     ...emptyEducation,
     curriculum: DEFAULT_CURRICULUM,
@@ -101,7 +128,7 @@ export function emptyRequirementForm(defaultAreaId?: number): RequirementForm {
     daysPerWeek: 3,
     availableDays: EVERY_DAY,
     timeOfDay: "",
-    hireByDate: getLocalIsoDate(in14Days),
+    hireByDate: dhakaIsoDate(new Date(now.getTime() + 14 * DAY_MS)),
     salary: "",
     studentCount: 1,
     tutorGenderPref: "ANY",
@@ -273,6 +300,73 @@ export function validateRequirementForm(
   }
 
   return errors;
+}
+
+/** Past requirements (CLOSED, FILLED, EXPIRED) can be copied into a new post. */
+export function isPastRequirement(status: string): boolean {
+  return status === "CLOSED" || status === "FILLED" || status === "EXPIRED";
+}
+
+export function postAgainHref(id: string): string {
+  return `/dashboard/requirements/new?from=${encodeURIComponent(id)}`;
+}
+
+export interface RequirementTemplateNotes {
+  /** The source's createdAt, shown as "posted on" in the copy notice. */
+  postedOn: string;
+  /** Subjects on the old post that are no longer offered. */
+  removedSubjects: number;
+  areaCleared: boolean;
+  tuitionTypeReset: boolean;
+  /** The source is old enough that its class may have changed. */
+  checkClass: boolean;
+}
+
+const CHECK_CLASS_AFTER_DAYS = 180;
+
+/**
+ * Form state for "Post again": the source's details with anything that may no longer apply
+ * cleared, plus notes saying what changed. The hire date is reset to 14 days from now.
+ */
+export function requirementTemplate(
+  source: Requirement,
+  opts: { subjectIds: number[]; areaIds: number[]; now?: Date },
+): { form: RequirementForm; notes: RequirementTemplateNotes } {
+  const now = opts.now ?? new Date();
+  const copied = fromRequirement(source);
+
+  const activeSubjects = new Set(opts.subjectIds);
+  const subjectIds = copied.subjectIds.filter((id) => activeSubjects.has(id));
+  const removedSubjects = copied.subjectIds.length - subjectIds.length;
+
+  const areaCleared =
+    copied.areaId !== null && !opts.areaIds.includes(copied.areaId);
+
+  const tuitionTypeReset = !(TUITION_TYPES as readonly string[]).includes(
+    copied.tuitionType,
+  );
+
+  const fresh = emptyRequirementForm(undefined, now);
+  const ageMs = now.getTime() - new Date(source.createdAt).getTime();
+
+  const form: RequirementForm = {
+    ...copied,
+    subjectIds,
+    areaId: areaCleared ? null : copied.areaId,
+    tuitionType: tuitionTypeReset ? fresh.tuitionType : copied.tuitionType,
+    hireByDate: fresh.hireByDate,
+  };
+
+  return {
+    form,
+    notes: {
+      postedOn: source.createdAt,
+      removedSubjects,
+      areaCleared,
+      tuitionTypeReset,
+      checkClass: ageMs > CHECK_CLASS_AFTER_DAYS * DAY_MS,
+    },
+  };
 }
 
 export const requirementApi = {

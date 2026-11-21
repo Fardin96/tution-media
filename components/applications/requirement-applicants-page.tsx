@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Repeat2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
@@ -15,7 +15,12 @@ import {
   genderLabel,
   ratingText,
 } from "@/components/applications/format";
-import { useRequirementApplicants, type Application } from "@/lib/applications";
+import {
+  useRequirementApplicants,
+  useStudentRequirement,
+  type Application,
+} from "@/lib/applications";
+import { isPastRequirement, postAgainHref } from "@/lib/requirements";
 
 function ApplicantCard({ application }: { application: Application }) {
   const { tutor } = application;
@@ -91,12 +96,16 @@ export function RequirementApplicantsPage({
   requirementId: string;
 }) {
   const query = useRequirementApplicants(requirementId);
+  const { data: requirement } = useStudentRequirement(requirementId);
+  const past = !!requirement && isPastRequirement(requirement.status);
 
   const applicants = useMemo(
     () => query.data?.pages.flatMap((page) => page.applications) ?? [],
     [query.data],
   );
-  const hired = applicants.some((a) => a.status === "CONFIRMED");
+  const hired = applicants.some(
+    (a) => a.status === "CONFIRMED" || a.status === "COMPLETED",
+  );
 
   let body: ReactNode;
   if (query.isPending) {
@@ -145,11 +154,22 @@ export function RequirementApplicantsPage({
         <BackLink href="/dashboard">Dashboard</BackLink>
 
         <header className="grid gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-              Applicants
-            </h1>
-            {hired && <TonePill tone="success">Tutor hired</TonePill>}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
+                Applicants
+              </h1>
+              {hired && <TonePill tone="success">Tutor hired</TonePill>}
+            </div>
+            {past && (
+              <Link
+                href={postAgainHref(requirementId)}
+                className={cn(secondaryButton, "min-h-10 px-4")}
+              >
+                <Repeat2 aria-hidden="true" className="size-4" />
+                Post again
+              </Link>
+            )}
           </div>
           <p className="text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
             {hired

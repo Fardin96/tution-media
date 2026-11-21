@@ -4176,7 +4176,7 @@ export interface paths {
     put?: never;
     /**
      * Create a requirement
-     * @description Creates an OPEN requirement, or a DRAFT when status is DRAFT (levelCode and curriculum may be null on drafts). 400 for an unknown area or subject, or for invalid education fields. 404 when the student has no profile.
+     * @description Creates an OPEN requirement, or a DRAFT when status is DRAFT (levelCode and curriculum may be null on drafts). 400 for an unknown area or subject, or for invalid education fields. 404 when the student has no profile. 409 REQUIREMENT_DUPLICATE (details.requirementId) when posting OPEN and the student already has an OPEN requirement with no hired tutor for the same level, curriculum, academic group, admission targets, area and subjects; drafts are never checked.
      *
      *     **Who:** STUDENT.
      *
@@ -4233,6 +4233,15 @@ export interface paths {
         };
         /** @description Not found */
         404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
           headers: {
             [name: string]: unknown;
           };
@@ -4500,7 +4509,7 @@ export interface paths {
     };
     /**
      * List my requirements
-     * @description Newest first. Empty when the student has no profile yet.
+     * @description Newest first. Empty when the student has no profile yet. status reads FILLED while the requirement has a CONFIRMED or COMPLETED application, whatever the stored status.
      *
      *     **Who:** STUDENT.
      *
@@ -4579,7 +4588,7 @@ export interface paths {
     };
     /**
      * Get one of my requirements
-     * @description Only the owning student can read it.
+     * @description Only the owning student can read it. status reads FILLED while it has a CONFIRMED or COMPLETED application.
      *
      *     **Who:** STUDENT.
      *
@@ -4668,7 +4677,7 @@ export interface paths {
     head?: never;
     /**
      * Update my requirement
-     * @description Send any subset of fields. The merged values are checked against the education rules (400 INVALID_REQUIREMENT with details.fields). 409 when the requirement is not DRAFT or OPEN. Publishing (status OPEN) also needs every field set (400).
+     * @description Send any subset of fields. The merged values are checked against the education rules (400 INVALID_REQUIREMENT with details.fields). 409 when the requirement is not DRAFT or OPEN, or has a hired tutor (a CONFIRMED or COMPLETED application). 409 REQUIREMENT_DUPLICATE (details.requirementId) when the result is OPEN and matches another of the student's OPEN, unhired requirements. Publishing (status OPEN) also needs every field set (400).
      *
      *     **Who:** STUDENT.
      *
@@ -19515,7 +19524,8 @@ export interface components {
       | "OTP_TOO_MANY_ATTEMPTS"
       | "SMS_UNAVAILABLE"
       | "INVITE_EXISTS"
-      | "INVITE_LIMIT_REACHED";
+      | "INVITE_LIMIT_REACHED"
+      | "REQUIREMENT_DUPLICATE";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
