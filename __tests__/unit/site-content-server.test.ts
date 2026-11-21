@@ -5,6 +5,15 @@ import {
 } from "@/lib/site-content";
 import { getSiteContent, getSitePage } from "@/lib/site-content.server";
 
+// Pin the API origin so the tests don't depend on .env.local; a test can blank it.
+const api = vi.hoisted(() => ({ url: "https://api.test" }));
+vi.mock("@/lib/api", async (orig) => ({
+  ...(await orig<typeof import("@/lib/api")>()),
+  get API_URL() {
+    return api.url;
+  },
+}));
+
 // Everything the landing reads, as the API would reply with it.
 function landing(): Partial<SiteContent> {
   return Object.fromEntries(
@@ -28,8 +37,33 @@ describe("getSiteContent", () => {
   });
 
   afterEach(() => {
+    api.url = "https://api.test";
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("uses the bundled copy without a request when the API URL is not absolute", async () => {
+    api.url = "";
+
+    const content = await getSiteContent();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(content).toEqual(landing());
+  });
+
+  it("gives up on a slow API and uses the bundled copy", async () => {
+    // Every request carries an abort signal; the 5 s timeout rejects like this.
+    fetchMock.mockRejectedValue(
+      new DOMException(
+        "The operation was aborted due to timeout",
+        "TimeoutError",
+      ),
+    );
+
+    const content = await getSiteContent();
+
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    expect(content).toEqual(landing());
   });
 
   it("returns the API reply as it is when it is complete", async () => {

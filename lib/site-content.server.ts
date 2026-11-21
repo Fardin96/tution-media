@@ -12,11 +12,21 @@ export const SITE_CONTENT_TAG = "site-content";
 // Matches the API's public max-age. Admin saves refresh the tag right away.
 const REVALIDATE_SECONDS = 300;
 
+// A slow or unreachable API must not stall a page: past this, the bundled copy is used.
+const TIMEOUT_MS = 5000;
+
 async function fetchJson(path: string): Promise<unknown> {
+  // Server code has no origin to resolve a relative URL against. Without an absolute
+  // NEXT_PUBLIC_API_URL (e.g. a build where it is unset) there is nothing to ask, so skip the
+  // request instead of starting one that fails and stalls static generation.
+  if (!/^https?:\/\//.test(API_URL)) {
+    throw new Error("NEXT_PUBLIC_API_URL is not an absolute URL");
+  }
   const res = await fetch(`${API_URL}${path}`, {
     // no-cache asks a CDN in front of the API for a fresh copy.
     headers: { Accept: "application/json", "Cache-Control": "no-cache" },
     next: { revalidate: REVALIDATE_SECONDS, tags: [SITE_CONTENT_TAG] },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`GET ${path} answered ${res.status}`);
   return res.json();
@@ -33,7 +43,7 @@ export async function getSiteContent(): Promise<SiteContent> {
     )) as Partial<SiteContent>;
     return mergeWithDefaults(data);
   } catch (err) {
-    console.warn("site-content: using bundled defaults", err);
+    console.warn(`site-content: using bundled defaults (${String(err)})`);
     return mergeWithDefaults({});
   }
 }
@@ -58,7 +68,7 @@ export async function getSitePage(slug: PageSlug): Promise<SitePage> {
     )) as SitePage;
     if (page && typeof page.body === "string") return page;
   } catch (err) {
-    console.warn(`site-content: using bundled ${slug} page`, err);
+    console.warn(`site-content: using bundled ${slug} page (${String(err)})`);
   }
   const block = SITE_CONTENT_DEFAULTS[PAGE_SLUGS[slug]];
   return { slug, ...block, updatedAt: null };
