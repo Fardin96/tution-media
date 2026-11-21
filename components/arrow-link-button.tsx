@@ -13,6 +13,19 @@ type ArrowLinkButtonProps = Omit<
   containerClassName?: string;
 };
 
+/** The site's arrow (points up-right). Set its colour with a bg-* class; rotate it for other directions. */
+export function ArrowGlyph({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "size-3.5 shrink-0 [mask:url(/assets/ic/ic-arrow-up.png)_center/contain_no-repeat]",
+        className,
+      )}
+    />
+  );
+}
+
 function ArrowBadge({ circle, arrow }: { circle: string; arrow: string }) {
   return (
     <span
@@ -22,12 +35,7 @@ function ArrowBadge({ circle, arrow }: { circle: string; arrow: string }) {
         circle,
       )}
     >
-      <span
-        className={cn(
-          "size-3.5 shrink-0 [mask:url(/assets/ic/ic-arrow-up.png)_center/contain_no-repeat]",
-          arrow,
-        )}
-      />
+      <ArrowGlyph className={arrow} />
     </span>
   );
 }

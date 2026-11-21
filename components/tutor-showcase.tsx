@@ -3,8 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MotionConfig, useReducedMotion } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
+import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
 import { VideoCard } from "@/components/video-card";
 import {
@@ -237,11 +236,11 @@ function StripArrow({
         focusRing,
       )}
     >
-      <HugeiconsIcon
-        icon={dir < 0 ? ArrowLeft02Icon : ArrowRight02Icon}
-        aria-hidden
-        className="size-6"
-        strokeWidth={2}
+      <ArrowGlyph
+        className={cn(
+          "size-4 bg-current",
+          dir < 0 ? "-rotate-135" : "rotate-45",
+        )}
       />
     </button>
   );

@@ -1,3 +1,4 @@
+import { BackToTop } from "@/components/back-to-top";
 import { Navbar } from "@/components/navbar";
 import { hiddenAnchors, visibleLinks } from "@/lib/site-content";
 import { getSiteContent } from "@/lib/site-content.server";
@@ -12,6 +13,7 @@ export default async function SiteLayout({ children }: LayoutProps<"/">) {
         cta={content.nav.cta}
       />
       {children}
+      <BackToTop />
     </>
   );
 }

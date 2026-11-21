@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { IconStarFilled } from "@tabler/icons-react";
+import { IconMapPin, IconSchool, IconStarFilled } from "@tabler/icons-react";
 import { categoryLabel, type Tutor } from "@/lib/tutors";
 import { cn } from "@/lib/utils";
 
@@ -48,8 +48,17 @@ export function TutorCard({ tutor, selected, onSelect }: TutorCardProps) {
       <span className="mt-[7px] text-xl leading-[1.5] font-bold text-[var(--color-neutral-charcoal)]">
         {tutor.name}
       </span>
-      <span className="text-xs leading-[1.5] text-[var(--color-neutral-gray)]">
-        {tutor.position}
+      <span className="mt-0.5 flex max-w-full flex-col items-center gap-1 text-xs leading-[1.5] text-[var(--color-neutral-gray)]">
+        <span className="flex max-w-full items-center gap-1">
+          <IconMapPin aria-hidden className="size-3.5 shrink-0" />
+          <span className="sr-only">Location: </span>
+          <span className="truncate">{tutor.location}</span>
+        </span>
+        <span className="flex max-w-full items-center gap-1">
+          <IconSchool aria-hidden className="size-3.5 shrink-0" />
+          <span className="sr-only">Institute: </span>
+          <span className="truncate">{tutor.institute}</span>
+        </span>
       </span>
 
       <span className="mt-auto flex flex-wrap justify-center gap-1 pt-[21px]">

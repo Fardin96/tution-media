@@ -10,12 +10,8 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft02Icon,
-  ArrowRight02Icon,
-  PauseIcon,
-  PlayIcon,
-} from "@hugeicons/core-free-icons";
+import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
 import {
   isRemoteSrc,
@@ -394,12 +390,7 @@ function Arrows({
           "bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] hover:bg-[color-mix(in_oklab,var(--color-neutral-white)_88%,var(--color-primary-core))]",
         )}
       >
-        <HugeiconsIcon
-          icon={ArrowLeft02Icon}
-          aria-hidden
-          className="size-6"
-          strokeWidth={2}
-        />
+        <ArrowGlyph className="size-4 -rotate-135 bg-current" />
       </button>
       <button
         type="button"
@@ -411,12 +402,7 @@ function Arrows({
           "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)] hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-pressed)]",
         )}
       >
-        <HugeiconsIcon
-          icon={ArrowRight02Icon}
-          aria-hidden
-          className="size-6"
-          strokeWidth={2}
-        />
+        <ArrowGlyph className="size-4 rotate-45 bg-current" />
       </button>
     </div>
   );

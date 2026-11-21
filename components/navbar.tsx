@@ -36,7 +36,7 @@ export function Navbar({ links, cta }: NavbarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <header className="sticky top-[var(--navbar-top-offset)] z-50 -mb-[var(--navbar-height)] flex w-full items-center bg-transparent">
+    <header className="relative top-[var(--navbar-top-offset)] z-50 -mb-[var(--navbar-height)] flex w-full items-center bg-transparent">
       <nav className="mx-auto flex h-[var(--navbar-height)] w-full max-w-[1280px] items-center gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
         <Link
           href="/"
