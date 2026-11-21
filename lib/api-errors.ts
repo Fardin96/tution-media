@@ -56,6 +56,10 @@ export const ERROR_CODES = {
   VideoAlreadyModerated: "VIDEO_ALREADY_MODERATED",
   BlogSlugExists: "BLOG_SLUG_EXISTS",
   InvalidPostState: "INVALID_POST_STATE",
+  SiteContentConflict: "SITE_CONTENT_CONFLICT",
+  StoryLimitReached: "STORY_LIMIT_REACHED",
+  StoryPending: "STORY_PENDING",
+  StoryAlreadyModerated: "STORY_ALREADY_MODERATED",
   ReviewExists: "REVIEW_EXISTS",
   ReviewNotAllowed: "REVIEW_NOT_ALLOWED",
   InvalidReviewState: "INVALID_REVIEW_STATE",
@@ -220,6 +224,13 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "Another post already uses that link. Pick a different one.",
   INVALID_POST_STATE: (err) =>
     err.message || "This post changed. Refresh to see its status.",
+  STORY_LIMIT_REACHED: (err) =>
+    err.message || "You have 3 stories. Delete one to send another.",
+  STORY_PENDING: (err) =>
+    err.message || "Wait until your story is reviewed before sending another.",
+  STORY_ALREADY_MODERATED: "This story already has that decision.",
+  SITE_CONTENT_CONFLICT:
+    "Someone else changed this block. Reload to see their version.",
   REVIEW_EXISTS:
     "You've already reviewed this person. Edit your review instead.",
   REVIEW_NOT_ALLOWED: (err) =>

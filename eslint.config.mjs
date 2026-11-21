@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "components/ui/**",
     // Generated from tuition-api's openapi.json by `yarn gen:api`.
     "lib/api-types.ts",
+    // Copied from tuition-api by `yarn gen:site-defaults`.
+    "lib/site-content-schema.ts",
   ]),
 ]);
 

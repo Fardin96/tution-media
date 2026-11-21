@@ -123,6 +123,10 @@ const PURPOSE_TEXT: Record<UploadPurpose, string> = {
   CREDENTIAL: "Certificate",
   TUTOR_VIDEO: "Video",
   BLOG_COVER: "Blog cover",
+  SITE_IMAGE: "Site image",
+  SITE_VIDEO: "Site video",
+  STORY_IMAGE: "Story photo",
+  STORY_VIDEO: "Story video",
 };
 
 export function purposeText(purpose: UploadPurpose | null): string | null {

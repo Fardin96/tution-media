@@ -12,88 +12,15 @@ import {
 import { Tabs } from "radix-ui";
 import { SectionHeader } from "@/components/section-header";
 import { VideoCard } from "@/components/video-card";
+import {
+  STEP_ICON_META,
+  type HowItWorksBlock,
+  type HowItWorksFlow,
+} from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
-type Step = {
-  title: string;
-  description: string;
-  icon: string;
-  /** The icon artwork's own colour; the chip behind it is a 10% tint of it. */
-  hue: string;
-};
-
-const icons = {
-  signup: { icon: "/assets/ic/ic-singup.png", hue: "#0066ff" },
-  details: { icon: "/assets/ic/ic-upload.png", hue: "#ff9900" },
-  search: { icon: "/assets/ic/ic-search.png", hue: "#002b6b" },
-  documents: { icon: "/assets/ic/ic-briefcase.png", hue: "#002b6b" },
-  discovered: { icon: "/assets/ic/ic-discovered.png", hue: "#aa16ef" },
-};
-
-// ponytail: placeholder copy and thumbnails (posters until the video loads).
-const flows = {
-  find: {
-    label: "Find a Tutor",
-    video: {
-      title: "How to find a tutor",
-      subtitle: "A quick walkthrough",
-      thumbnail: "/assets/avatar-demo/client/client2.png",
-      video: "/videos/how-to-guardians.mp4",
-    },
-    steps: [
-      {
-        title: "Sign up & create an account",
-        description: "Join free as a guardian or student in under two minutes.",
-        ...icons.signup,
-      },
-      {
-        title: "Add details & requirements",
-        description:
-          "Tell us the class, subjects, schedule and budget you need.",
-        ...icons.details,
-      },
-      {
-        title: "Post requirements & find tutors",
-        description:
-          "Publish your request and compare verified tutors who apply.",
-        ...icons.search,
-      },
-    ] satisfies Step[],
-  },
-  become: {
-    label: "Become a Tutor",
-    video: {
-      title: "How to become a tutor",
-      subtitle: "A quick walkthrough",
-      thumbnail: "/assets/avatar-demo/tutor/tutor1.png",
-      video: "/videos/how-to-tutor.mp4",
-    },
-    steps: [
-      {
-        title: "Sign up & create an account",
-        description: "Register free and set up your tutor profile in minutes.",
-        ...icons.signup,
-      },
-      {
-        title: "Add your details",
-        description: "Share your subjects, experience, areas and availability.",
-        ...icons.details,
-      },
-      {
-        title: "Validate your documents",
-        description: "Upload your ID and certificates so we can verify you.",
-        ...icons.documents,
-      },
-      {
-        title: "Get discovered!",
-        description: "Show up in search and start receiving tuition requests.",
-        ...icons.discovered,
-      },
-    ] satisfies Step[],
-  },
-};
-type Mode = keyof typeof flows;
-const modes = Object.keys(flows) as Mode[];
+const modes = ["find", "become"] as const;
+type Mode = (typeof modes)[number];
 
 // Staged entrance when switching flows: steps rise in 100ms apart. Hiding is instant.
 const list = {
@@ -105,7 +32,8 @@ const item = {
   hide: { opacity: 0, y: 8, transition: { duration: 0 } },
 };
 
-export function HowItWorks() {
+export function HowItWorks({ content }: { content: HowItWorksBlock }) {
+  const flows = { find: content.find, become: content.become };
   const [mode, setMode] = useState<Mode>("find");
   const [playing, setPlaying] = useState(false);
   // A tap-to-pause wins over autoplay until the video leaves view.
@@ -152,7 +80,7 @@ export function HowItWorks() {
             <SectionHeader
               align="start"
               titleId="how-it-works-title"
-              title="How It Works"
+              title={content.title}
             />
 
             {/* Segmented switch: white pill slides between the two flows. */}
@@ -196,7 +124,7 @@ export function HowItWorks() {
                   >
                     {flows[m].steps.map((s, i) => (
                       <motion.li
-                        key={s.title}
+                        key={i}
                         variants={item}
                         className={cn(
                           "flex items-center gap-4 lg:gap-6",
@@ -272,17 +200,18 @@ function Fade({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StepCard({ step }: { step: Step }) {
+function StepCard({ step }: { step: HowItWorksFlow["steps"][number] }) {
+  const meta = STEP_ICON_META[step.icon];
   return (
     <div className="flex min-w-0 flex-1 items-start gap-4 rounded-[20px] bg-[var(--color-neutral-white)] p-4 shadow-[0_0_0_1px_var(--color-card-border),0_16px_32px_-12px_oklch(0_0_0/0.1)] sm:p-6 xl:shadow-[0_0_0_1px_var(--color-card-border),0_32px_64px_-16px_oklch(0_0_0/0.2)]">
       <span
         aria-hidden
         className="grid size-12 shrink-0 place-items-center rounded-full sm:size-14"
         style={{
-          backgroundColor: `color-mix(in oklab, ${step.hue} 10%, white)`,
+          backgroundColor: `color-mix(in oklab, ${meta.hue} 10%, white)`,
         }}
       >
-        <Image src={step.icon} alt="" width={24} height={24} />
+        <Image src={meta.icon} alt="" width={24} height={24} />
       </span>
       <div className="min-w-0 self-center">
         <h3 className="text-lg leading-[1.25] font-medium text-[var(--color-neutral-charcoal)] sm:text-2xl">

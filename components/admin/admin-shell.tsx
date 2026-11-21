@@ -13,8 +13,10 @@ import {
   HardDrive,
   IdCard,
   LayoutGrid,
+  LayoutTemplate,
   MapPin,
   Newspaper,
+  MessageSquareQuote,
   MessageSquareWarning,
   Package,
   ScrollText,
@@ -62,6 +64,12 @@ export const ADMIN_NAV = [
     label: "Reviews",
     icon: Star,
     description: "Hide or restore ratings and comments.",
+  },
+  {
+    href: "/dashboard/admin/stories",
+    label: "Stories",
+    icon: MessageSquareQuote,
+    description: "Approve student and tutor stories for the home page.",
   },
   {
     href: "/dashboard/admin/reports",
@@ -141,6 +149,13 @@ export const ADMIN_NAV = [
     label: "Blog",
     icon: Newspaper,
     description: "Write, publish and archive blog posts.",
+  },
+  {
+    href: "/dashboard/admin/site-content",
+    label: "Site content",
+    icon: LayoutTemplate,
+    description:
+      "Edit the landing page and the About, Terms, Privacy and Contact pages.",
   },
   {
     href: "/dashboard/admin/files",

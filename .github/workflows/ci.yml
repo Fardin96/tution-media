@@ -62,6 +62,8 @@ jobs:
             || git clone --depth 1 https://github.com/Fardin96/tuition-api.git "$RUNNER_TEMP/tuition-api"
       - name: lib/api-types.ts matches the backend spec
         run: OPENAPI_SPEC="$RUNNER_TEMP/tuition-api/openapi.json" yarn gen:api:check
+      - name: site-content defaults and schema match the backend
+        run: SITE_CONTENT_SRC="$RUNNER_TEMP/tuition-api/src/modules/site-content" yarn gen:site-defaults:check
 
   format:
     runs-on: ubuntu-latest

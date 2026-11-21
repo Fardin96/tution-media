@@ -39,6 +39,11 @@ describe("canRemoveFile", () => {
     expect(canRemoveFile(file({ status: "DELETED" }))).toBe(false);
     expect(canRemoveFile(file({ purpose: "BLOG_COVER" }))).toBe(false);
   });
+
+  it("refuses site images and videos, which the admin replaces in Site content", () => {
+    expect(canRemoveFile(file({ purpose: "SITE_IMAGE" }))).toBe(false);
+    expect(canRemoveFile(file({ purpose: "SITE_VIDEO" }))).toBe(false);
+  });
 });
 
 describe("showUnverifyOption", () => {
@@ -121,6 +126,10 @@ describe("PURPOSE_LABEL", () => {
       CREDENTIAL: "Credential",
       TUTOR_VIDEO: "Video",
       BLOG_COVER: "Blog cover",
+      SITE_IMAGE: "Site image",
+      SITE_VIDEO: "Site video",
+      STORY_IMAGE: "Story photo",
+      STORY_VIDEO: "Story video",
     });
   });
 });
@@ -134,6 +143,10 @@ describe("summarizeStats", () => {
       "CREDENTIAL",
       "TUTOR_VIDEO",
       "BLOG_COVER",
+      "SITE_IMAGE",
+      "SITE_VIDEO",
+      "STORY_IMAGE",
+      "STORY_VIDEO",
     ]);
     expect(rows.every((row) => row.uploadedCount === 0)).toBe(true);
     expect(rows.every((row) => row.uploadedBytes === 0)).toBe(true);

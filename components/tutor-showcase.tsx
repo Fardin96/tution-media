@@ -3,11 +3,14 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MotionConfig, useReducedMotion } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
+import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
 import { VideoCard } from "@/components/video-card";
-import { showcase, type CommentShowcase } from "@/lib/showcase";
+import {
+  isRemoteSrc,
+  type ShowcaseBlock,
+  type ShowcaseItem,
+} from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
 // Track padding lines the first card up with the 1240px content column while the
@@ -17,7 +20,7 @@ const EDGE = "max(1.5rem, calc((100% - 77.5rem) / 2))";
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] focus-visible:ring-offset-2";
 
-export function TutorShowcase() {
+export function TutorShowcase({ content }: { content: ShowcaseBlock }) {
   const trackRef = useRef<HTMLUListElement>(null);
   const reduceMotion = useReducedMotion();
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -117,7 +120,7 @@ export function TutorShowcase() {
           <SectionHeader
             align="start"
             titleId="tutors-title"
-            title="Top Tutor portfolio Showcase"
+            title={content.title}
           />
           {/* Phones swipe; arrows from sm up. No auto-scrolling. */}
           <div className="hidden shrink-0 gap-4 sm:flex">
@@ -137,44 +140,52 @@ export function TutorShowcase() {
           style={{ paddingInline: EDGE, scrollPaddingInline: EDGE }}
           className="mt-10 flex snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto sm:gap-6 [&::-webkit-scrollbar]:hidden"
         >
-          {showcase.map((item) => (
-            <li
-              key={item.id}
-              data-video-id={item.kind === "video" ? item.id : undefined}
-              className="aspect-[461/603] w-[85%] shrink-0 snap-start sm:w-[22rem] lg:w-[28.8125rem]"
-            >
-              {item.kind === "video" ? (
-                <VideoCard
-                  title={item.name}
-                  subtitle={item.subject}
-                  thumbnail={item.thumbnail}
-                  video={item.video}
-                  label={`Play ${item.name}'s video, ${item.subject}`}
-                  sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
-                  playing={playingId === item.id}
-                  onHover={() => {
-                    if (reduceMotion) return;
-                    userPaused.current = false;
-                    setPlayingId(item.id);
-                  }}
-                  onToggle={() => {
-                    const pausing = playingId === item.id;
-                    userPaused.current = pausing;
-                    setPlayingId(pausing ? null : item.id);
-                  }}
-                />
-              ) : (
-                <CommentCard item={item} />
-              )}
-            </li>
-          ))}
+          {content.items.map((item, i) => {
+            // Stable per position, so a card keeps its id across renders.
+            const id = `showcase-${i + 1}`;
+            return (
+              <li
+                key={id}
+                data-video-id={item.kind === "video" ? id : undefined}
+                className="aspect-[461/603] w-[85%] shrink-0 snap-start sm:w-[22rem] lg:w-[28.8125rem]"
+              >
+                {item.kind === "video" ? (
+                  <VideoCard
+                    title={item.name}
+                    subtitle={item.subject}
+                    thumbnail={item.thumbnail}
+                    video={item.video}
+                    label={`Play ${item.name}'s video, ${item.subject}`}
+                    sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
+                    playing={playingId === id}
+                    onHover={() => {
+                      if (reduceMotion) return;
+                      userPaused.current = false;
+                      setPlayingId(id);
+                    }}
+                    onToggle={() => {
+                      const pausing = playingId === id;
+                      userPaused.current = pausing;
+                      setPlayingId(pausing ? null : id);
+                    }}
+                  />
+                ) : (
+                  <CommentCard item={item} />
+                )}
+              </li>
+            );
+          })}
         </ul>
       </MotionConfig>
     </section>
   );
 }
 
-function CommentCard({ item }: { item: CommentShowcase }) {
+function CommentCard({
+  item,
+}: {
+  item: Extract<ShowcaseItem, { kind: "comment" }>;
+}) {
   return (
     <article className="flex size-full flex-col overflow-hidden rounded-[20px] bg-[var(--color-surface-inverse)]">
       <div className="relative shrink-0 basis-[50%] sm:basis-1/2">
@@ -182,6 +193,7 @@ function CommentCard({ item }: { item: CommentShowcase }) {
           src={item.thumbnail}
           alt=""
           fill
+          {...(isRemoteSrc(item.thumbnail) && { unoptimized: true })}
           sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
           className="object-cover object-top"
         />
@@ -224,11 +236,11 @@ function StripArrow({
         focusRing,
       )}
     >
-      <HugeiconsIcon
-        icon={dir < 0 ? ArrowLeft02Icon : ArrowRight02Icon}
-        aria-hidden
-        className="size-6"
-        strokeWidth={2}
+      <ArrowGlyph
+        className={cn(
+          "size-4 bg-current",
+          dir < 0 ? "-rotate-135" : "rotate-45",
+        )}
       />
     </button>
   );

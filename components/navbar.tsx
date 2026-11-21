@@ -13,14 +13,12 @@ import {
 } from "@/components/ui/sheet";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu02Icon } from "@hugeicons/core-free-icons";
+import type { NavBlock } from "@/lib/site-content";
 
-const navLinks = [
-  { href: "/#categories", label: "Categories" },
-  { href: "/#testimonials", label: "Testimonials" },
-  { href: "/#tutors", label: "Tutors" },
-  { href: "/about-us", label: "About Us" },
-  { href: "/blog", label: "Blogs" },
-];
+type NavbarProps = {
+  links: NavBlock["links"];
+  cta: NavBlock["cta"];
+};
 
 // Next skips scrolling when the URL hash is unchanged, so a second click on
 // "/#categories" would do nothing. Scroll by hand when already on that page.
@@ -34,11 +32,11 @@ function scrollToHash(e: React.MouseEvent, href: string, pathname: string) {
   target.scrollIntoView();
 }
 
-export function Navbar() {
+export function Navbar({ links, cta }: NavbarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <header className="sticky top-[var(--navbar-top-offset)] z-50 -mb-[var(--navbar-height)] flex w-full items-center bg-transparent">
+    <header className="relative top-[var(--navbar-top-offset)] z-50 -mb-[var(--navbar-height)] flex w-full items-center bg-transparent">
       <nav className="mx-auto flex h-[var(--navbar-height)] w-full max-w-[1280px] items-center gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
         <Link
           href="/"
@@ -55,9 +53,9 @@ export function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-6 lg:flex xl:gap-8">
-          {navLinks.map((link) => (
+          {links.map((link, i) => (
             <Link
-              key={link.href}
+              key={i}
               href={link.href}
               onClick={(e) => scrollToHash(e, link.href, pathname)}
               className="font-regular text-lg whitespace-nowrap text-[color-mix(in_oklab,var(--color-neutral-gray),var(--color-neutral-charcoal))] transition-colors hover:text-[var(--color-neutral-charcoal)]"
@@ -68,7 +66,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden shrink-0 lg:block">
-          <ArrowLinkButton href="/sign-in">Register Now</ArrowLinkButton>
+          <ArrowLinkButton href={cta.href}>{cta.label}</ArrowLinkButton>
         </div>
 
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -91,9 +89,9 @@ export function Navbar() {
           >
             <div className="flex h-full flex-col pt-12">
               <div className="flex flex-col gap-6 px-6">
-                {navLinks.map((link) => (
+                {links.map((link, i) => (
                   <Link
-                    key={link.href}
+                    key={i}
                     href={link.href}
                     onClick={(e) => {
                       setMenuOpen(false);
@@ -107,9 +105,7 @@ export function Navbar() {
               </div>
               <div className="mt-auto flex w-full justify-center bg-[var(--color-primary-core)] px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <SheetClose asChild>
-                  <ArrowLinkButton href="/sign-in">
-                    Register Now
-                  </ArrowLinkButton>
+                  <ArrowLinkButton href={cta.href}>{cta.label}</ArrowLinkButton>
                 </SheetClose>
               </div>
             </div>

@@ -173,6 +173,10 @@ export function notificationText(n: TextFields): string {
       return "Your video was approved.";
     case "VIDEO_REJECTED":
       return "Your video was not approved.";
+    case "STORY_APPROVED":
+      return "Your story was approved. We may now show it on our home page.";
+    case "STORY_REJECTED":
+      return "Your story was not approved.";
     case "FILE_REMOVED":
       switch (n.filePurpose) {
         case "STUDENT_ID":
@@ -182,6 +186,9 @@ export function notificationText(n: TextFields): string {
           return "An admin removed your certificate.";
         case "TUTOR_VIDEO":
           return "An admin removed your video.";
+        case "STORY_IMAGE":
+        case "STORY_VIDEO":
+          return "An admin removed your story.";
         default:
           return "An admin removed your file.";
       }
@@ -245,9 +252,14 @@ export function notificationHref(
     case "ID_REJECTED":
       return "/dashboard#verification";
     case "FILE_REMOVED":
-      return n.filePurpose === "STUDENT_ID" || n.filePurpose === "TUTOR_ID"
-        ? "/dashboard#verification"
+      if (n.filePurpose === "STUDENT_ID" || n.filePurpose === "TUTOR_ID")
+        return "/dashboard#verification";
+      return n.filePurpose === "STORY_IMAGE" || n.filePurpose === "STORY_VIDEO"
+        ? "/dashboard#stories"
         : "/dashboard";
+    case "STORY_APPROVED":
+    case "STORY_REJECTED":
+      return "/dashboard#stories";
     case "VIDEO_APPROVED":
     case "VIDEO_REJECTED":
     case "UPLOADS_BLOCKED":

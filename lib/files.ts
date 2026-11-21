@@ -50,6 +50,26 @@ export const FILE_RULES: Record<
     maxBytes: 2 * MB,
     hint: "JPG, PNG or WebP, up to 2 MB",
   },
+  SITE_IMAGE: {
+    accept: ["image/jpeg", "image/png", "image/webp"],
+    maxBytes: 5 * MB,
+    hint: "JPG, PNG or WebP, up to 5 MB",
+  },
+  SITE_VIDEO: {
+    accept: ["video/mp4", "video/webm"],
+    maxBytes: 25 * MB,
+    hint: "MP4 or WebM, up to 25 MB",
+  },
+  STORY_IMAGE: {
+    accept: ["image/jpeg", "image/png", "image/webp"],
+    maxBytes: 5 * MB,
+    hint: "JPG, PNG or WebP, up to 5 MB",
+  },
+  STORY_VIDEO: {
+    accept: ["video/mp4", "video/webm"],
+    maxBytes: 25 * MB,
+    hint: "MP4 or WebM, up to 25 MB",
+  },
 };
 
 /** The `accept` attribute for a file input. Extensions too, for pickers that ignore types. */

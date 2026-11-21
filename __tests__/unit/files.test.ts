@@ -63,6 +63,42 @@ describe("checkFile", () => {
   });
 });
 
+describe("site media rules", () => {
+  it("refuses a 6 MB image for SITE_IMAGE and a .mov for SITE_VIDEO", () => {
+    expect(
+      checkFile("SITE_IMAGE", {
+        name: "hero.jpg",
+        type: "image/jpeg",
+        size: 6 * MB,
+      }),
+    ).toBe("That file is 6.0 MB. The limit is 5.0 MB.");
+    expect(
+      checkFile("SITE_VIDEO", {
+        name: "intro.mov",
+        type: "video/quicktime",
+        size: 1000,
+      }),
+    ).toBe("Use MP4 or WebM, up to 25 MB.");
+  });
+
+  it("accepts a JPG under 5 MB and an MP4 under 25 MB for the site", () => {
+    expect(
+      checkFile("SITE_IMAGE", {
+        name: "tutor.jpg",
+        type: "image/jpeg",
+        size: 4 * MB,
+      }),
+    ).toBeNull();
+    expect(
+      checkFile("SITE_VIDEO", {
+        name: "intro.mp4",
+        type: "video/mp4",
+        size: 24 * MB,
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("acceptFor", () => {
   it("lists types and their extensions", () => {
     expect(acceptFor("BLOG_COVER").split(",")).toEqual([

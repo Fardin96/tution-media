@@ -58,6 +58,8 @@ describe("purposeText", () => {
     expect(purposeText("CREDENTIAL")).toBe("Certificate");
     expect(purposeText("TUTOR_VIDEO")).toBe("Video");
     expect(purposeText("BLOG_COVER")).toBe("Blog cover");
+    expect(purposeText("SITE_IMAGE")).toBe("Site image");
+    expect(purposeText("SITE_VIDEO")).toBe("Site video");
   });
 
   it("returns null without a purpose", () => {

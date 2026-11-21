@@ -4,55 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { MeshGradient } from "@/components/mesh-gradient/mesh-gradient";
 import { ArrowLinkButton } from "@/components/arrow-link-button";
+import {
+  SOCIAL_META,
+  visibleLinks,
+  type CtaBannerBlock,
+  type FooterBlock,
+} from "@/lib/site-content";
 
-const socialLinks = [
-  {
-    name: "Instagram",
-    href: "https://instagram.com",
-    icon: "/assets/ic/social/insta.png",
-  },
-  {
-    name: "Telegram",
-    href: "https://telegram.org",
-    icon: "/assets/ic/social/telegram.png",
-  },
-  {
-    name: "TikTok",
-    href: "https://tiktok.com",
-    icon: "/assets/ic/social/tiktok.png",
-  },
-  {
-    name: "YouTube",
-    href: "https://youtube.com",
-    icon: "/assets/ic/social/utube.png",
-  },
-];
+type FooterProps = {
+  footer: FooterBlock;
+  cta: CtaBannerBlock;
+  /** Anchors of hidden sections; links to them are dropped. */
+  hiddenAnchors: string[];
+};
 
-const quickLinks = [
-  { label: "Find a Tutor", href: "/#tutors" },
-  { label: "Subject Categories", href: "/#categories" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Tuition Packages", href: "/#categories" },
-  { label: "Frequently Asked Questions", href: "/#faq" },
-];
+export function Footer({ footer, cta, hiddenAnchors }: FooterProps) {
+  const hidden = new Set(hiddenAnchors);
+  const [quick, tutors, legal] = footer.columns;
 
-const tutorLinks = [
-  { label: "Become a Tutor", href: "/#how-it-works" },
-  { label: "Tutor Guidelines", href: "/#faq" },
-  { label: "Verification Process", href: "/#faq" },
-  { label: "Code of Conduct", href: "/#faq" },
-  { label: "Tuition Opportunities", href: "/#tutors" },
-];
-
-const legalLinks = [
-  { label: "About Us", href: "/about-us" },
-  { label: "Blogs & Guidance", href: "/blog" },
-  { label: "Terms and Conditions", href: "/terms" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Contact Support", href: "/contact" },
-];
-
-export function Footer() {
   return (
     <footer className="relative isolate overflow-hidden bg-[var(--color-neutral-off-white)]">
       {/* CTA Card Banner on top of footer */}
@@ -64,15 +33,14 @@ export function Footer() {
             className="px-6 pt-16 pb-12 text-center sm:px-12 lg:pt-[88px] lg:pb-14"
           >
             <h2 className="mx-auto max-w-2xl text-2xl leading-[1.2] font-medium text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl md:text-4xl lg:text-[2.5rem]">
-              Find your ideal tutor and unlock your full potential today
+              {cta.heading}
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-6 text-pretty text-[var(--color-neutral-charcoal)]">
-              Discover trusted, subject-specialist mentors tailored to your
-              syllabus, learning pace, and academic goals.
+              {cta.text}
             </p>
             <div className="mt-8 flex justify-center sm:mt-10">
-              <ArrowLinkButton href="/sign-in" variant="solid">
-                Get Started
+              <ArrowLinkButton href={cta.cta.href} variant="solid">
+                {cta.cta.label}
               </ArrowLinkButton>
             </div>
           </MeshGradient>
@@ -94,22 +62,20 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm leading-relaxed text-pretty text-[var(--color-text-secondary)] sm:text-base">
-              Masters Hub is Bangladesh&apos;s trusted platform connecting
-              students and guardians with verified, top-tier academic tutors for
-              school, college, and test prep.
+              {footer.about}
             </p>
             <div className="flex flex-col gap-1.5 text-sm text-[var(--color-text-secondary)]">
               <p className="text-base leading-6 text-[var(--color-neutral-charcoal)]">
-                <span className="font-semibold">Corporate Office:</span> House
-                42, Road 11, Block D, Banani, Dhaka 1213, Bangladesh
+                <span className="font-semibold">Corporate Office:</span>{" "}
+                {footer.address}
               </p>
               <p className="flex flex-col text-base leading-[27px] text-[var(--color-neutral-charcoal)]">
-                <span className="text-lg font-semibold">Phone:</span> +880
-                1700-000000
+                <span className="text-lg font-semibold">Phone:</span>{" "}
+                {footer.phone}
               </p>
               <p>
                 <span className="text-lg font-semibold">Email:</span>{" "}
-                support@mastershub.com
+                {footer.email}
               </p>
             </div>
           </div>
@@ -117,11 +83,11 @@ export function Footer() {
           {/* Quick Links */}
           <div className="flex flex-col gap-[13px]">
             <h3 className="text-xl leading-7 font-bold text-[var(--color-neutral-charcoal)]">
-              Quick Links
+              {quick.heading}
             </h3>
             <ul className="flex flex-col gap-[13px]">
-              {quickLinks.map((link) => (
-                <li key={link.label}>
+              {visibleLinks(quick.links, hidden).map((link, i) => (
+                <li key={i}>
                   <Link
                     href={link.href}
                     className="text-base leading-6 text-[var(--color-text-secondary)] transition-colors duration-150 hover:text-[var(--color-primary-core)]"
@@ -136,11 +102,11 @@ export function Footer() {
           {/* For Tutors */}
           <div className="flex flex-col gap-2">
             <h3 className="text-xl leading-7 font-bold text-[var(--color-neutral-charcoal)]">
-              For Tutors
+              {tutors.heading}
             </h3>
             <ul className="flex flex-col gap-2">
-              {tutorLinks.map((link) => (
-                <li key={link.label}>
+              {visibleLinks(tutors.links, hidden).map((link, i) => (
+                <li key={i}>
                   <Link
                     href={link.href}
                     className="text-sm text-[var(--color-text-secondary)] transition-colors duration-150 hover:text-[var(--color-primary-core)] sm:text-base"
@@ -155,11 +121,11 @@ export function Footer() {
           {/* About & Legal */}
           <div className="flex flex-col gap-3">
             <h3 className="text-base font-bold text-[var(--color-neutral-charcoal)] sm:text-lg">
-              About &amp; Legal
+              {legal.heading}
             </h3>
             <ul className="flex flex-col gap-2.5">
-              {legalLinks.map((link) => (
-                <li key={link.label}>
+              {visibleLinks(legal.links, hidden).map((link, i) => (
+                <li key={i}>
                   <Link
                     href={link.href}
                     className="text-sm text-[var(--color-text-secondary)] transition-colors duration-150 hover:text-[var(--color-primary-core)] sm:text-base"
@@ -176,30 +142,33 @@ export function Footer() {
         <div className="mt-16 lg:mt-[100px]">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-base text-[var(--color-neutral-charcoal)]">
-              &copy; {new Date().getFullYear()} Masters Hub. All rights
+              &copy; {new Date().getFullYear()} {footer.brandName}. All rights
               reserved.
             </p>
 
             {/* Social Media Links */}
             <div className="flex items-center gap-0.5 sm:-mr-2.5">
-              {socialLinks.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Follow us on ${item.name}`}
-                  className="flex size-11 items-center justify-center rounded-full text-[var(--color-primary-deep)] transition-all duration-150 outline-none hover:scale-110 hover:bg-[var(--color-surface-subtle)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] active:scale-95"
-                >
-                  <Image
-                    src={item.icon}
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="size-6 object-contain"
-                  />
-                </a>
-              ))}
+              {footer.socials.map((item) => {
+                const meta = SOCIAL_META[item.platform];
+                return (
+                  <a
+                    key={item.platform}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Follow us on ${meta.name}`}
+                    className="flex size-11 items-center justify-center rounded-full text-[var(--color-primary-deep)] transition-all duration-150 outline-none hover:scale-110 hover:bg-[var(--color-surface-subtle)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] active:scale-95"
+                  >
+                    <Image
+                      src={meta.icon}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="size-6 object-contain"
+                    />
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>

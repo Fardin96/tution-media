@@ -6,6 +6,14 @@ async function signIn(context: BrowserContext) {
   return mockCasesApi(context);
 }
 
+type Api = Awaited<ReturnType<typeof signIn>>;
+
+// Background reads (the admin /me check, the notification count) can land after the list
+// request, so look up the last read of the list itself rather than the last read overall.
+function lastReadOf(api: Api, path: string) {
+  return api.reads.filter((r) => r.path === path).at(-1);
+}
+
 test.describe("Admin reviews", () => {
   test("hides a review with a note", async ({ page, context }) => {
     const api = await signIn(context);
@@ -60,17 +68,21 @@ test.describe("Admin reviews", () => {
     const api = await signIn(context);
     await page.goto("/dashboard/admin/reviews");
 
+    // Wait for the unfiltered list: a click before hydration is dropped.
+    const lowReview = page.getByText("Shouted at my child and left early.");
+    await expect(lowReview).toBeVisible();
+
     await page.getByRole("button", { name: "5 stars" }).click();
     await expect(
-      page.getByRole("img", { name: "Rated 5 out of 5" }),
+      page.getByRole("button", { name: "5 stars", pressed: true }),
     ).toBeVisible();
+    await expect(lowReview).toHaveCount(0);
     await expect(
-      page.getByText("Shouted at my child and left early."),
-    ).toHaveCount(0);
-    expect(api.reads.at(-1)?.query).toMatchObject({
-      status: "VISIBLE",
-      rating: "5",
-    });
+      page.getByRole("img", { name: "Rated 5 out of 5" }).first(),
+    ).toBeVisible();
+    await expect
+      .poll(() => lastReadOf(api, "/admin/reviews")?.query)
+      .toMatchObject({ status: "VISIBLE", rating: "5" });
   });
 });
 
@@ -95,7 +107,9 @@ test.describe("Admin reports", () => {
     await expect(
       page.getByRole("link", { name: /Contact outside the platform/ }),
     ).toHaveCount(0);
-    expect(api.reads.at(-1)?.query).toMatchObject({ queue: "closed" });
+    await expect
+      .poll(() => lastReadOf(api, "/admin/reports")?.query)
+      .toMatchObject({ queue: "closed" });
     expect(api.unmocked).toEqual([]);
   });
 
@@ -203,7 +217,7 @@ test.describe("Admin disputes", () => {
 });
 
 test.describe("Admin navigation", () => {
-  test("lists Reviews, Reports and Disputes after Videos", async ({
+  test("lists Reviews, Stories, Reports and Disputes after Videos", async ({
     page,
     context,
   }) => {
@@ -215,8 +229,9 @@ test.describe("Admin navigation", () => {
     const trimmed = labels.map((l) => l.trim().split("\n")[0]);
     const videos = trimmed.indexOf("Videos");
     expect(videos).toBeGreaterThan(-1);
-    expect(trimmed.slice(videos + 1, videos + 4)).toEqual([
+    expect(trimmed.slice(videos + 1, videos + 5)).toEqual([
       "Reviews",
+      "Stories",
       "Reports",
       "Disputes",
     ]);

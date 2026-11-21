@@ -38,6 +38,10 @@ export const PURPOSE_LABEL: Record<FilePurpose, string> = {
   CREDENTIAL: "Credential",
   TUTOR_VIDEO: "Video",
   BLOG_COVER: "Blog cover",
+  SITE_IMAGE: "Site image",
+  SITE_VIDEO: "Site video",
+  STORY_IMAGE: "Story photo",
+  STORY_VIDEO: "Story video",
 };
 
 export const FILE_PURPOSES: readonly FilePurpose[] = [
@@ -46,6 +50,10 @@ export const FILE_PURPOSES: readonly FilePurpose[] = [
   "CREDENTIAL",
   "TUTOR_VIDEO",
   "BLOG_COVER",
+  "SITE_IMAGE",
+  "SITE_VIDEO",
+  "STORY_IMAGE",
+  "STORY_VIDEO",
 ];
 
 export const FILE_STATUS_LABEL: Record<FileStatus, string> = {
@@ -106,10 +114,17 @@ export function useAdminFileStats() {
   });
 }
 
-/** A file in use that an admin can remove with a note: uploaded, linked to a record, not a blog cover. */
+/**
+ * A file in use that an admin can remove with a note: uploaded, linked to a record, not a blog
+ * cover or a site image/video (the API refuses both; the admin replaces them in Site content).
+ */
 export function canRemoveFile(file: AdminFile): boolean {
   return (
-    file.status === "UPLOADED" && file.inUse && file.purpose !== "BLOG_COVER"
+    file.status === "UPLOADED" &&
+    file.inUse &&
+    file.purpose !== "BLOG_COVER" &&
+    file.purpose !== "SITE_IMAGE" &&
+    file.purpose !== "SITE_VIDEO"
   );
 }
 

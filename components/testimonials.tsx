@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
   MotionConfig,
@@ -10,20 +10,18 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft02Icon,
-  ArrowRight02Icon,
-  PauseIcon,
-  PlayIcon,
-} from "@hugeicons/core-free-icons";
+import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
-import { testimonials, type Testimonial } from "@/lib/testimonials";
+import {
+  isRemoteSrc,
+  type Testimonial,
+  type TestimonialsBlock,
+} from "@/lib/site-content";
 import { cn } from "@/lib/utils";
 
 const AUTOPLAY_MS = 3000;
 const SWIPE_PX = 50;
-const count = testimonials.length;
-
 const slide = {
   enter: (dir: number) => ({ opacity: 0, x: dir * 24 }),
   center: { opacity: 1, x: 0 },
@@ -33,7 +31,11 @@ const slide = {
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-inverse)]";
 
-export function Testimonials() {
+export function Testimonials({ content }: { content: TestimonialsBlock }) {
+  const items = content.items;
+  const count = items.length;
+  // One card has nothing to rotate to: no autoplay, no pause control, no arrows.
+  const multi = count > 1;
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [flipped, setFlipped] = useState(false);
@@ -45,10 +47,25 @@ export function Testimonials() {
   const swiped = useRef(false);
   const inView = useInView(carouselRef, { amount: 0.5 });
   const reduceMotion = useReducedMotion();
+  const playVideo = inView && !reduceMotion && !stopped;
 
   const running =
-    !reduceMotion && !stopped && inView && !hovered && !focused && !flipped;
-  const t = testimonials[index];
+    multi &&
+    !reduceMotion &&
+    !stopped &&
+    inView &&
+    !hovered &&
+    !focused &&
+    !flipped;
+  const t = items[index];
+
+  // The outgoing slide stays mounted while it fades out, so its video is paused
+  // here, before the incoming slide's own effect starts playing.
+  useLayoutEffect(() => {
+    carouselRef.current
+      ?.querySelectorAll<HTMLVideoElement>("video")
+      .forEach((v) => v.pause());
+  }, [index]);
 
   // One timeout per slide, so every testimonial gets the full 3s after a pause.
   useEffect(() => {
@@ -58,7 +75,7 @@ export function Testimonials() {
       setIndex((i) => (i + 1) % count);
     }, AUTOPLAY_MS);
     return () => clearTimeout(id);
-  }, [running, index]);
+  }, [running, index, count]);
 
   const go = (step: number) => {
     rememberFocus();
@@ -106,7 +123,7 @@ export function Testimonials() {
         <SectionHeader
           align="start"
           titleId="testimonials-title"
-          title="What guardians & students say"
+          title={content.title}
         />
 
         <MotionConfig
@@ -139,22 +156,24 @@ export function Testimonials() {
             className="relative mt-10 grid touch-pan-y gap-4 sm:gap-6 lg:grid-cols-[minmax(0,716fr)_minmax(0,500fr)]"
           >
             {/* Keyboard/screen-reader pause control (WCAG 2.2.2); mouse users pause by hovering. */}
-            <button
-              type="button"
-              onClick={() => setStopped((s) => !s)}
-              className={cn(
-                "sr-only z-10 rounded-full bg-[var(--color-neutral-white)] px-4 py-2 text-sm font-semibold text-[var(--color-neutral-charcoal)] focus:not-sr-only focus:absolute focus:top-4 focus:right-4 motion-reduce:hidden",
-                focusRing,
-              )}
-            >
-              <HugeiconsIcon
-                icon={stopped ? PlayIcon : PauseIcon}
-                aria-hidden
-                className="mr-2 inline size-4 align-[-3px]"
-                strokeWidth={2}
-              />
-              {stopped ? "Start slide show" : "Pause slide show"}
-            </button>
+            {multi && (
+              <button
+                type="button"
+                onClick={() => setStopped((s) => !s)}
+                className={cn(
+                  "sr-only z-10 rounded-full bg-[var(--color-neutral-white)] px-4 py-2 text-sm font-semibold text-[var(--color-neutral-charcoal)] focus:not-sr-only focus:absolute focus:top-4 focus:right-4 motion-reduce:hidden",
+                  focusRing,
+                )}
+              >
+                <HugeiconsIcon
+                  icon={stopped ? PlayIcon : PauseIcon}
+                  aria-hidden
+                  className="mr-2 inline size-4 align-[-3px]"
+                  strokeWidth={2}
+                />
+                {stopped ? "Start slide show" : "Pause slide show"}
+              </button>
+            )}
 
             <div className="cursor-pointer [perspective:1600px]">
               <motion.div
@@ -175,7 +194,7 @@ export function Testimonials() {
                     </span>
                     <AnimatePresence mode="wait" initial={false} custom={dir}>
                       <motion.div
-                        key={t.id}
+                        key={index}
                         custom={dir}
                         variants={slide}
                         initial="enter"
@@ -199,7 +218,7 @@ export function Testimonials() {
                       </motion.div>
                     </AnimatePresence>
                   </div>
-                  <Arrows onStep={go} />
+                  {multi && <Arrows onStep={go} />}
                 </Face>
 
                 <Face hidden={!flipped} back>
@@ -216,13 +235,13 @@ export function Testimonials() {
                     >
                       {/* Every comment is stacked in one cell so the card is always as tall as
                         the longest one: no height jump between slides or when flipping. */}
-                      {testimonials.map((x) => (
+                      {items.map((x, i) => (
                         <span
-                          key={x.id}
-                          aria-hidden={x.id !== t.id || undefined}
+                          key={i}
+                          aria-hidden={i !== index || undefined}
                           className={cn(
                             "text-sm leading-[1.5] font-semibold text-pretty text-[var(--color-neutral-white)] [grid-area:1/1] sm:text-xl sm:leading-[1.5]",
-                            x.id !== t.id && "invisible",
+                            i !== index && "invisible",
                           )}
                         >
                           {x.comment}
@@ -231,7 +250,7 @@ export function Testimonials() {
                     </button>
                   </div>
                   {/* Phones: tap the card to go back; arrows return on the front. Keeps the card short. */}
-                  <Arrows onStep={go} className="hidden sm:flex" />
+                  {multi && <Arrows onStep={go} className="hidden sm:flex" />}
                 </Face>
               </motion.div>
             </div>
@@ -240,7 +259,7 @@ export function Testimonials() {
             <div className="relative order-first aspect-[16/9] overflow-hidden rounded-[20px] outline-1 -outline-offset-1 outline-[oklch(0_0_0/0.1)] lg:order-none lg:aspect-auto lg:min-h-[500px]">
               <AnimatePresence initial={false}>
                 <motion.div
-                  key={t.id}
+                  key={index}
                   initial={{ opacity: 0, scale: 1.04 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
@@ -251,9 +270,17 @@ export function Testimonials() {
                     src={t.photo}
                     alt=""
                     fill
+                    {...(isRemoteSrc(t.photo) && { unoptimized: true })}
                     sizes="(min-width: 1024px) 500px, 100vw"
                     className="object-cover object-[50%_30%]"
                   />
+                  {t.video && (
+                    <SlideVideo
+                      src={t.video}
+                      poster={t.photo}
+                      play={playVideo}
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -261,6 +288,42 @@ export function Testimonials() {
         </MotionConfig>
       </div>
     </section>
+  );
+}
+
+// Decorative loop over the photo. The photo stays underneath as the poster,
+// the loading state, and the fallback when autoplay is blocked.
+function SlideVideo({
+  src,
+  poster,
+  play,
+}: {
+  src: string;
+  poster: string;
+  play: boolean;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || !play) return;
+    // Autoplay can be refused (power saving, data saver); the poster stays.
+    Promise.resolve(video.play()).catch(() => {});
+    return () => video.pause();
+  }, [play]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      poster={poster}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      disablePictureInPicture
+      aria-hidden
+      className="absolute inset-0 size-full object-cover object-[50%_30%]"
+    />
   );
 }
 
@@ -327,12 +390,7 @@ function Arrows({
           "bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] hover:bg-[color-mix(in_oklab,var(--color-neutral-white)_88%,var(--color-primary-core))]",
         )}
       >
-        <HugeiconsIcon
-          icon={ArrowLeft02Icon}
-          aria-hidden
-          className="size-6"
-          strokeWidth={2}
-        />
+        <ArrowGlyph className="size-4 -rotate-135 bg-current" />
       </button>
       <button
         type="button"
@@ -344,12 +402,7 @@ function Arrows({
           "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)] hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-pressed)]",
         )}
       >
-        <HugeiconsIcon
-          icon={ArrowRight02Icon}
-          aria-hidden
-          className="size-6"
-          strokeWidth={2}
-        />
+        <ArrowGlyph className="size-4 rotate-45 bg-current" />
       </button>
     </div>
   );

@@ -10,6 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "gen:api": "node scripts/gen-api.mjs",
     "gen:api:check": "node scripts/gen-api.mjs --check",
+    "gen:site-defaults": "node scripts/gen-site-defaults.mjs",
+    "gen:site-defaults:check": "node scripts/gen-site-defaults.mjs --check",
     "format:check": "prettier --check .",
     "prepare": "husky",
     "test:unit": "vitest run",

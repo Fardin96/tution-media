@@ -10,8 +10,12 @@ import { TutorShowcase } from "@/components/tutor-showcase";
 import { HowItWorks } from "@/components/how-it-works";
 import { Faq } from "@/components/faq";
 import { Footer } from "@/components/footer";
+import { hiddenAnchors } from "@/lib/site-content";
+import { getSiteContent } from "@/lib/site-content.server";
 
-export default function Home() {
+export default async function Home() {
+  const content = await getSiteContent();
+
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero Section */}
@@ -19,17 +23,21 @@ export default function Home() {
         className="flex min-h-[80vh] flex-col items-center px-6 pt-[calc(var(--navbar-top-offset)+var(--navbar-height)+45px)] text-center"
         animated
       >
-        <TagLine />
+        <TagLine line={content.hero.tagline} />
 
         <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] sm:text-5xl md:text-6xl lg:text-7xl">
-          Find the right tutor, faster.
+          {content.hero.headline}
         </h1>
         <p className="mt-4 max-w-xl text-lg text-[var(--color-neutral-gray)]">
-          A smarter way to connect students and tutors—built for clarity, trust,
-          and real results.
+          {content.hero.subline}
         </p>
 
-        <SearchBar className="mt-[37px]" />
+        <SearchBar
+          className="mt-[37px]"
+          skillPlaceholders={content.hero.skillPlaceholders}
+          placePlaceholders={content.hero.placePlaceholders}
+          searchLabel={content.hero.searchLabel}
+        />
 
         <OurHeroes />
       </MeshGradient>
@@ -42,27 +50,39 @@ export default function Home() {
       >
         <SectionHeader
           titleId="categories-title"
-          title="Discover the Emerging Masters"
-          description="Find the best master for your kids and boosts your results 10x!"
+          title={content.categories.title}
+          description={content.categories.description}
         />
 
         <TutorDirectory className="mt-10" />
 
-        <ArrowLinkButton href="/sign-in" variant="solid" className="mt-10">
-          View All
+        <ArrowLinkButton
+          href={content.categories.cta.href}
+          variant="solid"
+          className="mt-10"
+        >
+          {content.categories.cta.label}
         </ArrowLinkButton>
       </section>
 
       {/* Testimonials Section */}
-      <Testimonials />
+      {content.testimonials.enabled && (
+        <Testimonials content={content.testimonials} />
+      )}
 
-      <TutorShowcase />
+      {content.showcase.enabled && <TutorShowcase content={content.showcase} />}
 
-      <HowItWorks />
+      {content.how_it_works.enabled && (
+        <HowItWorks content={content.how_it_works} />
+      )}
 
-      <Faq />
+      {content.faq.enabled && <Faq content={content.faq} />}
 
-      <Footer />
+      <Footer
+        footer={content.footer}
+        cta={content.cta_banner}
+        hiddenAnchors={[...hiddenAnchors(content)]}
+      />
     </div>
   );
 }
