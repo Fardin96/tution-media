@@ -44,6 +44,7 @@ const KINDS: NotificationKind[] = [
   "APPLICATION_COMPLETED",
   "PACKAGE_UPDATED",
   "PACKAGE_CLOSED",
+  "REQUIREMENT_INVITED",
 ];
 
 /** Copy from the spec, per kind: [requirement text, package text]. Kinds with one copy repeat it. */
@@ -91,6 +92,10 @@ const COPY: Partial<Record<NotificationKind, [string, string]>> = {
   PACKAGE_CLOSED: [
     "Ana closed a package you requested.",
     "Ana closed a package you requested.",
+  ],
+  REQUIREMENT_INVITED: [
+    "Ana invited you to apply to their tuition.",
+    "Ana invited you to apply to their tuition.",
   ],
 };
 
@@ -220,6 +225,7 @@ describe("notificationHref", () => {
   it.each([
     ["APPLICATION_RECEIVED", "app-1", "/dashboard/applications/app-1"],
     ["PACKAGE_CLOSED", "app-2", "/dashboard/applications/app-2"],
+    ["REQUIREMENT_INVITED", null, "/dashboard/find-tuitions?scope=invited"],
     ["APPLICATION_RECEIVED", null, "/dashboard"],
     ["ID_APPROVED", null, "/dashboard#verification"],
     ["ID_REJECTED", null, "/dashboard#verification"],

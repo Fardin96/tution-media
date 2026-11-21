@@ -73,6 +73,8 @@ export const ERROR_CODES = {
   OtpExpired: "OTP_EXPIRED",
   OtpTooManyAttempts: "OTP_TOO_MANY_ATTEMPTS",
   SmsUnavailable: "SMS_UNAVAILABLE",
+  InviteExists: "INVITE_EXISTS",
+  InviteLimitReached: "INVITE_LIMIT_REACHED",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -258,6 +260,8 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   OTP_TOO_MANY_ATTEMPTS: "Too many wrong codes. Send a new one.",
   SMS_UNAVAILABLE:
     "We couldn't send the SMS right now. Try again in a few minutes.",
+  INVITE_EXISTS: "You already invited this tutor.",
+  INVITE_LIMIT_REACHED: "You can invite up to 20 tutors to one tuition.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

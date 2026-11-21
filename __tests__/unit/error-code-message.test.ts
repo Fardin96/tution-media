@@ -98,6 +98,17 @@ describe("errorCodeMessage", () => {
     });
   });
 
+  it("gives the invite codes their copy", () => {
+    expect(
+      errorCodeMessage(new ApiError("m", 409, { code: "INVITE_EXISTS" })),
+    ).toBe("You already invited this tutor.");
+    expect(
+      errorCodeMessage(
+        new ApiError("m", 409, { code: "INVITE_LIMIT_REACHED" }),
+      ),
+    ).toBe("You can invite up to 20 tutors to one tuition.");
+  });
+
   it("returns undefined for an unknown code", () => {
     expect(
       errorCodeMessage(new ApiError("m", 400, { code: "SOMETHING_NEW" })),

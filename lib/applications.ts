@@ -3,11 +3,12 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
 import { queryKeys, invalidateApplications } from "./query-keys";
-import type { Tone } from "./requirements";
+import { requirementApi, type Tone } from "./requirements";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type Application = Schemas["Application"];
@@ -20,6 +21,10 @@ export type ApplicationTutorProfile = Schemas["ApplicationTutorProfile"];
 export type ApplicationTutorSet = Schemas["ApplicationTutorSet"];
 export type ApplicationStatus = Application["status"];
 export type ApplicationAction = Application["allowedActions"][number];
+export type RecommendedTutorPage = Schemas["RecommendedTutorPage"];
+export type RecommendedTutor = RecommendedTutorPage["tutors"][number];
+export type RecommendedSuggestion = RecommendedTutorPage["suggestions"][number];
+export type RequirementInvite = Schemas["RequirementInvite"];
 
 export const APPLICATION_STATUSES = [
   "PENDING",
@@ -181,6 +186,80 @@ export const ACTION_META: Record<
     },
   },
 };
+
+/** Student side of a requirement: recommendations and invites. The API answers 409 LISTING_NOT_OPEN once it is no longer OPEN. */
+export const recommendationApi = {
+  tutors: (
+    requirementId: string,
+    page: number,
+  ): Promise<RecommendedTutorPage> =>
+    unwrap(
+      client.GET("/api/v1/requirements/{id}/tutors", {
+        params: { path: { id: requirementId }, query: { page } },
+      }),
+    ),
+  invite: (
+    requirementId: string,
+    tutorId: string,
+  ): Promise<RequirementInvite> =>
+    unwrap(
+      client.POST("/api/v1/requirements/{id}/invites", {
+        params: { path: { id: requirementId } },
+        body: { tutorId },
+      }),
+    ),
+};
+
+/** The student's own requirement. Only its status is read here, to decide whether the tutor list applies. */
+export function useStudentRequirement(requirementId: string) {
+  return useQuery({
+    queryKey: queryKeys.applications.studentRequirement(requirementId),
+    queryFn: () => requirementApi.get(requirementId),
+    staleTime: 15_000,
+  });
+}
+
+export function useRecommendedTutors(requirementId: string, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.applications.recommended(requirementId),
+    queryFn: ({ pageParam }) =>
+      recommendationApi.tutors(requirementId, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    enabled,
+    staleTime: 15_000,
+  });
+}
+
+/**
+ * Sets invitedAt on the tutor's row at once, so the button reads Invited before the list refetches.
+ * A repeat invite answers 409 INVITE_EXISTS, which shows as an error; the refetch then shows the invite.
+ */
+export function useInviteTutor(requirementId: string) {
+  const queryClient = useQueryClient();
+  const key = queryKeys.applications.recommended(requirementId);
+  return useMutation<RequirementInvite, ApiError, string>({
+    mutationFn: (tutorId) => recommendationApi.invite(requirementId, tutorId),
+    onSuccess: (invite, tutorId) => {
+      queryClient.setQueriesData<InfiniteData<RecommendedTutorPage>>(
+        { queryKey: key },
+        (old) =>
+          old && {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              tutors: page.tutors.map((row) =>
+                row.tutor.id === tutorId
+                  ? { ...row, invitedAt: invite.createdAt }
+                  : row,
+              ),
+            })),
+          },
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
 
 export function useMyApplications(status?: ApplicationStatus) {
   return useInfiniteQuery({

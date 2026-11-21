@@ -3,6 +3,8 @@ import { ApiError } from "@/lib/profile";
 import { errorCodeMessage } from "@/lib/api-errors";
 import { queryKeys } from "@/lib/query-keys";
 import {
+  dedupeBy,
+  dedupeById,
   formatDistanceKm,
   packageFiltersFromSearchParams,
   packageFiltersToSearchParams,
@@ -271,5 +273,88 @@ describe("PROFILE_INCOMPLETE message", () => {
     expect(errorCodeMessage(err)).toBe(
       "Complete your profile before applying.",
     );
+  });
+});
+
+describe("requirement invited and sort <-> search params", () => {
+  it("round-trips the invited scope with nothing else", () => {
+    const params = requirementFiltersToSearchParams({
+      scope: "invited",
+      subjectId: 3,
+    });
+    expect(Object.fromEntries(params)).toEqual({ scope: "invited" });
+    expect(requirementFiltersFromSearchParams(params)).toEqual({
+      scope: "invited",
+    });
+  });
+
+  it("writes sort=newest in set mode and omits the default", () => {
+    const newest = requirementFiltersToSearchParams({
+      scope: "set",
+      setId: "set-1",
+      sort: "newest",
+    });
+    expect(Object.fromEntries(newest)).toEqual({
+      scope: "set",
+      set: "set-1",
+      sort: "newest",
+    });
+    expect(requirementFiltersFromSearchParams(newest).sort).toBe("newest");
+
+    const best = requirementFiltersToSearchParams({
+      scope: "set",
+      setId: "set-1",
+      sort: "match",
+    });
+    expect(best.has("sort")).toBe(false);
+    expect(requirementFiltersFromSearchParams(best)).not.toHaveProperty("sort");
+  });
+
+  it("drops sort outside set mode", () => {
+    const params = requirementFiltersToSearchParams({
+      scope: "all",
+      sort: "newest",
+    });
+    expect(params.has("sort")).toBe(false);
+    expect(
+      requirementFiltersFromSearchParams(
+        new URLSearchParams("scope=all&sort=newest"),
+      ),
+    ).not.toHaveProperty("sort");
+  });
+
+  it("reads an unknown scope as nearby", () => {
+    expect(
+      requirementFiltersFromSearchParams(new URLSearchParams("scope=invitd"))
+        .scope,
+    ).toBe("nearby");
+  });
+});
+
+describe("dedupeBy and dedupeById", () => {
+  it("keeps the first row for each id and the order", () => {
+    const rows = [
+      { id: "a", n: 1 },
+      { id: "b", n: 2 },
+      { id: "a", n: 3 },
+    ];
+    expect(dedupeById(rows)).toEqual([
+      { id: "a", n: 1 },
+      { id: "b", n: 2 },
+    ]);
+  });
+
+  it("dedupes on a key function", () => {
+    const rows = [
+      { tutor: { id: "t1" }, score: 1 },
+      { tutor: { id: "t1" }, score: 2 },
+    ];
+    expect(dedupeBy(rows, (row) => row.tutor.id)).toEqual([
+      { tutor: { id: "t1" }, score: 1 },
+    ]);
+  });
+
+  it("returns an empty list unchanged", () => {
+    expect(dedupeById([])).toEqual([]);
   });
 });

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
+import { MatchReasons } from "@/components/browse/match-reasons";
 import {
   card,
   primaryButton,
@@ -100,6 +101,9 @@ export function TuitionCard({
         <h2 className="text-lg font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)]">
           {subjectsText}
         </h2>
+        {tuition.match && (
+          <MatchReasons reasons={tuition.match.reasons} className="mt-2" />
+        )}
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
@@ -132,22 +136,25 @@ export function TuitionCard({
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {apply.kind === "closed" && (
-          <TonePill tone="neutral">Application closed</TonePill>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {tuition.invitedAt && <TonePill tone="info">Invited</TonePill>}
+          {apply.kind === "closed" && (
+            <TonePill tone="neutral">Application closed</TonePill>
+          )}
 
-        {apply.kind === "applied" && (
-          <>
-            <StatusPill status={apply.status} />
-            <Link
-              href={`/dashboard/applications/${apply.applicationId}`}
-              className={cn(secondaryButton, "min-h-10 px-4")}
-            >
-              View
-              <span className="sr-only"> application</span>
-            </Link>
-          </>
-        )}
+          {apply.kind === "applied" && (
+            <>
+              <StatusPill status={apply.status} />
+              <Link
+                href={`/dashboard/applications/${apply.applicationId}`}
+                className={cn(secondaryButton, "min-h-10 px-4")}
+              >
+                View
+                <span className="sr-only"> application</span>
+              </Link>
+            </>
+          )}
+        </div>
 
         {apply.kind === "open" && (
           <div className="grid w-full gap-2 sm:w-auto sm:justify-items-end">

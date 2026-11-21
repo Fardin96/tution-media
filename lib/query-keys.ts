@@ -124,6 +124,11 @@ export const queryKeys = {
     forRequirement: (id: string) =>
       ["applications", "requirement", id] as const,
     forPackage: (id: string) => ["applications", "package", id] as const,
+    // Under applications so every application write refreshes them: accepting an applicant fills the tuition.
+    recommended: (requirementId: string) =>
+      ["applications", "recommended", requirementId] as const,
+    studentRequirement: (requirementId: string) =>
+      ["applications", "student-requirement", requirementId] as const,
   },
   reviews: {
     all: ["reviews"] as const,

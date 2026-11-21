@@ -73,6 +73,9 @@ const ACTION_LABELS: Record<string, string> = {
   "dispute.assign": "Took a dispute",
   "dispute.resolve": "Resolved a dispute",
   "dispute.dismiss": "Dismissed a dispute",
+  "matching.update": "Matching rules updated",
+  "city.upsert": "City boundary saved",
+  "city.update": "City updated",
 };
 
 export function actionLabel(action: string): string {

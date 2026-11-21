@@ -4076,7 +4076,7 @@ export interface paths {
     };
     /**
      * Browse open requirements
-     * @description Tutor browse (#46). OPEN requirements from ACTIVE students. scope=nearby matches requirements whose student pin is inside one of the tutor's zones, or whose area is in the tutor's service areas; scope=all skips the location match. scope=set lists requirements that match one of the tutor's own active sets (setId, required) by curriculum, level, subject and area; the manual filters are ignored in that mode. Filters: curriculum, levelCode, subjectId, areaId. Newest first, keyset cursor. No matching score is applied yet. noServiceArea is true when the tutor has no zones and no areas.
+     * @description Tutor browse (#46). OPEN requirements from ACTIVE students. scope=nearby matches requirements whose student pin is inside one of the tutor's zones, or whose area is in the tutor's service areas; scope=all skips the location match. scope=set lists the requirements that the matching engine pairs with one of the tutor's own active sets (setId, required); each row carries match {score, reasons}, and matchVersion is the config version. sort=newest (default) keeps newest first with a keyset cursor; sort=match (scope=set only) ranks by score, best first, then newest, capped at 300 with an offset cursor. scope=invited lists the OPEN requirements the tutor was invited to, newest invite first. The manual filters (curriculum, levelCode, subjectId, areaId) apply to nearby and all only. Every row has invitedAt. gaps explains an empty set page. noServiceArea is true when the tutor has no zones and no areas.
      *
      *     **Who:** TUTOR.
      *
@@ -4085,7 +4085,8 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          scope?: "nearby" | "all" | "set";
+          scope?: "nearby" | "all" | "set" | "invited";
+          sort?: "newest" | "match";
           setId?: string;
           curriculum?:
             | "BANGLA_MEDIUM"
@@ -4232,6 +4233,231 @@ export interface paths {
         };
         /** @description Not found */
         404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/requirements/{id}/tutors": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Tutors who match my requirement
+     * @description Listed tutors whose best active set matches the requirement, best match first, 20 per page (page 1 to 15, at most 300 tutors). Each tutor has match reasons for the student and no numeric score. invitedAt is set when this student invited the tutor; application is the tutor's application here, any status. suggestions appear when fewer than 3 tutors match: allowing online tuition or any tutor gender would add tutors. 404 when the requirement is not the caller's; 409 LISTING_NOT_OPEN when it is not OPEN.
+     *
+     *     **Who:** STUDENT.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          page?: number;
+        };
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["RecommendedTutorPage"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/requirements/{id}/invites": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Invite a tutor to my requirement
+     * @description Invites a listed tutor to an OPEN requirement. The tutor gets a REQUIREMENT_INVITED alert. No match is needed. 404 when the requirement is not the caller's or the tutor is not listed; 409 LISTING_NOT_OPEN, APPLICATION_CLOSED, ALREADY_APPLIED (the tutor has an application here), INVITE_EXISTS, or INVITE_LIMIT_REACHED (20 invites per requirement).
+     *
+     *     **Who:** STUDENT.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            /** Format: uuid */
+            tutorId: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["RequirementInvite"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
           headers: {
             [name: string]: unknown;
           };
@@ -14115,6 +14341,704 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/matching/config": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the matching rules
+     * @description The saved rules with their version, the defaults, and the modes each rule accepts. A config nobody has saved yet shows the defaults at version 0.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchingConfigRecord"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    /**
+     * Save the matching rules
+     * @description Super admin only. Every save bumps the version; match responses and applications carry it. 400 VALIDATION_ERROR when a rule has a mode it cannot take, a curriculum is in two equivalence groups, or every ranked rule has weight 0.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["MatchingConfigInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchingConfigRecord"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/matching/preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Preview a draft config
+     * @description Counts open requirements and listed tutors under the saved config (current) and under the posted one (draft). Nothing is saved. Both share the saved version number.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 10/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["MatchingPreviewRequestInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchingPreviewPair"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/matching/explain": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Explain one requirement and tutor pair
+     * @description Every active set of the tutor against the requirement, best first, with each rule's mode, pass and part. Ignores whether the tutor is listed, so it also explains an unlisted tutor. 404 when the requirement or the tutor does not exist.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query: {
+          requirementId: string;
+          tutorId: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchingExplain"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/matching/unmatched": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List open requirements with no matching tutor
+     * @description OPEN requirements older than olderThanHours with no listed tutor that matches, oldest first. blockers names the rules that alone keep each one empty; empty when it needs more than one change.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query?: {
+          olderThanHours?: number;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MatchingUnmatched"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/cities": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cities
+     * @description Every city, inactive ones included, with the area of its boundary in km2. Dhaka is seeded by migration.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminCityList"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/cities/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Create or replace a city
+     * @description Super admin only. The boundary is GeoJSON Polygon or MultiPolygon in lng/lat. 400 VALIDATION_ERROR (path boundary) when it is not a valid polygon, crosses itself, or covers less than 5 or more than 2000 km2. isActive is kept when omitted.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 20/min per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          slug: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CityUpsertInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminCity"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Activate or deactivate a city
+     * @description Super admin only. An inactive city is not used for the city limit. 404 when the city does not exist.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 20/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          slug: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CityUpdateInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminCity"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
   "/api/v1/admin/audit-logs": {
     parameters: {
       query?: never;
@@ -16758,6 +17682,18 @@ export interface components {
       accountId: string;
       name: string | null;
     };
+    AdminCity: {
+      slug: string;
+      name: string;
+      districtCode: string;
+      isActive: boolean;
+      areaKm2: number;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    AdminCityList: {
+      cities: components["schemas"]["AdminCity"][];
+    };
     AdminDispute: {
       id: string;
       applicationId: string;
@@ -17576,8 +18512,10 @@ export interface components {
         | "VIDEO_REJECTED"
         | "FILE_REMOVED"
         | "UPLOADS_BLOCKED"
-        | "UPLOADS_UNBLOCKED";
+        | "UPLOADS_UNBLOCKED"
+        | "REQUIREMENT_INVITED";
       applicationId: string | null;
+      requirementId: string | null;
       listingKind: ("REQUIREMENT" | "PACKAGE") | null;
       counterpartName: string | null;
       note: string | null;
@@ -17889,11 +18827,22 @@ export interface components {
       distanceKm: number | null;
       closed: boolean;
       myApplication: components["schemas"]["MyApplication"] | null;
+      invitedAt: string | null;
+      match: {
+        score: number;
+        reasons: components["schemas"]["MatchReason"][];
+      } | null;
     };
     BrowseRequirementPage: {
       requirements: components["schemas"]["BrowseRequirement"][];
       nextCursor: string | null;
       noServiceArea: boolean;
+      matchVersion: number | null;
+      gaps: {
+        /** @enum {string} */
+        code: "WIDER_LEVEL" | "OTHER_SUBJECTS" | "TEACH_ONLINE";
+        requirements: number;
+      }[];
     };
     CaseActionInput: {
       /** @enum {string} */
@@ -17915,6 +18864,90 @@ export interface components {
       feeAmount: string;
       chargeAmount: string;
       totalAmount: string;
+    };
+    CityUpdateInput: {
+      isActive: boolean;
+    };
+    CityUpsertInput: {
+      name: string;
+      /** @enum {string} */
+      districtCode:
+        | "bagerhat"
+        | "bandarban"
+        | "barguna"
+        | "barishal"
+        | "bhola"
+        | "bogura"
+        | "brahmanbaria"
+        | "chandpur"
+        | "chapainawabganj"
+        | "chattogram"
+        | "chuadanga"
+        | "coxsbazar"
+        | "cumilla"
+        | "dhaka"
+        | "dinajpur"
+        | "faridpur"
+        | "feni"
+        | "gaibandha"
+        | "gazipur"
+        | "gopalganj"
+        | "habiganj"
+        | "jamalpur"
+        | "jashore"
+        | "jhalokathi"
+        | "jhenaidah"
+        | "joypurhat"
+        | "khagrachhari"
+        | "khulna"
+        | "kishoreganj"
+        | "kurigram"
+        | "kushtia"
+        | "lakshmipur"
+        | "lalmonirhat"
+        | "madaripur"
+        | "magura"
+        | "manikganj"
+        | "meherpur"
+        | "moulvibazar"
+        | "munshiganj"
+        | "mymensingh"
+        | "naogaon"
+        | "narail"
+        | "narayanganj"
+        | "narsingdi"
+        | "natore"
+        | "netrokona"
+        | "nilphamari"
+        | "noakhali"
+        | "pabna"
+        | "panchagarh"
+        | "patuakhali"
+        | "pirojpur"
+        | "rajbari"
+        | "rajshahi"
+        | "rangamati"
+        | "rangpur"
+        | "satkhira"
+        | "shariatpur"
+        | "sherpur"
+        | "sirajganj"
+        | "sunamganj"
+        | "sylhet"
+        | "tangail"
+        | "thakurgaon";
+      boundary:
+        | {
+            /** @constant */
+            type: "Polygon";
+            coordinates: unknown[];
+          }
+        | {
+            /** @constant */
+            type: "MultiPolygon";
+            coordinates: unknown[];
+          };
+      isActive?: boolean;
     };
     ConsentInput: {
       version: string;
@@ -18480,7 +19513,9 @@ export interface components {
       | "OTP_INVALID"
       | "OTP_EXPIRED"
       | "OTP_TOO_MANY_ATTEMPTS"
-      | "SMS_UNAVAILABLE";
+      | "SMS_UNAVAILABLE"
+      | "INVITE_EXISTS"
+      | "INVITE_LIMIT_REACHED";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -18497,6 +19532,18 @@ export interface components {
       };
       /** @description One entry per zod issue. Sent only with VALIDATION_ERROR. */
       issues?: components["schemas"]["ErrorIssue"][];
+    };
+    ExplainSet: {
+      setId: string;
+      name: string;
+      isDefault: boolean;
+      studentCity: string | null;
+      inZone: boolean;
+      distanceKm: number | null;
+      isOnline: boolean;
+      sharedSubjects: number;
+      totalSubjects: number;
+      parts: components["schemas"]["MatchParts"];
     };
     FeePromo: {
       code: string;
@@ -18534,6 +19581,274 @@ export interface components {
     };
     LogoutInput: {
       refreshToken?: string;
+    };
+    MatchParts: {
+      version: number;
+      score: number;
+      passes: boolean;
+      reach: boolean;
+      rules: {
+        [key: string]: components["schemas"]["RuleResult"];
+      };
+    };
+    MatchReason: {
+      rule: string;
+      ok: boolean;
+      label: string;
+    };
+    MatchingConfigInput: {
+      rules: {
+        curriculum: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        level: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+          slack: number;
+        };
+        subject: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+          requireAll: boolean;
+        };
+        groupTarget: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        location: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        gender: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        salary: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        schedule: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        capacity: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        quality: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        recency: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+      };
+      cityEdgeKm: number;
+      outsideCityKm: number;
+      distanceScoreKm: number;
+      admissionIgnoresCurriculum: boolean;
+      curriculumEquivalents: (
+        | "BANGLA_MEDIUM"
+        | "ENGLISH_VERSION"
+        | "EM_CAMBRIDGE"
+        | "EM_EDEXCEL"
+        | "EM_IB"
+        | "EM_AMERICAN"
+        | "MADRASAH"
+      )[][];
+    };
+    MatchingConfigRecord: {
+      config: components["schemas"]["MatchingConfigValue"];
+      defaults: components["schemas"]["MatchingConfigValue"];
+      ruleModes: {
+        [key: string]: ("REQUIRED" | "RANK" | "OFF")[];
+      };
+      updatedAt: string | null;
+      updatedByName: string | null;
+    };
+    MatchingConfigValue: {
+      version: number;
+      rules: {
+        curriculum: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        level: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+          slack: number;
+        };
+        subject: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+          requireAll: boolean;
+        };
+        groupTarget: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        location: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        gender: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        salary: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        schedule: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        capacity: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        quality: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+        recency: {
+          /** @enum {string} */
+          mode: "REQUIRED" | "RANK" | "OFF";
+          weight: number;
+        };
+      };
+      cityEdgeKm: number;
+      outsideCityKm: number;
+      distanceScoreKm: number;
+      admissionIgnoresCurriculum: boolean;
+      curriculumEquivalents: (
+        | "BANGLA_MEDIUM"
+        | "ENGLISH_VERSION"
+        | "EM_CAMBRIDGE"
+        | "EM_EDEXCEL"
+        | "EM_IB"
+        | "EM_AMERICAN"
+        | "MADRASAH"
+      )[][];
+    };
+    MatchingExplain: {
+      version: number;
+      requirement: {
+        id: string;
+        curriculum:
+          | (
+              | "BANGLA_MEDIUM"
+              | "ENGLISH_VERSION"
+              | "EM_CAMBRIDGE"
+              | "EM_EDEXCEL"
+              | "EM_IB"
+              | "EM_AMERICAN"
+              | "MADRASAH"
+            )
+          | null;
+        levelCode: number | null;
+        tuitionType: string | null;
+        status: string;
+      };
+      tutor: {
+        id: string;
+        name: string;
+        isListed: boolean;
+      };
+      sets: components["schemas"]["ExplainSet"][];
+    };
+    MatchingPreview: {
+      version: number;
+      openRequirements: number;
+      requirementsWithNoTutor: number;
+      requirementsWithFewTutors: number;
+      requirementsWithManyTutors: number;
+      listedTutors: number;
+      tutorsWithAMatch: number;
+      blockers: {
+        /** @enum {string} */
+        rule:
+          | "reach"
+          | "curriculum"
+          | "level"
+          | "subject"
+          | "groupTarget"
+          | "location"
+          | "gender"
+          | "salary"
+          | "schedule"
+          | "capacity"
+          | "quality"
+          | "recency";
+        requirements: number;
+      }[];
+    };
+    MatchingPreviewPair: {
+      current: components["schemas"]["MatchingPreview"];
+      draft: components["schemas"]["MatchingPreview"];
+    };
+    MatchingPreviewRequestInput: {
+      config: components["schemas"]["MatchingConfigInput"];
+    };
+    MatchingUnmatched: {
+      requirements: {
+        id: string;
+        /** Format: date-time */
+        createdAt: string;
+        studentName: string;
+        curriculum:
+          | (
+              | "BANGLA_MEDIUM"
+              | "ENGLISH_VERSION"
+              | "EM_CAMBRIDGE"
+              | "EM_EDEXCEL"
+              | "EM_IB"
+              | "EM_AMERICAN"
+              | "MADRASAH"
+            )
+          | null;
+        levelCode: number | null;
+        subjectIds: number[];
+        areaId: number | null;
+        tuitionType: string | null;
+        blockers: (
+          | "reach"
+          | "curriculum"
+          | "level"
+          | "subject"
+          | "groupTarget"
+          | "location"
+          | "gender"
+          | "salary"
+          | "schedule"
+          | "capacity"
+          | "quality"
+          | "recency"
+        )[];
+      }[];
     };
     Me: {
       account: components["schemas"]["MeAccount"];
@@ -18968,6 +20283,53 @@ export interface components {
     PlatformSettingList: {
       settings: components["schemas"]["PlatformSettingItem"][];
     };
+    RecommendedTutorPage: {
+      tutors: {
+        tutor: {
+          id: string;
+          name: string;
+          instituteName: string | null;
+          /** @enum {string} */
+          gender: "MALE" | "FEMALE" | "OTHER";
+          ratingAvg: number;
+          ratingCount: number;
+          /** @enum {string} */
+          verificationStatus:
+            "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+          areas: {
+            id: number;
+            name: string;
+          }[];
+          subjects: {
+            id: number;
+            name: string;
+          }[];
+        };
+        reasons: components["schemas"]["MatchReason"][];
+        invitedAt: string | null;
+        application: {
+          id: string;
+          /** @enum {string} */
+          status:
+            | "PENDING"
+            | "CONFIRMED"
+            | "COMPLETED"
+            | "REJECTED"
+            | "WITHDRAWN"
+            | "CANCELLED"
+            | "EXPIRED";
+        } | null;
+      }[];
+      total: number;
+      page: number;
+      hasMore: boolean;
+      matchVersion: number;
+      suggestions: {
+        /** @enum {string} */
+        code: "ALLOW_ONLINE" | "ANY_GENDER";
+        extraTutors: number;
+      }[];
+    };
     RecordPaymentInput: {
       amount: number;
       /** Format: date-time */
@@ -19053,6 +20415,13 @@ export interface components {
       createdAt: string;
       updatedAt: string;
     };
+    RequirementInvite: {
+      id: string;
+      requirementId: string;
+      tutorId: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
     RequirementList: {
       requirements: components["schemas"]["Requirement"][];
     };
@@ -19081,6 +20450,12 @@ export interface components {
         4: number;
         5: number;
       };
+    };
+    RuleResult: {
+      /** @enum {string} */
+      mode: "REQUIRED" | "RANK" | "OFF";
+      pass: boolean;
+      part: number;
     };
     SendPhoneOtpInput: {
       phoneNumber: string;

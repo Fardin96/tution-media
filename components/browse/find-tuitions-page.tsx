@@ -26,11 +26,14 @@ import {
 import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
 import { useApplyToRequirement } from "@/lib/applications";
 import {
+  dedupeById,
   requirementFiltersFromSearchParams,
   requirementFiltersToSearchParams,
   useBrowseRequirements,
   type RequirementBrowseFilters,
   type RequirementBrowseScope,
+  type RequirementSort,
+  type TutorGap,
 } from "@/lib/browse";
 import {
   curriculumOf,
@@ -49,11 +52,29 @@ const SCOPES: { value: RequirementBrowseScope; label: string }[] = [
   { value: "nearby", label: "Near me" },
   { value: "all", label: "All open" },
   { value: "set", label: "My sets" },
+  { value: "invited", label: "Invited" },
 ];
 
-/** Readiness fixes, each on the page that owns it. */
+const SORTS: { value: RequirementSort; label: string }[] = [
+  { value: "match", label: "Best match" },
+  { value: "newest", label: "Newest" },
+];
+
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
+}
+
+/** Copy for a suggestion that would fill an empty set page. */
+function gapText(gap: TutorGap): string {
+  const n = gap.requirements;
+  switch (gap.code) {
+    case "WIDER_LEVEL":
+      return `Widen your class range: ${n} more open ${plural(n, "tuition", "tuitions")}`;
+    case "OTHER_SUBJECTS":
+      return `Add subjects: ${n} open ${plural(n, "tuition", "tuitions")} at your classes ${plural(n, "needs", "need")} other subjects`;
+    case "TEACH_ONLINE":
+      return `Teach online: ${n} more online ${plural(n, "tuition", "tuitions")}`;
+  }
 }
 
 /** Reads /me for the tutor's apply readiness. Shares the `me` key with the rest of the app. */
@@ -100,14 +121,22 @@ export function FindTuitionsPage() {
     : undefined;
 
   const browseFilters = useMemo<RequirementBrowseFilters>(
-    () => (isSetMode ? { scope: "set", setId: selectedSetId } : filters),
+    () =>
+      isSetMode
+        ? { scope: "set", setId: selectedSetId, sort: filters.sort }
+        : filters,
     [isSetMode, selectedSetId, filters],
   );
   const browse = useBrowseRequirements(browseFilters);
   const apply = useApplyToRequirement();
 
-  const rows = browse.data?.pages.flatMap((page) => page.requirements) ?? [];
+  // A match cursor can restart after a config change, so appended pages may repeat rows.
+  const rows = dedupeById(
+    browse.data?.pages.flatMap((page) => page.requirements) ?? [],
+  );
   const noServiceArea = browse.data?.pages[0]?.noServiceArea ?? false;
+  // Gaps only come back with the first page of an empty set.
+  const gaps = browse.data?.pages[0]?.gaps ?? [];
   // Undefined until the sets load, null when there is no default set.
   const defaultSet = sets.isSuccess
     ? (activeSets.find((s) => s.isDefault) ?? null)
@@ -216,7 +245,9 @@ export function FindTuitionsPage() {
       <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
         {isSetMode
           ? "Open requirements that match one of your sets."
-          : "Open requirements from students near your teaching zones and areas."}
+          : filters.scope === "invited"
+            ? "Open requirements that students invited you to apply to."
+            : "Open requirements from students near your teaching zones and areas."}
       </p>
 
       {readiness && !readiness.ready && (
@@ -240,28 +271,42 @@ export function FindTuitionsPage() {
           onChange={(scope) => patch({ scope })}
         />
 
-        {isSetMode ? (
+        {filters.scope === "invited" ? null : isSetMode ? (
           sets.isSuccess &&
           activeSets.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <FilterSelect
-                id="filter-set"
-                label="Requirement set"
-                value={selectedSetId ?? ""}
-                onChange={(value) =>
-                  setFilters({ scope: "set", setId: value || undefined })
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <FilterSelect
+                  id="filter-set"
+                  label="Requirement set"
+                  value={selectedSetId ?? ""}
+                  onChange={(value) =>
+                    setFilters({
+                      scope: "set",
+                      setId: value || undefined,
+                      sort: filters.sort,
+                    })
+                  }
+                >
+                  {selectedSetId === undefined && (
+                    <option value="">Choose a set</option>
+                  )}
+                  {activeSets.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.isDefault ? `${s.name} (default)` : s.name}
+                    </option>
+                  ))}
+                </FilterSelect>
+              </div>
+              <Segmented<RequirementSort>
+                label="Sort"
+                options={SORTS}
+                value={filters.sort ?? "match"}
+                onChange={(sort) =>
+                  patch({ sort: sort === "newest" ? "newest" : undefined })
                 }
-              >
-                {selectedSetId === undefined && (
-                  <option value="">Choose a set</option>
-                )}
-                {activeSets.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.isDefault ? `${s.name} (default)` : s.name}
-                  </option>
-                ))}
-              </FilterSelect>
-            </div>
+              />
+            </>
           )
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -440,7 +485,29 @@ export function FindTuitionsPage() {
             </button>
           </EmptyCard>
         ) : isSetMode ? (
-          <EmptyCard title="No open tuitions match this set." />
+          gaps.length > 0 && selectedSetId ? (
+            <EmptyCard title="No open tuitions match this set.">
+              <div className="grid w-full gap-3">
+                <ul className="grid gap-2 text-sm text-[var(--color-neutral-charcoal)]">
+                  {gaps.map((gap) => (
+                    <li key={gap.code}>{gapText(gap)}</li>
+                  ))}
+                </ul>
+                <div>
+                  <Link
+                    href={`/dashboard/tutor/requirements/${selectedSetId}/edit`}
+                    className={secondaryButton}
+                  >
+                    Edit this set
+                  </Link>
+                </div>
+              </div>
+            </EmptyCard>
+          ) : (
+            <EmptyCard title="No open tuitions match this set." />
+          )
+        ) : filters.scope === "invited" ? (
+          <EmptyCard title="No invitations right now." />
         ) : (
           <EmptyCard title="No open tuitions right now." />
         )}

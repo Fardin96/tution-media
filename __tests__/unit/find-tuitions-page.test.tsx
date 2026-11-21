@@ -146,7 +146,12 @@ const OTHER_SET = {
 };
 
 function mockApi(
-  opts: { readiness?: Readiness; rows?: unknown[]; sets?: unknown[] } = {},
+  opts: {
+    readiness?: Readiness;
+    rows?: unknown[];
+    sets?: unknown[];
+    gaps?: unknown[];
+  } = {},
 ) {
   const readiness = opts.readiness ?? {
     ready: true,
@@ -171,6 +176,8 @@ function mockApi(
         requirements: opts.rows ?? [OPEN, CLOSED],
         nextCursor: null,
         noServiceArea: false,
+        matchVersion: null,
+        gaps: opts.gaps ?? [],
       });
     }
     if (url.pathname === "/api/v1/tutors/me/requirements") {
@@ -302,7 +309,7 @@ describe("FindTuitionsPage", () => {
     ).toHaveAttribute("href", "/dashboard/tutor/requirements/set-default/edit");
   });
 
-  it("shows three scope segments", async () => {
+  it("shows four scope segments, Invited last", async () => {
     mockApi();
     renderPage();
 
@@ -311,8 +318,132 @@ describe("FindTuitionsPage", () => {
       within(scope)
         .getAllByRole("button")
         .map((b) => b.textContent),
-    ).toEqual(["Near me", "All open", "My sets"]);
+    ).toEqual(["Near me", "All open", "My sets", "Invited"]);
     await screen.findAllByRole("article");
+  });
+
+  it("lists invitations with only the scope in the request", async () => {
+    searchParams.set("scope", "invited");
+    searchParams.set("subjectId", "3");
+    mockApi({ rows: [OPEN] });
+    renderPage();
+
+    await screen.findAllByRole("article");
+    const query = browseRequests()[0].searchParams;
+    expect(query.get("scope")).toBe("invited");
+    expect(query.has("subjectId")).toBe(false);
+    expect(query.has("setId")).toBe(false);
+    expect(query.has("sort")).toBe(false);
+    expect(screen.queryByLabelText("Subject")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Sort" })).toBeNull();
+  });
+
+  it("says when no invitations are open", async () => {
+    searchParams.set("scope", "invited");
+    mockApi({ rows: [] });
+    renderPage();
+
+    expect(
+      await screen.findByText("No invitations right now."),
+    ).toBeInTheDocument();
+  });
+
+  it("sends sort=match by default in set mode", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-default");
+    mockApi({ sets: [DEFAULT_SET] });
+    renderPage();
+
+    await screen.findAllByRole("article");
+    expect(browseRequests()[0].searchParams.get("sort")).toBe("match");
+    expect(screen.getByRole("button", { name: "Best match" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("sends sort=newest in set mode when the URL asks for it", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-default");
+    searchParams.set("sort", "newest");
+    mockApi({ sets: [DEFAULT_SET] });
+    renderPage();
+
+    await screen.findAllByRole("article");
+    expect(browseRequests()[0].searchParams.get("sort")).toBe("newest");
+    expect(screen.getByRole("button", { name: "Newest" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("never sends sort outside set mode", async () => {
+    searchParams.set("scope", "all");
+    searchParams.set("sort", "newest");
+    mockApi();
+    renderPage();
+
+    await screen.findAllByRole("article");
+    expect(browseRequests()[0].searchParams.has("sort")).toBe(false);
+    expect(screen.queryByRole("group", { name: "Sort" })).toBeNull();
+  });
+
+  it("writes the sort choice to the URL", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-default");
+    mockApi({ sets: [DEFAULT_SET] });
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findAllByRole("article");
+    await user.click(screen.getByRole("button", { name: "Newest" }));
+
+    expect(replace).toHaveBeenLastCalledWith(
+      "/dashboard/find-tuitions?scope=set&set=set-default&sort=newest",
+      { scroll: false },
+    );
+  });
+
+  it("lists gap suggestions and an edit link when a set page is empty", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-default");
+    mockApi({
+      sets: [DEFAULT_SET],
+      rows: [],
+      gaps: [
+        { code: "WIDER_LEVEL", requirements: 3 },
+        { code: "TEACH_ONLINE", requirements: 1 },
+      ],
+    });
+    renderPage();
+
+    expect(
+      await screen.findByText("No open tuitions match this set."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Widen your class range: 3 more open tuitions"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Teach online: 1 more online tuition"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit this set" })).toHaveAttribute(
+      "href",
+      "/dashboard/tutor/requirements/set-default/edit",
+    );
+  });
+
+  it("keeps the plain empty copy when there are no gaps", async () => {
+    searchParams.set("scope", "set");
+    searchParams.set("set", "set-default");
+    mockApi({ sets: [DEFAULT_SET], rows: [], gaps: [] });
+    renderPage();
+
+    expect(
+      await screen.findByText("No open tuitions match this set."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Edit this set" }),
+    ).not.toBeInTheDocument();
   });
 
   it("hides the manual filters and preselects the default set in set mode", async () => {

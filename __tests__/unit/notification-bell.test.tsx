@@ -36,6 +36,7 @@ function alert(
     id,
     kind: "APPLICATION_RECEIVED",
     applicationId: `app-${id}`,
+    requirementId: null,
     listingKind: "REQUIREMENT",
     counterpartName: "Ana",
     note: null,

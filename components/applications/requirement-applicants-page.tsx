@@ -9,6 +9,7 @@ import { ApplicationActions } from "@/components/applications/application-action
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
+import { RecommendedTutorsSection } from "@/components/applications/recommended-tutors-section";
 import {
   formatDay,
   genderLabel,
@@ -171,6 +172,8 @@ export function RequirementApplicantsPage({
             </button>
           </div>
         )}
+
+        <RecommendedTutorsSection requirementId={requirementId} />
       </div>
     </PageFrame>
   );
