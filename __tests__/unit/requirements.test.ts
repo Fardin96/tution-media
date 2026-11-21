@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   emptyRequirementForm,
+  formatPostedDate,
   formatTaka,
   formatTime,
   getLocalIsoDate,
   hasAnyInput,
+  isPastRequirement,
+  postAgainHref,
+  requirementTemplate,
   statusMeta,
   toPayload,
   validateRequirementForm,
+  type Requirement,
   type RequirementForm,
 } from "@/lib/requirements";
 
@@ -248,5 +253,178 @@ describe("requirements helpers", () => {
         "OPEN",
       ).levelNote,
     ).toBeUndefined();
+  });
+});
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 23:30 UTC on 20 Nov is 05:30 on 21 Nov in Dhaka, so the Dhaka date is one day ahead of UTC.
+const NOW = new Date("2026-11-20T23:30:00Z");
+
+const SOURCE: Requirement = {
+  id: "req-old",
+  studentId: "stu-1",
+  areaId: 3,
+  subjectIds: [1, 2, 5],
+  curriculum: "BANGLA_MEDIUM",
+  levelCode: 9,
+  academicGroup: "SCIENCE",
+  admissionTargets: [],
+  isRetaker: false,
+  levelNote: "Weekends only",
+  timeOfDay: "18:00",
+  daysPerWeek: 3,
+  availableDays: 127,
+  salary: 8000,
+  studentCount: 2,
+  hireByDate: "2026-10-01",
+  tutorGenderPref: "FEMALE",
+  instituteName: "Viqarunnisa Noon School",
+  tuitionType: "Home Tutoring Group",
+  status: "CLOSED",
+  createdAt: "2026-10-01T04:00:00Z",
+  updatedAt: "2026-06-01T04:00:00Z",
+};
+
+const ALL_ACTIVE = { subjectIds: [1, 2, 5, 9], areaIds: [3, 4] };
+
+describe("requirementTemplate", () => {
+  it("copies the source details as they are when nothing is stale", () => {
+    const { form, notes } = requirementTemplate(SOURCE, {
+      ...ALL_ACTIVE,
+      now: NOW,
+    });
+
+    expect(form).toMatchObject({
+      subjectIds: [1, 2, 5],
+      curriculum: "BANGLA_MEDIUM",
+      levelCode: 9,
+      academicGroup: "SCIENCE",
+      levelNote: "Weekends only",
+      instituteName: "Viqarunnisa Noon School",
+      areaId: 3,
+      tuitionType: "Home Tutoring Group",
+      daysPerWeek: 3,
+      availableDays: 127,
+      timeOfDay: "18:00",
+      salary: "8000",
+      studentCount: 2,
+      tutorGenderPref: "FEMALE",
+    });
+    expect(notes).toEqual({
+      postedOn: SOURCE.createdAt,
+      removedSubjects: 0,
+      areaCleared: false,
+      tuitionTypeReset: false,
+      checkClass: false,
+    });
+  });
+
+  it("resets the hire date to 14 days after now, in Dhaka time", () => {
+    const { form } = requirementTemplate(SOURCE, { ...ALL_ACTIVE, now: NOW });
+    expect(form.hireByDate).toBe("2026-12-05");
+    expect(emptyRequirementForm(undefined, NOW).hireByDate).toBe("2026-12-05");
+  });
+
+  it("drops subjects that are no longer offered and counts them", () => {
+    const { form, notes } = requirementTemplate(SOURCE, {
+      subjectIds: [2, 9],
+      areaIds: [3],
+      now: NOW,
+    });
+    expect(form.subjectIds).toEqual([2]);
+    expect(notes.removedSubjects).toBe(2);
+  });
+
+  it("clears the area when it is no longer available", () => {
+    const { form, notes } = requirementTemplate(SOURCE, {
+      subjectIds: [1, 2, 5],
+      areaIds: [4],
+      now: NOW,
+    });
+    expect(form.areaId).toBeNull();
+    expect(notes.areaCleared).toBe(true);
+  });
+
+  it("does not report an area change when the source had no area", () => {
+    const { form, notes } = requirementTemplate(
+      { ...SOURCE, areaId: null },
+      { ...ALL_ACTIVE, now: NOW },
+    );
+    expect(form.areaId).toBeNull();
+    expect(notes.areaCleared).toBe(false);
+  });
+
+  it("resets an unknown tuition type to the default", () => {
+    const { form, notes } = requirementTemplate(
+      {
+        ...SOURCE,
+        tuitionType: "Rooftop Tutoring" as Requirement["tuitionType"],
+      },
+      { ...ALL_ACTIVE, now: NOW },
+    );
+    expect(form.tuitionType).toBe("Home Tutoring Solo");
+    expect(notes.tuitionTypeReset).toBe(true);
+  });
+
+  it("flags the class to check once the source is older than 180 days", () => {
+    const at = (days: number) =>
+      new Date(NOW.getTime() - days * DAY_MS).toISOString();
+
+    expect(
+      requirementTemplate(
+        { ...SOURCE, createdAt: at(181) },
+        { ...ALL_ACTIVE, now: NOW },
+      ).notes.checkClass,
+    ).toBe(true);
+    expect(
+      requirementTemplate(
+        { ...SOURCE, createdAt: at(179) },
+        { ...ALL_ACTIVE, now: NOW },
+      ).notes.checkClass,
+    ).toBe(false);
+  });
+
+  it("keeps a null level and curriculum null", () => {
+    const { form } = requirementTemplate(
+      { ...SOURCE, levelCode: null, curriculum: null, academicGroup: null },
+      { ...ALL_ACTIVE, now: NOW },
+    );
+    expect(form.levelCode).toBeNull();
+    expect(form.curriculum).toBeNull();
+    expect(form.academicGroup).toBeNull();
+  });
+});
+
+describe("isPastRequirement", () => {
+  it("is true for closed, filled and expired requirements only", () => {
+    expect(isPastRequirement("CLOSED")).toBe(true);
+    expect(isPastRequirement("FILLED")).toBe(true);
+    expect(isPastRequirement("EXPIRED")).toBe(true);
+    expect(isPastRequirement("OPEN")).toBe(false);
+    expect(isPastRequirement("DRAFT")).toBe(false);
+  });
+});
+
+describe("postAgainHref", () => {
+  it("links to the new form with the source id encoded", () => {
+    expect(postAgainHref("req-1")).toBe(
+      "/dashboard/requirements/new?from=req-1",
+    );
+    expect(postAgainHref("a b/c")).toBe(
+      "/dashboard/requirements/new?from=a%20b%2Fc",
+    );
+  });
+});
+
+describe("formatPostedDate", () => {
+  it("formats the date in Asia/Dhaka", () => {
+    expect(formatPostedDate("2026-03-12T04:00:00Z")).toBe("12 Mar 2026");
+    // 19:00 UTC on 11 Mar is already 01:00 on 12 Mar in Dhaka.
+    expect(formatPostedDate("2026-03-11T19:00:00Z")).toBe("12 Mar 2026");
+  });
+
+  it("returns unparseable input unchanged", () => {
+    expect(formatPostedDate("not a date")).toBe("not a date");
   });
 });

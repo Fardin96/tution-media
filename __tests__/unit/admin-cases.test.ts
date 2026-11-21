@@ -81,4 +81,10 @@ describe("audit labels", () => {
       expect(actionLabel(action)).not.toBe(action);
     }
   });
+
+  it("reads the matching and city actions in plain words", () => {
+    expect(actionLabel("matching.update")).toBe("Matching rules updated");
+    expect(actionLabel("city.upsert")).toBe("City boundary saved");
+    expect(actionLabel("city.update")).toBe("City updated");
+  });
 });

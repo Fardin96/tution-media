@@ -226,6 +226,8 @@ export function notificationText(n: TextFields): string {
       return `${name} updated a package you requested.`;
     case "PACKAGE_CLOSED":
       return `${name} closed a package you requested.`;
+    case "REQUIREMENT_INVITED":
+      return `${name} invited you to apply to their tuition.`;
   }
 }
 
@@ -237,6 +239,8 @@ export function notificationHref(
   n: Pick<AppNotification, "kind" | "applicationId" | "filePurpose">,
 ): string {
   switch (n.kind) {
+    case "REQUIREMENT_INVITED":
+      return "/dashboard/find-tuitions?scope=invited";
     case "ID_APPROVED":
     case "ID_REJECTED":
       return "/dashboard#verification";

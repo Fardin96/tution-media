@@ -18,13 +18,18 @@ export type PackagePage = Schemas["PackagePage"];
 export type BrowseCurriculum = NonNullable<RequirementQuery["curriculum"]>;
 export type TutorGender = NonNullable<TutorQuery["gender"]>;
 export type BrowseScope = "nearby" | "all";
-/** Requirements add set mode, which packages do not have. */
-export type RequirementBrowseScope = BrowseScope | "set";
+/** Requirements add set mode (matching engine) and invited (requirements a student invited the tutor to). */
+export type RequirementBrowseScope = BrowseScope | "set" | "invited";
+/** Set mode only. Undefined means best match, the API default for sets. */
+export type RequirementSort = "match" | "newest";
+export type TutorGap = BrowseRequirementPage["gaps"][number];
 
 export interface RequirementBrowseFilters {
   scope: RequirementBrowseScope;
   /** Only sent in set mode. */
   setId?: string;
+  /** Only sent in set mode. */
+  sort?: RequirementSort;
   curriculum?: BrowseCurriculum;
   levelCode?: number;
   subjectId?: number;
@@ -78,18 +83,25 @@ export const browseApi = {
     filters: RequirementBrowseFilters,
     cursor?: string,
   ): Promise<BrowseRequirementPage> => {
-    // Set mode sends only the set; the manual filters are ignored by the API.
+    // Set and invited modes send only their own keys; the manual filters are ignored by the API.
     const query: RequirementQuery =
       filters.scope === "set"
-        ? { scope: "set", setId: filters.setId, cursor }
-        : {
-            scope: filters.scope,
-            curriculum: filters.curriculum,
-            levelCode: filters.levelCode,
-            subjectId: filters.subjectId,
-            areaId: filters.areaId,
+        ? {
+            scope: "set",
+            setId: filters.setId,
+            sort: filters.sort ?? "match",
             cursor,
-          };
+          }
+        : filters.scope === "invited"
+          ? { scope: "invited", cursor }
+          : {
+              scope: filters.scope,
+              curriculum: filters.curriculum,
+              levelCode: filters.levelCode,
+              subjectId: filters.subjectId,
+              areaId: filters.areaId,
+              cursor,
+            };
     return unwrap(client.GET("/api/v1/requirements", { params: { query } }));
   },
   packages: (
@@ -160,6 +172,24 @@ export function useNearbyTutors(radiusMeters: number, enabled: boolean) {
   });
 }
 
+/**
+ * Keeps the first row for each id. A match cursor restarts at offset 0 after a config change,
+ * so a page appended later can repeat rows the list already shows.
+ */
+export function dedupeBy<T>(rows: T[], key: (row: T) => string): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const id = key(row);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+export function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  return dedupeBy(rows, (row) => row.id);
+}
+
 /** "" for no distance, "Under 1 km" below one kilometre, otherwise "2.5 km" (whole numbers drop the decimal). */
 export function formatDistanceKm(km: number | null): string {
   if (km === null || km === undefined) return "";
@@ -186,12 +216,19 @@ function readScope(raw: string | null): BrowseScope {
 }
 
 function readRequirementScope(raw: string | null): RequirementBrowseScope {
-  return raw === "set" || raw === "all" ? raw : DEFAULT_BROWSE_SCOPE;
+  return raw === "set" || raw === "all" || raw === "invited"
+    ? raw
+    : DEFAULT_BROWSE_SCOPE;
 }
 
 function readSetId(raw: string | null): string | undefined {
   const id = raw?.trim();
   return id ? id : undefined;
+}
+
+/** Only "newest" is written to the URL; no sort key means best match. */
+function readSort(raw: string | null): RequirementSort | undefined {
+  return raw === "newest" ? "newest" : undefined;
 }
 
 function readCurriculum(raw: string | null): BrowseCurriculum | undefined {
@@ -221,10 +258,16 @@ export function requirementFiltersFromSearchParams(
   params: ParamReader,
 ): RequirementBrowseFilters {
   const scope = readRequirementScope(params.get("scope"));
-  // Set mode reads only the set; manual filters do not apply.
+  // Set mode reads only the set and sort; invited mode reads only the scope. Manual filters do not apply to either.
   if (scope === "set") {
-    return { scope, setId: readSetId(params.get("set")) };
+    const sort = readSort(params.get("sort"));
+    return {
+      scope,
+      setId: readSetId(params.get("set")),
+      ...(sort ? { sort } : {}),
+    };
   }
+  if (scope === "invited") return { scope };
   return {
     scope,
     curriculum: readCurriculum(params.get("curriculum")),
@@ -238,8 +281,13 @@ export function requirementFiltersToSearchParams(
   filters: RequirementBrowseFilters,
 ): URLSearchParams {
   if (filters.scope === "set") {
-    return toParams({ scope: "set", set: filters.setId });
+    return toParams({
+      scope: "set",
+      set: filters.setId,
+      sort: filters.sort === "newest" ? "newest" : undefined,
+    });
   }
+  if (filters.scope === "invited") return toParams({ scope: "invited" });
   return toParams({
     scope: filters.scope,
     curriculum: filters.curriculum,

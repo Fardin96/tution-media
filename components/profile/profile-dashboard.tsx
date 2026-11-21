@@ -24,6 +24,7 @@ import {
   PlayCircle,
   Plus,
   Receipt,
+  Repeat2,
   RotateCw,
   ShieldCheck,
   Star,
@@ -88,8 +89,11 @@ import {
 } from "@/lib/profile";
 import { educationSummary, useEducationLookup } from "@/lib/education";
 import {
+  formatPostedDate,
   formatTaka,
   formatTime,
+  isPastRequirement,
+  postAgainHref,
   requirementApi,
   statusMeta,
   type Requirement,
@@ -1720,7 +1724,7 @@ function formatShortDate(isoOrDate: string | null): string {
   }
 }
 
-function RequirementsSection({
+export function RequirementsSection({
   requirements,
   onUpdateRequirement,
 }: {
@@ -1730,9 +1734,7 @@ function RequirementsSection({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showAllPast, setShowAllPast] = useState(false);
-  const past =
-    requirements?.filter((r) => r.status !== "OPEN" && r.status !== "DRAFT") ??
-    [];
+  const past = requirements?.filter((r) => isPastRequirement(r.status)) ?? [];
 
   useEffect(() => {
     const posted = searchParams.get("posted");
@@ -1862,7 +1864,7 @@ function RequirementItem({
   const { data: lookup } = useEducationLookup();
   const title = `${subjectName} · ${educationSummary(lookup, r) || "Class not set"}`;
   const meta = statusMeta(r.status);
-  const isPast = r.status !== "OPEN" && r.status !== "DRAFT";
+  const isPast = isPastRequirement(r.status);
 
   const handleClose = async () => {
     setBusy(true);
@@ -1928,6 +1930,9 @@ function RequirementItem({
           </h3>
           <Pill tone={meta.tone}>{meta.label}</Pill>
         </div>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Posted {formatPostedDate(r.createdAt)}
+        </p>
 
         <ul
           className={cn(
@@ -1987,8 +1992,7 @@ function RequirementItem({
         </ul>
 
         <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-          Hire by {formatShortDate(r.hireByDate)} · Posted{" "}
-          {formatShortDate(r.createdAt)}
+          Hire by {formatShortDate(r.hireByDate)}
         </p>
       </div>
 
@@ -2020,7 +2024,15 @@ function RequirementItem({
               </button>
             </div>
           </div>
-        ) : !isPast ? (
+        ) : isPast ? (
+          <Link
+            href={postAgainHref(r.id)}
+            className={cn(secondaryButton, "min-h-10 px-4")}
+          >
+            <Repeat2 aria-hidden="true" className="size-4" />
+            Post again<span className="sr-only"> {title}</span>
+          </Link>
+        ) : (
           <>
             {r.status === "DRAFT" && (
               <button
@@ -2064,7 +2076,7 @@ function RequirementItem({
               Close<span className="sr-only"> {title}</span>
             </button>
           </>
-        ) : null}
+        )}
       </div>
     </li>
   );

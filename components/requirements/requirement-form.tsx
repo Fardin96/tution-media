@@ -16,6 +16,7 @@ import {
 } from "@/components/requirements/day-fields";
 import {
   emptyRequirementForm,
+  formatPostedDate,
   fromRequirement,
   getLocalIsoDate,
   requirementApi,
@@ -25,8 +26,10 @@ import {
   type Requirement,
   type RequirementForm as FormState,
   type RequirementFormErrors,
+  type RequirementTemplateNotes,
   type TutorGenderPref,
 } from "@/lib/requirements";
+import { queryKeys } from "@/lib/query-keys";
 import {
   AreaPicker,
   Chip,
@@ -34,7 +37,7 @@ import {
   FieldError,
   SubjectPicker,
 } from "@/components/profile/profile-fields";
-import { mapServerIssuesToFields } from "@/lib/api-errors";
+import { errorCodeMessage, mapServerIssuesToFields } from "@/lib/api-errors";
 import { ApiError } from "@/lib/profile";
 import {
   card,
@@ -52,21 +55,26 @@ const GENDER_OPTIONS: { value: TutorGenderPref; label: string }[] = [
 interface RequirementFormProps {
   initialData?: Requirement | null;
   defaultAreaId?: number;
+  /** Form state copied from an earlier requirement ("Post again"). Creates a new one. */
+  template?: FormState;
+  templateNotes?: RequirementTemplateNotes;
 }
 
 export function RequirementForm({
   initialData,
   defaultAreaId,
+  template,
+  templateNotes,
 }: RequirementFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
   const isDraft = initialData?.status === "DRAFT";
 
-  const [form, setForm] = useState<FormState>(() =>
-    initialData
-      ? fromRequirement(initialData)
-      : emptyRequirementForm(defaultAreaId),
-  );
+  const [form, setForm] = useState<FormState>(() => {
+    if (initialData) return fromRequirement(initialData);
+    if (template) return template;
+    return emptyRequirementForm(defaultAreaId);
+  });
   const [errors, setErrors] = useState<RequirementFormErrors>({});
   const [savingAction, setSavingAction] = useState<
     "OPEN" | "DRAFT" | "UPDATE" | null
@@ -82,15 +90,16 @@ export function RequirementForm({
     document.getElementById("requirement-form-title")?.focus();
   }, []);
 
-  // Prefill class and curriculum from the newest requirement, create only.
+  // Prefill class and curriculum from the newest requirement, create only. A copied
+  // requirement already has its own class, so it skips this.
   const mineQuery = useQuery({
-    queryKey: ["requirements", "mine"],
+    queryKey: queryKeys.requirements.mine,
     queryFn: requirementApi.mine,
-    enabled: !isEdit,
+    enabled: !isEdit && !template,
   });
   // Runs once, during render, when the first data arrives (no effect needed).
   const [prefillChecked, setPrefillChecked] = useState(false);
-  if (!prefillChecked && mineQuery.data) {
+  if (!prefillChecked && !template && mineQuery.data) {
     setPrefillChecked(true);
     const newest = [...mineQuery.data].sort((a, b) =>
       b.createdAt.localeCompare(a.createdAt),
@@ -190,7 +199,25 @@ export function RequirementForm({
       const status = (err as { status?: number }).status;
       const message = (err as { message?: string }).message;
 
-      if (
+      if (err instanceof ApiError && err.code === "REQUIREMENT_DUPLICATE") {
+        const requirementId = err.details?.requirementId;
+        toast.error(
+          errorCodeMessage(err) ??
+            "Couldn't save requirement. Try again in a moment.",
+          {
+            id: "requirement-duplicate",
+            description:
+              typeof requirementId === "string" ? (
+                <Link
+                  href={`/dashboard/requirements/${requirementId}/edit`}
+                  className="font-semibold underline"
+                >
+                  Edit the open requirement
+                </Link>
+              ) : undefined,
+          },
+        );
+      } else if (
         err instanceof ApiError &&
         err.code === "PHONE_VERIFICATION_REQUIRED"
       ) {
@@ -216,7 +243,9 @@ export function RequirementForm({
       } else if (status === 404 && isEdit) {
         toast.error("This requirement doesn't exist or isn't yours.");
       } else if (status === 409 && isEdit) {
-        toast.error("This requirement is closed, so it can't be edited.");
+        toast.error(
+          "This requirement is closed or has a hired tutor, so it can't be edited.",
+        );
       } else {
         toast.error(
           message || "Couldn't save requirement. Try again in a moment.",
@@ -253,6 +282,8 @@ export function RequirementForm({
       aria-busy={!!savingAction}
       className={cn(card, "mt-6 p-5 sm:p-8")}
     >
+      {templateNotes && <TemplateNotice notes={templateNotes} />}
+
       <div className="grid gap-10">
         {/* Group 1: What you need */}
         <fieldset className="grid gap-6">
@@ -291,6 +322,11 @@ export function RequirementForm({
             value={educationValue}
             onChange={(next) => updateForm(next)}
             errors={educationErrors}
+            classHint={
+              templateNotes?.checkClass
+                ? "Posted over 6 months ago. Check the class."
+                : undefined
+            }
           />
 
           {/* School or college */}
@@ -722,5 +758,38 @@ export function RequirementForm({
         </div>
       </div>
     </form>
+  );
+}
+
+function TemplateNotice({ notes }: { notes: RequirementTemplateNotes }) {
+  const lines: string[] = [];
+  if (notes.removedSubjects > 0) {
+    lines.push(
+      notes.removedSubjects === 1
+        ? "Removed 1 subject that's no longer offered."
+        : `Removed ${notes.removedSubjects} subjects that are no longer offered.`,
+    );
+  }
+  if (notes.areaCleared) {
+    lines.push("Pick the area again. The old one is no longer available.");
+  }
+  if (notes.tuitionTypeReset) {
+    lines.push("Pick the tuition type again.");
+  }
+
+  return (
+    <div
+      role="status"
+      className="mb-8 rounded-[16px] bg-[var(--color-secondary-sky)] p-4 text-sm text-[var(--color-primary-deep)]"
+    >
+      <p className="font-semibold text-pretty">
+        {`Copied from your requirement posted on ${formatPostedDate(notes.postedOn)}. Check the class, time and salary before posting.`}
+      </p>
+      {lines.map((line) => (
+        <p key={line} className="mt-1 text-pretty">
+          {line}
+        </p>
+      ))}
+    </div>
   );
 }

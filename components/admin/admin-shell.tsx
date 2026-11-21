@@ -25,6 +25,7 @@ import {
   Undo2,
   Users,
   Wallet,
+  Waypoints,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminMe } from "@/lib/admin";
@@ -152,6 +153,12 @@ export const ADMIN_NAV = [
     label: "Settings",
     icon: Settings,
     description: "Commission and the verification switches.",
+  },
+  {
+    href: "/dashboard/admin/matching",
+    label: "Matching",
+    icon: Waypoints,
+    description: "Which tutors match which tuitions, and the city areas.",
   },
   {
     href: "/dashboard/admin/audit-log",
