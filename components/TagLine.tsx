@@ -19,7 +19,7 @@ export default function TagLine({
         className="h-auto w-5"
         width={24}
         height={24}
-        priority
+        preload
       />
       <span className="text-primary-900 text-base leading-[1.5] font-normal">
         {line}

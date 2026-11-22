@@ -16,11 +16,21 @@ export const tutorProfileApi = {
     ).tutor,
 };
 
-export function useTutorProfile(id: string) {
+/**
+ * `initialData` is the anonymous copy the server rendered. A signed-in viewer refetches at once
+ * with their token (`initialDataUpdatedAt: 0` marks the copy stale); anonymous visitors use it
+ * until it is stale.
+ */
+export function useTutorProfile(
+  id: string,
+  options?: { initialData?: PublicTutor; signedIn?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.tutors.profile(id),
     queryFn: () => tutorProfileApi.get(id),
     staleTime: 60_000,
+    initialData: options?.initialData,
+    initialDataUpdatedAt: options?.signedIn ? 0 : undefined,
     // A missing or unlisted tutor is final; only server and network errors are retried.
     retry: (failureCount, err) =>
       failureCount < 2 &&

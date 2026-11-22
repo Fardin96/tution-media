@@ -11,25 +11,44 @@ import {
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
 import { feeStatusDisplay, formatMoney } from "@/components/fees/fee-format";
-import { isFeeOpen, useMyFees, type TutorFee } from "@/lib/fees";
+import {
+  isFeeOpen,
+  myFeeQueryOptions,
+  useMyFees,
+  type TutorFee,
+} from "@/lib/fees";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 function SkeletonRows({ count }: { count: number }) {
   return (
     <div role="status" className="grid gap-4">
-      <span className="sr-only">Loading placement fees</span>
+      <span className="sr-only">Loading placement fees…</span>
       {Array.from({ length: count }, (_, i) => (
-        <div
-          key={i}
-          aria-hidden="true"
-          className={cn(
-            card,
-            "h-32 animate-pulse p-5 motion-reduce:animate-none",
-          )}
-        />
+        <div key={i} aria-hidden="true" className={cn(card, "grid gap-4 p-5")}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-56 max-w-full" />
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map((j) => (
+              <div key={j} className="grid gap-1">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-10 w-16 rounded-full" />
+        </div>
       ))}
     </div>
   );
@@ -52,10 +71,12 @@ function FeeRow({ fee }: { fee: TutorFee }) {
   const status = feeStatusDisplay(fee);
   const open = isFeeOpen(fee);
   const what = fee.application.packageTitle ?? "Tuition requirement";
+  const intent = useIntentPrefetch();
 
   return (
     <Link
       href={`/dashboard/fees/${encodeURIComponent(fee.id)}`}
+      {...intent(myFeeQueryOptions(fee.id))}
       className={cn(
         card,
         "grid gap-4 p-5 transition-[background-color] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
@@ -82,7 +103,7 @@ function FeeRow({ fee }: { fee: TutorFee }) {
       </dl>
       {open && (
         <span className={cn(primaryButton, "min-h-10 self-start px-4")}>
-          Pay
+          <LinkPendingLabel>Pay</LinkPendingLabel>
         </span>
       )}
     </Link>
@@ -149,9 +170,12 @@ export function FeesPage() {
               type="button"
               onClick={() => void fees.fetchNextPage()}
               disabled={fees.isFetchingNextPage}
+              aria-busy={fees.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              {fees.isFetchingNextPage ? "Loading…" : "Load more"}
+              <PendingLabel pending={fees.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

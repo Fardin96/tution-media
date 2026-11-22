@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
@@ -90,12 +91,15 @@ export function useAdminReports(filters: AdminReportFilters) {
   });
 }
 
-export function useAdminReport(id: string) {
-  return useQuery({
+export const adminReportQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.report(id),
     queryFn: () => adminCasesApi.report(id),
     staleTime: 15_000,
   });
+
+export function useAdminReport(id: string) {
+  return useQuery(adminReportQueryOptions(id));
 }
 
 export function useAdminDisputes(filters: AdminDisputeFilters) {
@@ -108,12 +112,15 @@ export function useAdminDisputes(filters: AdminDisputeFilters) {
   });
 }
 
-export function useAdminDispute(id: string) {
-  return useQuery({
+export const adminDisputeQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.dispute(id),
     queryFn: () => adminCasesApi.dispute(id),
     staleTime: 15_000,
   });
+
+export function useAdminDispute(id: string) {
+  return useQuery(adminDisputeQueryOptions(id));
 }
 
 /** Writes the server's report detail into the cache, then refreshes the lists. The user's own case lists change too. */

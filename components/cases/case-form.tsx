@@ -8,6 +8,7 @@ import {
   Field,
   textareaClass,
 } from "@/components/admin/admin-ui";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { CASE_DETAILS_MAX, validateCaseDetails } from "@/lib/cases";
 
 export type CaseChoice<V extends string> = {
@@ -123,6 +124,8 @@ export function CaseForm<V extends string>({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // No second send while the first one is in flight (Enter in the form, for example).
+    if (pending) return;
     setAttempted(true);
     if (choice === null || validateCaseDetails(details)) return;
     onSubmit(choice, details.trim());
@@ -184,7 +187,7 @@ export function CaseForm<V extends string>({
           aria-busy={pending || undefined}
           className={cn(primaryButton, "min-h-11")}
         >
-          {pending ? "Sending..." : submitLabel}
+          <PendingLabel pending={pending}>{submitLabel}</PendingLabel>
         </button>
       </DialogActions>
     </form>

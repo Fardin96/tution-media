@@ -6,6 +6,7 @@ import { primaryButton, secondaryButton } from "@/components/profile/styles";
 import { Section } from "@/components/applications/detail-sections";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { ReviewDialog } from "@/components/reviews/review-dialog";
 import { StarRating } from "@/components/reviews/star-rating";
 import type { ApplicationDetail } from "@/lib/applications";
@@ -65,9 +66,11 @@ export function ApplicationReviewSection({
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );

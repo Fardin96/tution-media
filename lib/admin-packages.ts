@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
@@ -46,12 +47,15 @@ export function useAdminPackages(moderationStatus: PackageModerationStatus) {
   });
 }
 
-export function useAdminPackage(id: string) {
-  return useQuery({
+export const adminPackageQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.package(id),
     queryFn: () => adminPackageApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminPackage(id: string) {
+  return useQuery(adminPackageQueryOptions(id));
 }
 
 /** An approve or reject. Students' browse lists, the tutor's own list and every admin queue can change. */

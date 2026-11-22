@@ -50,7 +50,9 @@ describe("PhoneVerifier", () => {
 
   it("idle: disables Send while sending", () => {
     render(<PhoneVerifier {...props({ sending: true })} />);
-    expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
+    const send = screen.getByRole("button", { name: "Send code" });
+    expect(send).toBeDisabled();
+    expect(send).toHaveAttribute("aria-busy", "true");
   });
 
   it("idle: shows an error with role alert and links it to the button", () => {

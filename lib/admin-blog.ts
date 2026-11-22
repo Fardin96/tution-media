@@ -3,8 +3,11 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
+import { refreshBlog } from "./blog.actions";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
 
@@ -52,12 +55,29 @@ export function useAdminBlogPosts(filters: AdminBlogFilters) {
   });
 }
 
-export function useAdminBlogPost(id: string) {
-  return useQuery({
+export const adminBlogPostQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.blogPost(id),
     queryFn: () => adminBlogApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminBlogPost(id: string) {
+  return useQuery(adminBlogPostQueryOptions(id));
+}
+
+/**
+ * The public blog caches for up to 5 minutes. A saved change asks the server to expire that
+ * cache now. Failure is ignored: the blog still catches up on its own.
+ */
+async function refreshPublicBlog() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshBlog(tokens.accessToken);
+  } catch {
+    // The public blog refreshes within 5 minutes anyway.
+  }
 }
 
 export function useCreateBlogPost() {
@@ -66,6 +86,7 @@ export function useCreateBlogPost() {
     mutationFn: adminBlogApi.create,
     onSuccess: (post) => {
       queryClient.setQueryData(queryKeys.admin.blogPost(post.id), post);
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),
@@ -78,6 +99,7 @@ export function useUpdateBlogPost(id: string) {
     mutationFn: (body) => adminBlogApi.update(id, body),
     onSuccess: (post) => {
       queryClient.setQueryData(queryKeys.admin.blogPost(id), post);
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),
@@ -90,6 +112,7 @@ export function useDeleteBlogPost(id: string) {
     mutationFn: () => adminBlogApi.remove(id),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.admin.blogPost(id) });
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),

@@ -18,6 +18,9 @@ import {
   RatingInline,
   TutorInitial,
 } from "@/components/browse/browse-ui";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { dedupeBy } from "@/lib/browse";
 import {
   useInviteTutor,
@@ -66,10 +69,14 @@ function Suggestions({
 function RecommendedTutorRow({
   row,
   inviting,
+  inviteBusy,
   onInvite,
 }: {
   row: RecommendedTutor;
+  /** This row's invite is the one running. */
   inviting: boolean;
+  /** Any invite is running: the invite mutation is shared, so the other rows wait. */
+  inviteBusy: boolean;
   onInvite: () => void;
 }) {
   const { tutor, reasons, application, invitedAt } = row;
@@ -94,11 +101,14 @@ function RecommendedTutorRow({
       <button
         type="button"
         onClick={onInvite}
-        disabled={inviting}
+        disabled={inviteBusy}
+        aria-busy={inviting || undefined}
         className={cn(primaryButton, "min-h-10 px-4")}
       >
-        {inviting ? "Inviting…" : "Invite to apply"}
-        <span className="sr-only"> {tutor.name}</span>
+        <PendingLabel pending={inviting}>
+          Invite to apply
+          <span className="sr-only"> {tutor.name}</span>
+        </PendingLabel>
       </button>
     );
   }
@@ -149,8 +159,10 @@ function RecommendedTutorRow({
           href={`/tutors/${tutor.id}`}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          View profile
-          <span className="sr-only"> for {tutor.name}</span>
+          <LinkPendingLabel>
+            View profile
+            <span className="sr-only"> for {tutor.name}</span>
+          </LinkPendingLabel>
         </Link>
         {action}
       </div>
@@ -187,16 +199,33 @@ export function RecommendedTutorsSection({
   if (list.isPending) {
     body = (
       <div role="status" className="grid gap-4">
-        <span className="sr-only">Loading recommended tutors</span>
+        <span className="sr-only">Loading recommended tutors…</span>
         {[0, 1].map((i) => (
           <div
             key={i}
             aria-hidden="true"
-            className={cn(
-              card,
-              "h-40 animate-pulse p-5 motion-reduce:animate-none",
-            )}
-          />
+            className={cn(card, "flex flex-col gap-4 p-5")}
+          >
+            <div className="flex items-start gap-3">
+              <Skeleton className="size-11 shrink-0 rounded-full" />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <Skeleton className="h-4 w-52 max-w-full" />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-44 max-w-full" />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Skeleton className="h-10 w-28 rounded-full" />
+              <Skeleton className="h-10 w-36 rounded-full" />
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -205,6 +234,7 @@ export function RecommendedTutorsSection({
       <ErrorBlock
         message="Couldn't load recommended tutors."
         onRetry={() => void list.refetch()}
+        retrying={list.isFetching}
       />
     );
   } else if (tutors.length === 0) {
@@ -232,6 +262,7 @@ export function RecommendedTutorsSection({
               <RecommendedTutorRow
                 row={row}
                 inviting={invite.isPending && invite.variables === row.tutor.id}
+                inviteBusy={invite.isPending}
                 onInvite={() =>
                   invite.mutate(row.tutor.id, {
                     onSuccess: () =>
@@ -256,9 +287,12 @@ export function RecommendedTutorsSection({
               type="button"
               onClick={() => void list.fetchNextPage()}
               disabled={list.isFetchingNextPage}
+              aria-busy={list.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              {list.isFetchingNextPage ? "Loading…" : "Show more tutors"}
+              <PendingLabel pending={list.isFetchingNextPage}>
+                Show more tutors
+              </PendingLabel>
             </button>
           </div>
         )}

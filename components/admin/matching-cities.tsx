@@ -11,6 +11,7 @@ import {
   inputClass,
 } from "@/components/admin/admin-ui";
 import { ToggleSwitch } from "@/components/admin/matching-ui";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   areaText,
   readBoundary,
@@ -97,7 +98,7 @@ function CityRow({
           <ToggleSwitch
             label="Active"
             on={city.isActive}
-            disabled={update.isPending}
+            pending={update.isPending}
             onChange={(isActive) =>
               update.mutate(
                 { slug: city.slug, isActive },
@@ -167,6 +168,7 @@ function CityForm({ districts }: { districts: District[] }) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (upsert.isPending) return;
     setFormError(undefined);
     const next: CityErrors = {
       slug: validateCitySlug(slug),
@@ -319,7 +321,7 @@ function CityForm({ districts }: { districts: District[] }) {
             aria-busy={upsert.isPending || undefined}
             className={cn(primaryButton, "min-h-11 w-full sm:w-auto")}
           >
-            {upsert.isPending ? "Saving..." : "Save city"}
+            <PendingLabel pending={upsert.isPending}>Save city</PendingLabel>
           </button>
         </div>
       </form>

@@ -48,9 +48,11 @@ import {
   SEGMENT_SELECTED,
   SEGMENT_TRACK,
   Segmented,
-  SkeletonCards,
   isClientError,
 } from "./browse-ui";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type Tab = "tutors" | "packages";
 type TutorMode = "nearby" | "search";
@@ -79,6 +81,79 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 function countLabel(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;
+}
+
+/** Placeholder rows shaped like a TutorResultCard. */
+function TutorCardsSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <span className="sr-only">{label}</span>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className={cn(card, "flex flex-col gap-4 p-5")}
+        >
+          <div className="grid gap-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-11 shrink-0 rounded-full" />
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-20 shrink-0" />
+              </div>
+            </div>
+            <Skeleton className="h-4 w-48 max-w-full" />
+            <Skeleton className="h-4 w-56 max-w-full" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Placeholder rows shaped like a PackageCard. */
+function PackageCardsSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <span className="sr-only">{label}</span>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className={cn(card, "flex flex-col gap-4 p-5")}
+        >
+          <div className="grid gap-1.5">
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <Skeleton className="h-4 w-44 max-w-full" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {[0, 1, 2, 3].map((j) => (
+              <div key={j} className="grid gap-1">
+                <Skeleton className="h-4 w-14" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+            <div className="col-span-2 grid gap-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          </div>
+          <Skeleton className="ms-auto mt-auto h-10 w-32 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function FindTutorsPage() {
@@ -118,7 +193,9 @@ export function FindTutorsPage() {
   return (
     <PageFrame
       headerAction={
-        <HeaderLink href="/dashboard/applications">My applications</HeaderLink>
+        <HeaderLink href="/dashboard/applications">
+          <LinkPendingLabel>My applications</LinkPendingLabel>
+        </HeaderLink>
       }
     >
       <BackLink href="/dashboard">Dashboard</BackLink>
@@ -202,7 +279,7 @@ function NearbyTutors() {
 
   let body: React.ReactNode;
   if (query.isPending) {
-    body = <SkeletonCards label="Loading tutors near you" />;
+    body = <TutorCardsSkeleton label="Loading tutors near you…" />;
   } else if (noLocation || (query.isSuccess && tutors.length === 0)) {
     body = (
       <EmptyCard
@@ -210,7 +287,7 @@ function NearbyTutors() {
         body="Add your address on your profile to see tutors near you."
       >
         <Link href="/dashboard" className={cn(primaryButton, "min-h-10 px-4")}>
-          Go to your profile
+          <LinkPendingLabel>Go to your profile</LinkPendingLabel>
         </Link>
       </EmptyCard>
     );
@@ -219,6 +296,7 @@ function NearbyTutors() {
       <ErrorBlock
         message="Couldn't load tutors near you."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else {
@@ -291,12 +369,13 @@ function SearchTutors() {
 
   let body: React.ReactNode;
   if (query.isPending) {
-    body = <SkeletonCards label="Searching tutors" />;
+    body = <TutorCardsSkeleton label="Searching tutors…" />;
   } else if (query.isError) {
     body = (
       <ErrorBlock
         message="Couldn't search tutors."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else if (tutors.length === 0) {
@@ -430,12 +509,13 @@ function PackagesPanel() {
 
   let body: React.ReactNode;
   if (query.isPending) {
-    body = <SkeletonCards label="Loading packages" />;
+    body = <PackageCardsSkeleton label="Loading packages…" />;
   } else if (query.isError) {
     body = (
       <ErrorBlock
         message="Couldn't load packages."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else if (packages.length === 0) {
@@ -454,13 +534,13 @@ function PackagesPanel() {
             href="/dashboard/find-tutors?tab=tutors"
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Browse tutors
+            <LinkPendingLabel>Browse tutors</LinkPendingLabel>
           </Link>
           <Link
             href="/dashboard/requirements/new"
             className={cn(primaryButton, "min-h-10 px-4")}
           >
-            Post a requirement
+            <LinkPendingLabel>Post a requirement</LinkPendingLabel>
           </Link>
         </div>
       </div>
@@ -478,10 +558,13 @@ function PackagesPanel() {
             <button
               type="button"
               disabled={query.isFetchingNextPage}
+              aria-busy={query.isFetchingNextPage || undefined}
               onClick={() => void query.fetchNextPage()}
               className={cn(secondaryButton, "min-h-11 px-5")}
             >
-              {query.isFetchingNextPage ? "Loading…" : "Load more"}
+              <PendingLabel pending={query.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

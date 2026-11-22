@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { formatDateTime, useAdminMe } from "@/lib/admin";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   useAdminTeam,
   useApproveAdmin,
@@ -57,6 +58,11 @@ export function TeamPage() {
   ].filter((group) => group.members.length > 0);
 
   const viewerId = me.adminUser?.accountId;
+
+  // One approve mutation serves every row: the row being approved shows the spinner, the rest wait.
+  function approvingThis(accountId: string) {
+    return approve.isPending && approve.variables === accountId;
+  }
 
   function openRemove(member: AdminTeamMember) {
     setRemoveTarget(member);
@@ -120,6 +126,9 @@ export function TeamPage() {
                           <button
                             type="button"
                             disabled={approve.isPending}
+                            aria-busy={
+                              approvingThis(member.accountId) || undefined
+                            }
                             onClick={() =>
                               approve.mutate(member.accountId, {
                                 onSuccess: () => toastSuccess("Admin approved"),
@@ -132,7 +141,11 @@ export function TeamPage() {
                             }
                             className={cn(primaryButton, "min-h-11")}
                           >
-                            Approve
+                            <PendingLabel
+                              pending={approvingThis(member.accountId)}
+                            >
+                              Approve
+                            </PendingLabel>
                           </button>
                         )}
                         {canRemove && (
@@ -191,7 +204,7 @@ export function TeamPage() {
               "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
             )}
           >
-            {remove.isPending ? "Removing..." : "Remove"}
+            <PendingLabel pending={remove.isPending}>Remove</PendingLabel>
           </button>
         </DialogActions>
       </AdminDialog>

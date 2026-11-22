@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { applicationApi } from "./applications";
@@ -123,12 +124,15 @@ export function useMyPackages() {
 }
 
 /** The tutor's own package, any state. Shares the browse detail key, so writes refresh both. */
-export function useMyPackage(id: string) {
-  return useQuery({
+export const myPackageQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.browse.package(id),
     queryFn: () => packageApi.get(id),
     staleTime: 15_000,
   });
+
+export function useMyPackage(id: string) {
+  return useQuery(myPackageQueryOptions(id));
 }
 
 export function usePackageRequests(packageId: string) {

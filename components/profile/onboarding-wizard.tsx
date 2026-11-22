@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { cn } from "@/lib/utils";
 import {
   usePhoneVerificationStatus,
@@ -96,6 +98,9 @@ export function OnboardingWizard({
   const [form, setForm] = useState<ProfileForm>(() => emptyForm(defaultName));
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  // Set while the final save runs and kept on success until the router leaves the page.
+  const [finishing, setFinishing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const firstRender = useRef(true);
@@ -163,6 +168,7 @@ export function OnboardingWizard({
 
   const submit = async () => {
     setSaving(true);
+    setFinishing(true);
     const keys = steps.flatMap((s) => s.fields.map((f) => f.key));
     try {
       await profileApi.save(role, toPayload(role, form, keys));
@@ -170,10 +176,12 @@ export function OnboardingWizard({
       router.replace("/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
+        // Leaving for sign-in: the overlay stays up until that navigation happens.
         await clearSession();
         router.replace("/sign-in");
         return;
       }
+      setFinishing(false);
       if (
         err instanceof ApiError &&
         err.code === "PHONE_VERIFICATION_REQUIRED"
@@ -201,6 +209,8 @@ export function OnboardingWizard({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Enter in a field must not start a second save while one is in flight.
+    if (saving || finishing) return;
     const found = validate(current.fields, form);
     if (Object.keys(found).length) {
       showErrorsInSequence(
@@ -226,6 +236,7 @@ export function OnboardingWizard({
 
   return (
     <MotionConfig reducedMotion="user">
+      <BlockingOverlay open={finishing} label="Setting up your dashboard…" />
       <main
         className="relative isolate flex min-h-dvh flex-col bg-[var(--color-neutral-off-white)]"
         style={{ backgroundImage: WASH }}
@@ -236,18 +247,21 @@ export function OnboardingWizard({
             alt="Masters Hub"
             width={860}
             height={220}
-            priority
+            preload
             className="h-10 w-auto sm:h-12"
           />
           <button
             type="button"
+            disabled={signingOut}
+            aria-busy={signingOut || undefined}
             onClick={async () => {
+              setSigningOut(true);
               await clearSession();
               router.replace("/sign-in");
             }}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Sign out
+            <PendingLabel pending={signingOut}>Sign out</PendingLabel>
           </button>
         </header>
 
@@ -416,6 +430,7 @@ export function OnboardingWizard({
               <button
                 type="submit"
                 disabled={checking || saving || nextBlocked}
+                aria-busy={saving || undefined}
                 aria-describedby={
                   nextBlocked && !phoneStatus.isPending
                     ? "finish-blocked-reason"
@@ -423,29 +438,23 @@ export function OnboardingWizard({
                 }
                 className={cn(primaryButton, "sm:min-w-40")}
               >
-                {saving ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Saving…
-                  </>
-                ) : isLast ? (
-                  <>
-                    Finish setup
-                    <Check
-                      aria-hidden="true"
-                      className="size-4"
-                      strokeWidth={2.5}
-                    />
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                  </>
-                )}
+                <PendingLabel pending={saving}>
+                  {isLast ? (
+                    <>
+                      Finish setup
+                      <Check
+                        aria-hidden="true"
+                        className="size-4"
+                        strokeWidth={2.5}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight aria-hidden="true" className="size-4" />
+                    </>
+                  )}
+                </PendingLabel>
               </button>
             </div>
           </form>

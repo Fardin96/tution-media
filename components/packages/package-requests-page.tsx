@@ -6,17 +6,16 @@ import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { BackLink } from "@/components/ui/back-link";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PageFrame } from "@/components/ui/page-frame";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { areaName, formatDay } from "@/components/applications/format";
-import {
-  EmptyCard,
-  ErrorBlock,
-  SkeletonCards,
-} from "@/components/browse/browse-ui";
+import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/areas";
 import { useEducationLookup } from "@/lib/education";
-import type { Application } from "@/lib/applications";
+import { applicationQueryOptions, type Application } from "@/lib/applications";
 import {
   packageLevelText,
   packageState,
@@ -24,6 +23,7 @@ import {
   useMyPackage,
   usePackageRequests,
 } from "@/lib/packages";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { ApiError } from "@/lib/profile";
 
 function isNotFound(err: unknown): boolean {
@@ -39,6 +39,7 @@ function RequestCard({
 }) {
   const { student } = application;
   const { areas } = useAreas();
+  const intent = useIntentPrefetch();
   return (
     <article className={cn(card, "flex flex-col gap-2 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -58,9 +59,10 @@ function RequestCard({
         </p>
         <Link
           href={`/dashboard/applications/${application.id}?from=package-requests&package=${packageId}`}
+          {...intent(applicationQueryOptions(application.id))}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          View request
+          <LinkPendingLabel>View request</LinkPendingLabel>
         </Link>
       </div>
       <ApplicationActions
@@ -101,7 +103,34 @@ export function PackageRequestsPage({ packageId }: { packageId: string }) {
       </EmptyCard>
     );
   } else if (requestsQuery.isPending) {
-    body = <SkeletonCards label="Loading requests" count={2} />;
+    body = (
+      <div role="status" className="grid gap-4">
+        <span className="sr-only">Loading requests…</span>
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            aria-hidden="true"
+            className={cn(card, "flex flex-col gap-2 p-5")}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="grid gap-1.5">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-10 w-28 rounded-full" />
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Skeleton className="h-10 w-24 rounded-full" />
+              <Skeleton className="h-10 w-24 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   } else if (requestsQuery.isError) {
     body = (
       <ErrorBlock
@@ -162,9 +191,12 @@ export function PackageRequestsPage({ packageId }: { packageId: string }) {
               type="button"
               onClick={() => void requestsQuery.fetchNextPage()}
               disabled={requestsQuery.isFetchingNextPage}
+              aria-busy={requestsQuery.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              {requestsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+              <PendingLabel pending={requestsQuery.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

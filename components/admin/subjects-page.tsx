@@ -29,6 +29,7 @@ import {
 } from "@/lib/admin-subjects";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type DialogState = { mode: "create" } | { mode: "edit"; subject: AdminSubject };
 
@@ -139,7 +140,9 @@ function SubjectRow({
           aria-label={`${subject.isActive ? "Turn off" : "Turn on"} ${subject.name}`}
           className={cn(secondaryButton, "min-h-11")}
         >
-          {subject.isActive ? "Turn off" : "Turn on"}
+          <PendingLabel pending={toggling}>
+            {subject.isActive ? "Turn off" : "Turn on"}
+          </PendingLabel>
         </button>
       </div>
     </li>
@@ -248,6 +251,7 @@ function SubjectForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (clientErrors.name || clientErrors.slug || clientErrors.sortOrder)
       return;
@@ -351,7 +355,9 @@ function SubjectForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving..." : subject ? "Save changes" : "Add subject"}
+          <PendingLabel pending={saving}>
+            {subject ? "Save changes" : "Add subject"}
+          </PendingLabel>
         </button>
       </DialogActions>
     </form>

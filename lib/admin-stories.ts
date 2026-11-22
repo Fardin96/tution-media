@@ -54,7 +54,7 @@ export function useModerateStory() {
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: ModerateStoryInput }) =>
       adminStoryApi.moderate(id, body),
-    // A rejection can take a card off the landing; refresh it now instead of within 5 minutes.
+    // A rejection can take a card off the landing; refresh it now instead of within the 30-minute cache.
     onSuccess: async (_story, { body }) => {
       const tokens = getStoredTokens();
       if (body.decision !== "REJECT" || !tokens) return;

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { FeeTone } from "./admin-fees";
@@ -83,12 +84,15 @@ export function useAdminPaymentSummary() {
   });
 }
 
-export function useAdminPaymentAttempt(tranId: string) {
-  return useQuery({
+export const adminPaymentAttemptQueryOptions = (tranId: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.paymentAttempt(tranId),
     queryFn: () => adminPaymentsApi.get(tranId),
     staleTime: 15_000,
   });
+
+export function useAdminPaymentAttempt(tranId: string) {
+  return useQuery(adminPaymentAttemptQueryOptions(tranId));
 }
 
 /** A check or a review can post a ledger row, so the fee screens refresh too. */

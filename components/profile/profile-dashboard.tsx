@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -52,6 +53,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { usePhoneVerificationStatus } from "@/lib/phone-verification";
 import { openFile, useRefreshExpiredMedia } from "@/lib/files";
 import {
@@ -95,12 +97,17 @@ import {
   isPastRequirement,
   postAgainHref,
   requirementApi,
+  requirementQueryOptions,
   statusMeta,
   type Requirement,
 } from "@/lib/requirements";
+import { studentRequirementQueryOptions } from "@/lib/applications";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -112,13 +119,7 @@ import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { StoriesSection } from "@/components/stories/stories-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
-import { PhoneVerifyDialog } from "./phone-verify-dialog";
-import { CredentialDialog } from "./credential-dialog";
-import {
-  VerificationUploadDialog,
-  type SubmittedVerification,
-} from "./verification-upload-dialog";
-import { VideoDialog } from "./video-dialog";
+import type { SubmittedVerification } from "./verification-upload-dialog";
 import {
   AddButton,
   EmptyState,
@@ -135,6 +136,33 @@ import {
   primaryButton,
   secondaryButton,
 } from "./styles";
+
+// Each dialog loads the first time it opens (see useStayMounted), so its form and upload code
+// stay out of the profile's first bundle.
+const PhoneVerifyDialog = dynamic(() =>
+  import("./phone-verify-dialog").then((m) => m.PhoneVerifyDialog),
+);
+const CredentialDialog = dynamic(() =>
+  import("./credential-dialog").then((m) => m.CredentialDialog),
+);
+const VerificationUploadDialog = dynamic(() =>
+  import("./verification-upload-dialog").then(
+    (m) => m.VerificationUploadDialog,
+  ),
+);
+const VideoDialog = dynamic(() =>
+  import("./video-dialog").then((m) => m.VideoDialog),
+);
+
+/**
+ * True while `open`, and after it has been open once. A lazy dialog mounts on its first open and
+ * then stays mounted, so its exit fade plays as before and the form resets on close as before.
+ */
+function useStayMounted(open: boolean) {
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
+  return open || opened;
+}
 
 const WASH = [
   "radial-gradient(55% 80% at 0% 0%, color-mix(in oklab, var(--color-primary-core) 18%, transparent), transparent 70%)",
@@ -155,6 +183,9 @@ const VIDEO_STATUS: Record<Video["status"], { tone: Tone; label: string }> = {
   APPROVED: { tone: "success", label: "Live" },
   REJECTED: { tone: "error", label: "Rejected" },
 };
+
+/** The blocked-subject dialog's action that archives the one set in the way. */
+const ARCHIVE_LABEL = "Archive set";
 
 const monthYear = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" }).format(
@@ -255,6 +286,7 @@ export function ProfileDashboard({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<{
@@ -269,6 +301,7 @@ export function ProfileDashboard({
     open: boolean;
     initialNumber: string | null;
   }>({ open: false, initialNumber: null });
+  const phoneDialogMounted = useStayMounted(phoneDialog.open);
   const phoneStatus = usePhoneVerificationStatus();
   const phoneRequired = phoneStatus.data?.required ?? false;
   const openPhoneDialog = (initialNumber: string | null = null) =>
@@ -288,12 +321,16 @@ export function ProfileDashboard({
         setStudentData(result.studentData);
         setMe(result.me);
         setForm(result.form);
+        setLoadError(null);
+        setRetrying(false);
       })
       .catch((err) => {
-        if (live)
+        if (live) {
           setLoadError(
             err instanceof Error ? err.message : "Couldn't load your profile.",
           );
+          setRetrying(false);
+        }
       });
     return () => {
       live = false;
@@ -332,7 +369,9 @@ export function ProfileDashboard({
       });
     });
 
+  const [archiving, setArchiving] = useState(false);
   const archiveBlockedSet = async (id: string) => {
+    setArchiving(true);
     try {
       await tutorRequirementApi.archive(id);
       await invalidateTutorRequirements(queryClient);
@@ -340,6 +379,8 @@ export function ProfileDashboard({
       closeDialog(false);
     } catch (err) {
       toastError("Couldn't archive that set.", err);
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -357,7 +398,7 @@ export function ProfileDashboard({
     if (blocked.sets.length === 1 && !blocked.sets[0].isDefault) {
       const id = blocked.sets[0].id;
       actions.push({
-        label: "Archive set",
+        label: ARCHIVE_LABEL,
         variant: "secondary",
         onSelect: () => void archiveBlockedSet(id),
       });
@@ -558,14 +599,18 @@ export function ProfileDashboard({
             </p>
             <button
               type="button"
+              disabled={retrying}
+              aria-busy={retrying || undefined}
               onClick={() => {
-                setLoadError(null);
+                setRetrying(true);
                 setAttempt((a) => a + 1);
               }}
               className={cn(primaryButton, "mt-6")}
             >
-              <RotateCw aria-hidden="true" className="size-4" />
-              Try again
+              <PendingLabel pending={retrying}>
+                <RotateCw aria-hidden="true" className="size-4" />
+                Try again
+              </PendingLabel>
             </button>
           </div>
         </main>
@@ -726,7 +771,7 @@ export function ProfileDashboard({
         </>
       )}
 
-      {profile && (
+      {profile && phoneDialogMounted && (
         <PhoneVerifyDialog
           open={phoneDialog.open}
           onOpenChange={(open) => setPhoneDialog((d) => ({ ...d, open }))}
@@ -740,7 +785,9 @@ export function ProfileDashboard({
       <ConfirmDialog
         open={dialogOpen}
         title={dialog?.title ?? ""}
-        actions={dialog?.actions ?? []}
+        actions={(dialog?.actions ?? []).map((a) =>
+          a.label === ARCHIVE_LABEL ? { ...a, pending: archiving } : a,
+        )}
         onOpenChange={(open) => {
           if (!open) closeDialog(false);
         }}
@@ -765,7 +812,7 @@ function TopBar({ name, picture }: { name: string; picture?: string }) {
             alt="Masters Hub home"
             width={860}
             height={220}
-            priority
+            preload
             className="h-9 w-auto"
           />
         </Link>
@@ -969,7 +1016,7 @@ function Hero({
                   href={`/tutors/${profile.id}`}
                   className={cn(ghostButton, "min-h-10 px-3")}
                 >
-                  View public profile
+                  <LinkPendingLabel>View public profile</LinkPendingLabel>
                 </Link>
               )}
             </div>
@@ -1216,6 +1263,7 @@ function RemovableRow({
           <button
             type="button"
             disabled={busy}
+            aria-busy={busy || undefined}
             onClick={async () => {
               setBusy(true);
               try {
@@ -1233,7 +1281,7 @@ function RemovableRow({
               "min-h-10 bg-[var(--color-semantic-error-surface)] px-4 text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
             )}
           >
-            {busy ? "Removing…" : "Yes, remove"}
+            <PendingLabel pending={busy}>Yes, remove</PendingLabel>
           </button>
         </span>
       ) : (
@@ -1254,18 +1302,24 @@ function RemovableRow({
 }
 
 function ViewFileButton({ fileId, label }: { fileId: string; label: string }) {
+  const [opening, setOpening] = useState(false);
   return (
     <button
       type="button"
+      disabled={opening}
+      aria-busy={opening || undefined}
       onClick={() => {
-        openFile(fileId).catch((err) =>
-          toastError("Couldn't open the file.", err),
-        );
+        setOpening(true);
+        openFile(fileId)
+          .catch((err) => toastError("Couldn't open the file.", err))
+          .finally(() => setOpening(false));
       }}
       className={cn(ghostButton, "min-h-10 px-3")}
     >
-      <Eye aria-hidden="true" className="size-4" />
-      View<span className="sr-only"> {label}</span>
+      <PendingLabel pending={opening}>
+        <Eye aria-hidden="true" className="size-4" />
+        View<span className="sr-only"> {label}</span>
+      </PendingLabel>
     </button>
   );
 }
@@ -1309,6 +1363,7 @@ function CredentialsSection({
   onAdded: (credential: Credential) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const addingMounted = useStayMounted(adding);
   const uploadStatus = useUploadStatus();
   const blockedText = pausedText(uploadStatus.data, "documents");
   // Without the list the count is unknown, so the add button waits for a reload.
@@ -1368,11 +1423,13 @@ function CredentialsSection({
           one to add another.
         </p>
       )}
-      <CredentialDialog
-        open={adding}
-        onOpenChange={setAdding}
-        onAdded={onAdded}
-      />
+      {addingMounted && (
+        <CredentialDialog
+          open={adding}
+          onOpenChange={setAdding}
+          onAdded={onAdded}
+        />
+      )}
     </section>
   );
 }
@@ -1389,6 +1446,7 @@ export function VideosSection({
   onUpdated: (video: Video) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const addingMounted = useStayMounted(adding);
   const uploadStatus = useUploadStatus();
   const blockedText = pausedText(uploadStatus.data, "videos");
   // Without the list the count is unknown, so the add button waits for a reload.
@@ -1483,7 +1541,9 @@ export function VideosSection({
           add another.
         </p>
       )}
-      <VideoDialog open={adding} onOpenChange={setAdding} onAdded={onAdded} />
+      {addingMounted && (
+        <VideoDialog open={adding} onOpenChange={setAdding} onAdded={onAdded} />
+      )}
     </section>
   );
 }
@@ -1511,7 +1571,7 @@ function TeachingZonesCard() {
           </p>
         </div>
         <Link href="/dashboard/tutor/zones" className={secondaryButton}>
-          Manage zones
+          <LinkPendingLabel>Manage zones</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1542,10 +1602,10 @@ function FindWorkCard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/find-tuitions" className={primaryButton}>
-            Find tuitions
+            <LinkPendingLabel>Find tuitions</LinkPendingLabel>
           </Link>
           <Link href="/dashboard/applications" className={secondaryButton}>
-            My applications
+            <LinkPendingLabel>My applications</LinkPendingLabel>
           </Link>
         </div>
       </div>
@@ -1576,7 +1636,7 @@ function PlacementFeesCard() {
           </p>
         </div>
         <Link href="/dashboard/fees" className={secondaryButton}>
-          View fees
+          <LinkPendingLabel>View fees</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1606,7 +1666,7 @@ function ReportsCard() {
           </p>
         </div>
         <Link href="/dashboard/reports" className={secondaryButton}>
-          View reports
+          <LinkPendingLabel>View reports</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1636,7 +1696,7 @@ function ApplicationsCard() {
           </p>
         </div>
         <Link href="/dashboard/applications" className={secondaryButton}>
-          View applications
+          <LinkPendingLabel>View applications</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1699,8 +1759,10 @@ export function RequirementsSection({
         action={
           requirements && requirements.length > 0 ? (
             <Link href="/dashboard/requirements/new" className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              Post a requirement
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                Post a requirement
+              </LinkPendingLabel>
             </Link>
           ) : undefined
         }
@@ -1717,8 +1779,10 @@ export function RequirementsSection({
           />
           <div className="mt-4 flex justify-center">
             <Link href="/dashboard/requirements/new" className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              Post your first requirement
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                Post your first requirement
+              </LinkPendingLabel>
             </Link>
           </div>
         </div>
@@ -1788,6 +1852,7 @@ function RequirementItem({
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
+  const intent = useIntentPrefetch();
 
   const { subjects } = useSubjects();
   const { areas } = useAreas();
@@ -1947,13 +2012,14 @@ function RequirementItem({
               <button
                 type="button"
                 disabled={busy}
+                aria-busy={busy || undefined}
                 onClick={handleClose}
                 className={cn(
                   secondaryButton,
                   "min-h-10 bg-[var(--color-semantic-error-surface)] px-4 text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
                 )}
               >
-                {busy ? "Closing…" : "Yes, close"}
+                <PendingLabel pending={busy}>Yes, close</PendingLabel>
               </button>
             </div>
           </div>
@@ -1961,9 +2027,12 @@ function RequirementItem({
           <Link
             href={postAgainHref(r.id)}
             className={cn(secondaryButton, "min-h-10 px-4")}
+            {...intent(requirementQueryOptions(r.id))}
           >
-            <Repeat2 aria-hidden="true" className="size-4" />
-            Post again<span className="sr-only"> {title}</span>
+            <LinkPendingLabel>
+              <Repeat2 aria-hidden="true" className="size-4" />
+              Post again<span className="sr-only"> {title}</span>
+            </LinkPendingLabel>
           </Link>
         ) : (
           <>
@@ -1971,10 +2040,11 @@ function RequirementItem({
               <button
                 type="button"
                 disabled={busy}
+                aria-busy={busy || undefined}
                 onClick={handlePublish}
                 className={cn(secondaryButton, "min-h-10 px-4")}
               >
-                {busy ? "Posting…" : "Post now"}
+                <PendingLabel pending={busy}>Post now</PendingLabel>
               </button>
             )}
 
@@ -1982,17 +2052,22 @@ function RequirementItem({
               href={`/dashboard/requirements/${r.id}/edit`}
               className={cn(ghostButton, "min-h-10 px-3")}
             >
-              <Pencil aria-hidden="true" className="size-4" />
-              Edit<span className="sr-only"> {title}</span>
+              <LinkPendingLabel>
+                <Pencil aria-hidden="true" className="size-4" />
+                Edit<span className="sr-only"> {title}</span>
+              </LinkPendingLabel>
             </Link>
 
             {r.status !== "DRAFT" && (
               <Link
                 href={`/dashboard/requirements/${r.id}/applicants`}
                 className={cn(ghostButton, "min-h-10 px-3")}
+                {...intent(studentRequirementQueryOptions(r.id))}
               >
-                <Users aria-hidden="true" className="size-4" />
-                Applicants<span className="sr-only"> {title}</span>
+                <LinkPendingLabel>
+                  <Users aria-hidden="true" className="size-4" />
+                  Applicants<span className="sr-only"> {title}</span>
+                </LinkPendingLabel>
               </Link>
             )}
 
@@ -2039,8 +2114,10 @@ function RecommendedTutors() {
             href="/dashboard/find-tutors"
             className={cn(ghostButton, "min-h-10")}
           >
-            Find tutors
-            <ArrowUpRight aria-hidden="true" className="size-4" />
+            <LinkPendingLabel>
+              Find tutors
+              <ArrowUpRight aria-hidden="true" className="size-4" />
+            </LinkPendingLabel>
           </Link>
         }
       />
@@ -2112,6 +2189,7 @@ function VerificationCard({
   onSubmitted: (result: SubmittedVerification) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const uploadingMounted = useStayMounted(uploading);
   const uploadStatus = useUploadStatus();
   const v = VERIFICATION[status];
   const canUpload = status === "NOT_SUBMITTED" || status === "REJECTED";
@@ -2173,13 +2251,15 @@ function VerificationCard({
             </button>
           </div>
         ))}
-      <VerificationUploadDialog
-        open={uploading}
-        onOpenChange={setUploading}
-        role={role}
-        hasStudentIdNumber={hasStudentIdNumber}
-        onSubmitted={onSubmitted}
-      />
+      {uploadingMounted && (
+        <VerificationUploadDialog
+          open={uploading}
+          onOpenChange={setUploading}
+          role={role}
+          hasStudentIdNumber={hasStudentIdNumber}
+          onSubmitted={onSubmitted}
+        />
+      )}
     </section>
   );
 }
@@ -2305,30 +2385,29 @@ function HelpCard() {
 /* ───────── Loading ───────── */
 
 function DashboardSkeleton() {
-  const bar =
-    "animate-pulse rounded-full bg-[color-mix(in_oklab,var(--color-neutral-charcoal)_8%,transparent)] motion-reduce:animate-none";
   return (
     <div
+      role="status"
       aria-busy="true"
-      aria-label="Loading your profile"
       className="mx-auto w-full max-w-6xl px-4 pt-12 sm:px-6"
     >
+      <span className="sr-only">Loading your profile</span>
       <div className="flex items-center gap-5">
-        <div className={cn(bar, "size-24")} />
+        <Skeleton className="size-24 rounded-full" />
         <div className="grid flex-1 gap-3">
-          <div className={cn(bar, "h-4 w-32")} />
-          <div className={cn(bar, "h-8 w-64 max-w-full")} />
-          <div className={cn(bar, "h-5 w-48")} />
+          <Skeleton className="h-4 w-32 rounded-full" />
+          <Skeleton className="h-8 w-64 max-w-full rounded-full" />
+          <Skeleton className="h-5 w-48 rounded-full" />
         </div>
       </div>
       <div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={cn(bar, "h-32 rounded-[20px]")} />
+          <Skeleton key={i} className="h-32 rounded-[20px]" />
         ))}
       </div>
       <div className="mt-10 grid gap-4">
         {[0, 1].map((i) => (
-          <div key={i} className={cn(bar, "h-48 rounded-[24px]")} />
+          <Skeleton key={i} className="h-48 rounded-[24px]" />
         ))}
       </div>
     </div>

@@ -24,7 +24,11 @@ import {
   inputClass,
   textareaClass,
 } from "@/components/admin/admin-ui";
-import { FEE_STATUS_META, type FeeTone } from "@/lib/admin-fees";
+import {
+  FEE_STATUS_META,
+  adminFeeQueryOptions,
+  type FeeTone,
+} from "@/lib/admin-fees";
 import { ATTEMPT_STATUS_META } from "@/lib/admin-payments";
 import {
   REFUND_NOTE_MAX,
@@ -41,6 +45,9 @@ import {
 import { formatAmount, formatDateTime, useAdminMe } from "@/lib/admin";
 import { errorCodeMessage } from "@/lib/api-errors";
 import { ApiError } from "@/lib/profile";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 /** The server's message for a 409, the catalogue copy for a known code, a short server message, or the fallback. */
 function failureText(err: unknown, fallback: string): string {
@@ -89,6 +96,7 @@ export function AdminRefundDetailPage({ id }: { id: string }) {
   const resolve = useResolveRefund(id);
   const admin = useAdminMe();
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const intent = useIntentPrefetch();
 
   const detail = query.data;
   const isSuperAdmin = admin.isSuperAdmin;
@@ -208,7 +216,9 @@ export function AdminRefundDetailPage({ id }: { id: string }) {
                   "min-h-11",
                 )}
               >
-                {check.isPending ? "Checking…" : "Check with gateway"}
+                <PendingLabel pending={check.isPending}>
+                  Check with gateway
+                </PendingLabel>
               </button>
             )}
             {(detail.canApprove || detail.canReject || detail.canResolve) &&
@@ -330,9 +340,10 @@ export function AdminRefundDetailPage({ id }: { id: string }) {
               actions={
                 <Link
                   href={`/dashboard/admin/fees/${encodeURIComponent(detail.fee.id)}`}
+                  {...intent(adminFeeQueryOptions(detail.fee.id))}
                   className={cn(ghostButton, "min-h-10")}
                 >
-                  Open fee
+                  <LinkPendingLabel>Open fee</LinkPendingLabel>
                 </Link>
               }
             >
@@ -512,6 +523,7 @@ function NoteForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (noteError) return;
     onSubmit(trimmed);
@@ -561,7 +573,7 @@ function NoteForm({
             "min-h-11 sm:min-w-36",
           )}
         >
-          {saving ? "Saving…" : submitLabel}
+          <PendingLabel pending={saving}>{submitLabel}</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -597,6 +609,7 @@ function ResolveForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (outcome === null || noteError) return;
     const reference = refundRefId.trim();
@@ -696,7 +709,7 @@ function ResolveForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving…" : "Resolve refund"}
+          <PendingLabel pending={saving}>Resolve refund</PendingLabel>
         </button>
       </DialogActions>
     </form>

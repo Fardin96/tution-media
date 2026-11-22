@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ComponentProps,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -12,6 +17,8 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   AdminDialog,
   DetailList,
@@ -96,7 +103,7 @@ export function PartySection({
           href={`/dashboard/admin/accounts/${encodeURIComponent(party.accountId)}`}
           className={cn(ghostButton, "min-h-10")}
         >
-          Open account
+          <LinkPendingLabel>Open account</LinkPendingLabel>
         </Link>
       }
     >
@@ -193,6 +200,7 @@ export function CaseActions({
     admin.adminUser !== null &&
     handledBy.accountId === admin.adminUser.accountId;
   const busy = mutation.isPending;
+  const taking = busy && mutation.variables?.action === "ASSIGN";
 
   function take() {
     mutation.mutate(
@@ -239,14 +247,16 @@ export function CaseActions({
           type="button"
           onClick={take}
           disabled={busy}
+          aria-busy={taking || undefined}
           className={cn(secondaryButton, "min-h-11")}
         >
-          Take this case
+          <PendingLabel pending={taking}>Take this case</PendingLabel>
         </button>
       )}
       <button
         type="button"
         onClick={() => setDialog("RESOLVE")}
+        disabled={busy}
         className={cn(primaryButton, "min-h-11")}
       >
         Resolve
@@ -254,6 +264,7 @@ export function CaseActions({
       <button
         type="button"
         onClick={() => setDialog("DISMISS")}
+        disabled={busy}
         className={cn(secondaryButton, "min-h-11")}
       >
         Dismiss
@@ -322,6 +333,7 @@ export function NoteForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (noteError) return;
     onSubmit(note.trim());
@@ -362,23 +374,28 @@ export function NoteForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving…" : submitLabel}
+          <PendingLabel pending={saving}>{submitLabel}</PendingLabel>
         </button>
       </DialogActions>
     </form>
   );
 }
 
-/** A card-sized link row for the case lists. */
+/** A card-sized link row for the case lists. Intent prefetch handlers pass through. */
 export function CaseLink({
   href,
   children,
+  ...intent
 }: {
   href: string;
   children: ReactNode;
-}) {
+} & Pick<ComponentProps<"a">, "onMouseEnter" | "onFocus" | "onTouchStart">) {
   return (
-    <Link href={href} className={cn(card, "grid gap-3 p-5", focusRing)}>
+    <Link
+      href={href}
+      {...intent}
+      className={cn(card, "grid gap-3 p-5", focusRing)}
+    >
       {children}
     </Link>
   );

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type InfiniteData,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
@@ -119,14 +120,12 @@ export const ACTION_META: Record<
   ApplicationAction,
   {
     label: string;
-    pending: string;
     done: string;
     confirm: null | ActionConfirm;
   }
 > = {
   confirm: {
     label: "Accept",
-    pending: "Accepting…",
     done: "Application accepted.",
     confirm: {
       title: "Accept this application?",
@@ -137,7 +136,6 @@ export const ACTION_META: Record<
   },
   reject: {
     label: "Decline",
-    pending: "Declining…",
     done: "Application declined.",
     confirm: {
       title: "Decline this application?",
@@ -148,7 +146,6 @@ export const ACTION_META: Record<
   },
   withdraw: {
     label: "Withdraw",
-    pending: "Withdrawing…",
     done: "Application withdrawn.",
     confirm: {
       title: "Withdraw your application?",
@@ -159,13 +156,11 @@ export const ACTION_META: Record<
   },
   reopen: {
     label: "Apply again",
-    pending: "Applying again…",
     done: "Application sent again.",
     confirm: null,
   },
   cancel: {
     label: "Cancel tuition",
-    pending: "Cancelling…",
     done: "Tuition cancelled.",
     confirm: {
       title: "Cancel this tuition?",
@@ -176,7 +171,6 @@ export const ACTION_META: Record<
   },
   complete: {
     label: "Mark as finished",
-    pending: "Saving…",
     done: "Marked as finished.",
     confirm: {
       title: "Mark this tuition as finished?",
@@ -211,12 +205,15 @@ export const recommendationApi = {
 };
 
 /** The student's own requirement. Only its status is read here, to decide whether the tutor list applies. */
-export function useStudentRequirement(requirementId: string) {
-  return useQuery({
+export const studentRequirementQueryOptions = (requirementId: string) =>
+  queryOptions({
     queryKey: queryKeys.applications.studentRequirement(requirementId),
     queryFn: () => requirementApi.get(requirementId),
     staleTime: 15_000,
   });
+
+export function useStudentRequirement(requirementId: string) {
+  return useQuery(studentRequirementQueryOptions(requirementId));
 }
 
 export function useRecommendedTutors(requirementId: string, enabled: boolean) {
@@ -272,12 +269,15 @@ export function useMyApplications(status?: ApplicationStatus) {
   });
 }
 
-export function useApplication(id: string) {
-  return useQuery({
+export const applicationQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.applications.detail(id),
     queryFn: () => applicationApi.get(id),
     staleTime: 15_000,
   });
+
+export function useApplication(id: string) {
+  return useQuery(applicationQueryOptions(id));
 }
 
 export function useRequirementApplicants(requirementId: string) {

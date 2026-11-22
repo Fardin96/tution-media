@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ghostButton } from "@/components/profile/styles";
 import { AdminDialog, StatusPill } from "@/components/admin/admin-ui";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
   ReviewNoteForm,
   type ReviewSubmit,
@@ -54,7 +55,7 @@ export function UploadFlagsNote({
         href={uploadHistoryHref(accountId)}
         className={cn(ghostButton, "min-h-10 px-3")}
       >
-        Upload history
+        <LinkPendingLabel>Upload history</LinkPendingLabel>
       </Link>
     </div>
   );

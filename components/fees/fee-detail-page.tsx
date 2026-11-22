@@ -16,7 +16,10 @@ import {
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { BackLink } from "@/components/ui/back-link";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PageFrame } from "@/components/ui/page-frame";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { Rows, Section } from "@/components/applications/detail-sections";
@@ -34,6 +37,8 @@ import {
   validateRefundText,
 } from "@/lib/admin-refunds";
 import { errorCodeMessage } from "@/lib/api-errors";
+import { applicationQueryOptions } from "@/lib/applications";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   useApplyPromo,
   useCheckout,
@@ -130,6 +135,10 @@ function PayOnlineSection({
 
   return (
     <Section title="Pay online">
+      <BlockingOverlay
+        open={pay.redirecting}
+        label="Taking you to SSLCommerz…"
+      />
       {checkout.enabled ? (
         <div className="grid gap-5">
           <dl className="grid gap-2">
@@ -162,7 +171,7 @@ function PayOnlineSection({
                 href={`/dashboard/fees/${encodeURIComponent(feeId)}/payment?tran=${encodeURIComponent(pendingAttempt.tranId)}`}
                 className="text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline"
               >
-                Check that payment
+                <LinkPendingLabel>Check that payment</LinkPendingLabel>
               </Link>
             </div>
           )}
@@ -170,8 +179,8 @@ function PayOnlineSection({
           <div className="grid gap-3">
             <button
               type="button"
-              aria-busy={pay.isPending}
-              disabled={pay.isPending}
+              aria-busy={pay.redirecting || undefined}
+              disabled={pay.redirecting}
               onClick={() =>
                 pay.mutate(undefined, {
                   onError: (err) =>
@@ -180,9 +189,9 @@ function PayOnlineSection({
               }
               className={cn(primaryButton, "self-start")}
             >
-              {pay.isPending
-                ? "Opening SSLCommerz…"
-                : `Pay ${formatMoney(checkout.totalAmount)} with SSLCommerz`}
+              <PendingLabel pending={pay.redirecting}>
+                {`Pay ${formatMoney(checkout.totalAmount)} with SSLCommerz`}
+              </PendingLabel>
             </button>
             <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
               You&apos;ll finish on SSLCommerz&apos;s secure page and come back
@@ -207,6 +216,7 @@ function PromoForm({ feeId }: { feeId: string }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (apply.isPending) return;
     const trimmed = code.trim();
     if (trimmed === "") {
       setError("Enter a code.");
@@ -263,7 +273,7 @@ function PromoForm({ feeId }: { feeId: string }) {
               aria-busy={apply.isPending || undefined}
               className={cn(secondaryButton, "shrink-0")}
             >
-              {apply.isPending ? "Applying…" : "Apply"}
+              <PendingLabel pending={apply.isPending}>Apply</PendingLabel>
             </button>
           </div>
         )}
@@ -293,7 +303,7 @@ function AppliedPromo({ feeId, promo }: { feeId: string; promo: FeePromo }) {
         }
         className={cn(ghostButton, "min-h-10 px-3")}
       >
-        {remove.isPending ? "Removing…" : "Remove code"}
+        <PendingLabel pending={remove.isPending}>Remove code</PendingLabel>
       </button>
     </div>
   );
@@ -429,6 +439,7 @@ function RefundDialog({
   const [serverError, setServerError] = useState<string>();
 
   function send(reason: string) {
+    if (request.isPending) return;
     setServerError(undefined);
     request.mutate(
       { paymentId: target.paymentId, reason },
@@ -537,7 +548,7 @@ function RefundForm({
           aria-busy={pending || undefined}
           className={cn(primaryButton, "min-h-11")}
         >
-          {pending ? "Sending..." : "Send request"}
+          <PendingLabel pending={pending}>Send request</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -623,7 +634,7 @@ function HeldPaymentsSection({
               href={`/dashboard/fees/${encodeURIComponent(feeId)}/payment?tran=${encodeURIComponent(payment.tranId)}`}
               className="text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline"
             >
-              See this payment
+              <LinkPendingLabel>See this payment</LinkPendingLabel>
             </Link>
           </li>
         ))}
@@ -651,6 +662,7 @@ function amountDueText(fee: TutorFeeDetail): string {
 
 function FeeBody({ fee }: { fee: TutorFeeDetail }) {
   const status = feeStatusDisplay(fee);
+  const intent = useIntentPrefetch();
   const confirmed = fee.application.confirmedAt
     ? formatDay(fee.application.confirmedAt)
     : "Not confirmed yet";
@@ -711,9 +723,10 @@ function FeeBody({ fee }: { fee: TutorFeeDetail }) {
           )}
           <Link
             href={`/dashboard/applications/${encodeURIComponent(fee.application.id)}`}
+            {...intent(applicationQueryOptions(fee.application.id))}
             className={cn(secondaryButton, "min-h-10 self-start px-4")}
           >
-            View application
+            <LinkPendingLabel>View application</LinkPendingLabel>
           </Link>
         </div>
       </Section>

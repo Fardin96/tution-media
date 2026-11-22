@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AddressAutocomplete } from "@/components/profile/address-autocomplete";
 import type { AddressValue } from "@/components/profile/address-autocomplete";
+import type { PlacePrediction } from "@/lib/places";
 
 vi.mock("@/lib/places", async (importOriginal) => {
   const actual = (await importOriginal()) as typeof import("@/lib/places");
@@ -102,15 +103,62 @@ describe("AddressAutocomplete", () => {
     expect(fetchPlacePredictions).toHaveBeenCalledOnce();
   });
 
-  it("debounces at 300ms", async () => {
+  it("debounces suggestions by about 250ms", async () => {
     const user = userEvent.setup();
     render(<Wrapper label="Address" />);
     const input = screen.getByLabelText("Address");
     await user.type(input, "Dhanmondi");
-    vi.advanceTimersByTime(250);
-    expect(fetchPlacePredictions).not.toHaveBeenCalled();
     vi.advanceTimersByTime(100);
+    expect(fetchPlacePredictions).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(200);
     expect(fetchPlacePredictions).toHaveBeenCalledOnce();
+  });
+
+  it("drops a late answer for a query the user has already changed", async () => {
+    const user = userEvent.setup();
+    let resolveSlow!: (results: PlacePrediction[]) => void;
+    const slow = new Promise<PlacePrediction[]>((resolve) => {
+      resolveSlow = resolve;
+    });
+    vi.mocked(fetchPlacePredictions)
+      .mockReturnValueOnce(slow)
+      .mockResolvedValueOnce([
+        {
+          placeId: "mirpur",
+          description: "Mirpur, Dhaka",
+          mainText: "Mirpur",
+          secondaryText: "Dhaka",
+        },
+      ]);
+    render(<Wrapper label="Address" />);
+    const input = screen.getByLabelText("Address");
+
+    await user.type(input, "Dhan");
+    vi.advanceTimersByTime(400);
+    expect(fetchPlacePredictions).toHaveBeenCalledTimes(1);
+
+    await user.type(input, "mon");
+    vi.advanceTimersByTime(400);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("option", { name: /Mirpur/ }),
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveSlow([
+        {
+          placeId: "old",
+          description: "Dhanmondi, Dhaka",
+          mainText: "Dhanmondi",
+          secondaryText: "Dhaka",
+        },
+      ]);
+    });
+    expect(
+      screen.queryByRole("option", { name: /Dhanmondi/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Mirpur/ })).toBeInTheDocument();
   });
 
   it("renders suggestions and selects one", async () => {

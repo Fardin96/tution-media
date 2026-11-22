@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
@@ -64,12 +65,15 @@ export function useAdminPromoCodes(filters: AdminPromoFilters) {
   });
 }
 
-export function useAdminPromoCode(id: string) {
-  return useQuery({
+export const adminPromoCodeQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.promoCode(id),
     queryFn: () => promoCodeApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminPromoCode(id: string) {
+  return useQuery(adminPromoCodeQueryOptions(id));
 }
 
 export function useCreatePromoCode() {

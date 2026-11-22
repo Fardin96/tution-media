@@ -17,6 +17,7 @@ import {
   PartySection,
 } from "@/components/admin/case-parts";
 import { formatDateTime } from "@/lib/admin";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
   APPLICATION_STATUS_LABEL,
   REPORT_CATEGORY_LABEL,
@@ -111,7 +112,7 @@ export function AdminReportDetailPage({ id }: { id: string }) {
                     href={`/dashboard/applications/${encodeURIComponent(detail.application.id)}?from=admin`}
                     className={cn(ghostButton, "min-h-10")}
                   >
-                    Open application
+                    <LinkPendingLabel>Open application</LinkPendingLabel>
                   </Link>
                 }
               >

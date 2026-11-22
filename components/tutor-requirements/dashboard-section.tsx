@@ -11,13 +11,17 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { TutorRequirementCard } from "@/components/tutor-requirements/tutor-requirement-card";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
 import { optionName } from "@/lib/profile";
 import { useSubjects } from "@/lib/subjects";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   MAX_ACTIVE_SETS,
   dashboardVisibleCount,
+  tutorRequirementQueryOptions,
   useProfileSubjects,
   useTutorRequirements,
 } from "@/lib/tutor-requirements";
@@ -57,6 +61,7 @@ function SectionHeading({
 }
 
 export function TutorRequirementsSection() {
+  const intent = useIntentPrefetch();
   const sets = useTutorRequirements("active");
   const lookup = useEducationLookup();
   const profileSubjects = useProfileSubjects();
@@ -116,8 +121,10 @@ export function TutorRequirementsSection() {
             </button>
           ) : (
             <Link href={NEW_SET_HREF} className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              New set
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                New set
+              </LinkPendingLabel>
             </Link>
           )
         }
@@ -140,9 +147,11 @@ export function TutorRequirementsSection() {
           <button
             type="button"
             onClick={() => void sets.refetch()}
+            disabled={sets.isFetching}
+            aria-busy={sets.isFetching || undefined}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Try again
+            <PendingLabel pending={sets.isFetching}>Try again</PendingLabel>
           </button>
         </div>
       ) : list.length === 0 ? (
@@ -156,8 +165,10 @@ export function TutorRequirementsSection() {
             You need a default set before you can apply to tuitions.
           </p>
           <Link href={NEW_SET_HREF} className={primaryButton}>
-            <Plus aria-hidden="true" className="size-4" />
-            Create a set
+            <LinkPendingLabel>
+              <Plus aria-hidden="true" className="size-4" />
+              Create a set
+            </LinkPendingLabel>
           </Link>
         </div>
       ) : (
@@ -178,9 +189,10 @@ export function TutorRequirementsSection() {
                 actions={
                   <Link
                     href={`/dashboard/tutor/requirements/${set.id}/edit`}
+                    {...intent(tutorRequirementQueryOptions(set.id))}
                     className={cn(secondaryButton, "min-h-10 px-4")}
                   >
-                    Edit
+                    <LinkPendingLabel>Edit</LinkPendingLabel>
                   </Link>
                 }
               />
@@ -201,7 +213,7 @@ export function TutorRequirementsSection() {
             </button>
           ) : (
             <Link href={ALL_HREF} className={cn(ghostButton, "min-h-10")}>
-              See all requirements
+              <LinkPendingLabel>See all requirements</LinkPendingLabel>
             </Link>
           )}
         </div>

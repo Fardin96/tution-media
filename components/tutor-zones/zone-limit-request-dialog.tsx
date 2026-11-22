@@ -12,6 +12,8 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { isRateLimit } from "@/lib/api-errors";
 import { queryKeys, type ZoneRequestStatus } from "@/lib/query-keys";
@@ -165,6 +167,7 @@ export function ZoneLimitRequestDialog({
             requests={requests}
             isPending={history.isPending}
             isError={history.isError}
+            isFetching={history.isFetching}
             hasNextPage={history.hasNextPage}
             isFetchingNextPage={history.isFetchingNextPage}
             onRetry={() => void history.refetch()}
@@ -241,6 +244,7 @@ function RequestForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation.isPending) return;
     setSubmitted(true);
     if (Object.keys(errors).length > 0) return;
     mutation.mutate({
@@ -325,7 +329,7 @@ function RequestForm({
           aria-busy={mutation.isPending || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {mutation.isPending ? "Sending..." : "Send request"}
+          <PendingLabel pending={mutation.isPending}>Send request</PendingLabel>
         </button>
       </div>
     </form>
@@ -336,6 +340,7 @@ function RequestHistory({
   requests,
   isPending,
   isError,
+  isFetching,
   hasNextPage,
   isFetchingNextPage,
   onRetry,
@@ -344,6 +349,7 @@ function RequestHistory({
   requests: ZoneLimitRequest[];
   isPending: boolean;
   isError: boolean;
+  isFetching: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   onRetry: () => void;
@@ -362,21 +368,33 @@ function RequestHistory({
       </h3>
 
       {isPending ? (
-        <p
-          role="status"
-          className="mt-3 text-sm text-[var(--color-text-secondary)]"
-        >
-          Loading your requests...
-        </p>
+        <div role="status" className="mt-3 grid gap-3">
+          <span className="sr-only">Loading your requests…</span>
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              aria-hidden="true"
+              className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </div>
       ) : isError ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-secondary)]">
           <span>Couldn&apos;t load your requests.</span>
           <button
             type="button"
             onClick={onRetry}
+            disabled={isFetching}
+            aria-busy={isFetching || undefined}
             className={cn(ghostButton, "min-h-11 px-3")}
           >
-            Try again
+            <PendingLabel pending={isFetching}>Try again</PendingLabel>
           </button>
         </div>
       ) : requests.length === 0 ? (
@@ -422,9 +440,12 @@ function RequestHistory({
               type="button"
               onClick={onShowMore}
               disabled={isFetchingNextPage}
+              aria-busy={isFetchingNextPage || undefined}
               className={cn(ghostButton, "mt-3 min-h-11 px-3")}
             >
-              {isFetchingNextPage ? "Loading..." : "Show more"}
+              <PendingLabel pending={isFetchingNextPage}>
+                Show more
+              </PendingLabel>
             </button>
           )}
         </>

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { SitePage, SiteContent } from "@/lib/site-content";
-import { getSitePage, getSiteContent } from "@/lib/site-content.server";
+import {
+  getSitePageForPage,
+  getSiteContentForPage,
+} from "@/lib/site-content.server";
 import AboutUsPage, {
   generateMetadata as aboutMetadata,
 } from "@/app/(site)/about-us/page";
@@ -16,8 +19,8 @@ import ContactPage, {
 } from "@/app/(site)/contact/page";
 
 vi.mock("@/lib/site-content.server", () => ({
-  getSitePage: vi.fn(),
-  getSiteContent: vi.fn(),
+  getSitePageForPage: vi.fn(),
+  getSiteContentForPage: vi.fn(),
 }));
 
 vi.mock("@/components/site-footer", () => ({
@@ -48,8 +51,10 @@ const footer = {
 };
 
 beforeEach(() => {
-  vi.mocked(getSitePage).mockImplementation(async (slug) => fixture(slug));
-  vi.mocked(getSiteContent).mockResolvedValue({
+  vi.mocked(getSitePageForPage).mockImplementation(async (slug) =>
+    fixture(slug),
+  );
+  vi.mocked(getSiteContentForPage).mockResolvedValue({
     footer,
   } as unknown as SiteContent);
 });

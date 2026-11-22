@@ -4,8 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { ApiError } from "@/lib/profile";
 import { mapServerIssuesToFields } from "@/lib/api-errors";
 import { invalidateTutorRequirements, queryKeys } from "@/lib/query-keys";
@@ -117,6 +119,7 @@ export function TutorRequirementForm({
   };
 
   const handleSubmit = async () => {
+    if (saving) return;
     const found = validateTutorRequirementForm(form);
     const firstError = Object.values(found)[0];
     if (firstError) {
@@ -411,32 +414,19 @@ export function TutorRequirementForm({
       <div className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Link href={LIST_HREF} className={secondaryButton}>
-            Cancel
+            <LinkPendingLabel>Cancel</LinkPendingLabel>
           </Link>
 
           <button
             type="submit"
             disabled={saving || profileQuery.isPending}
+            aria-busy={saving || undefined}
             className={cn(primaryButton, "sm:min-w-44")}
           >
-            {saving ? (
-              <>
-                <Loader2
-                  aria-hidden="true"
-                  className="size-4 animate-spin motion-reduce:animate-none"
-                />
-                Saving…
-              </>
-            ) : (
-              <>
-                {isEdit ? "Save changes" : "Create set"}
-                <Check
-                  aria-hidden="true"
-                  className="size-4"
-                  strokeWidth={2.5}
-                />
-              </>
-            )}
+            <PendingLabel pending={saving}>
+              {isEdit ? "Save changes" : "Create set"}
+              <Check aria-hidden="true" className="size-4" strokeWidth={2.5} />
+            </PendingLabel>
           </button>
         </div>
       </div>

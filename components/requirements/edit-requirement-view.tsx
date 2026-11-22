@@ -13,6 +13,7 @@ import {
   type Requirement,
 } from "@/lib/requirements";
 import { card, primaryButton } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 
 function blockedCopy(status: string): string {
   if (status === "FILLED") {
@@ -88,7 +89,7 @@ export function EditRequirementView({ id }: { id: string }) {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {blocked ? (
               <Link href={postAgainHref(id)} className={primaryButton}>
-                Post again
+                <LinkPendingLabel>Post again</LinkPendingLabel>
               </Link>
             ) : (
               <button

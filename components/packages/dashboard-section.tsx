@@ -11,6 +11,8 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { MyPackageCard } from "@/components/packages/my-package-card";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
 import { useMyPackages } from "@/lib/packages";
@@ -73,8 +75,10 @@ export function TutorPackagesSection() {
           // With no packages, the empty card carries the only create button.
           list.length === 0 ? undefined : (
             <Link href={NEW_PACKAGE_HREF} className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              New package
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                New package
+              </LinkPendingLabel>
             </Link>
           )
         }
@@ -103,9 +107,11 @@ export function TutorPackagesSection() {
           <button
             type="button"
             onClick={() => void packages.refetch()}
+            disabled={packages.isFetching}
+            aria-busy={packages.isFetching || undefined}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Try again
+            <PendingLabel pending={packages.isFetching}>Try again</PendingLabel>
           </button>
         </div>
       ) : list.length === 0 ? (
@@ -119,8 +125,10 @@ export function TutorPackagesSection() {
             You have no packages yet.
           </p>
           <Link href={NEW_PACKAGE_HREF} className={primaryButton}>
-            <Plus aria-hidden="true" className="size-4" />
-            Create a package
+            <LinkPendingLabel>
+              <Plus aria-hidden="true" className="size-4" />
+              Create a package
+            </LinkPendingLabel>
           </Link>
         </div>
       ) : visible.length === 0 ? (
@@ -146,7 +154,7 @@ export function TutorPackagesSection() {
       {!packages.isPending && !packages.isError && list.length > 0 && (
         <div className="mt-4">
           <Link href={ALL_HREF} className={cn(ghostButton, "min-h-10")}>
-            See all packages
+            <LinkPendingLabel>See all packages</LinkPendingLabel>
           </Link>
         </div>
       )}

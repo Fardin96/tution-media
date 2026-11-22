@@ -7,6 +7,7 @@ import { card, ghostButton } from "@/components/profile/styles";
 import { TonePill } from "@/components/applications/status-pill";
 import { DisputeDialog } from "@/components/cases/dispute-dialog";
 import { ReportDialog } from "@/components/cases/report-dialog";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import type { ApplicationDetail } from "@/lib/applications";
 import {
   CASE_STATUS_META,
@@ -56,12 +57,14 @@ export function ApplicationCaseActions({
               href="/dashboard/reports"
               className={cn(ghostButton, "min-h-10 max-w-full px-3")}
             >
-              <span className="min-w-0 truncate">
-                Dispute: {DISPUTE_TYPE_LABEL[active.type]}
-              </span>
-              <TonePill tone={CASE_STATUS_META[active.status].tone}>
-                {CASE_STATUS_META[active.status].label}
-              </TonePill>
+              <LinkPendingLabel>
+                <span className="min-w-0 truncate">
+                  Dispute: {DISPUTE_TYPE_LABEL[active.type]}
+                </span>
+                <TonePill tone={CASE_STATUS_META[active.status].tone}>
+                  {CASE_STATUS_META[active.status].label}
+                </TonePill>
+              </LinkPendingLabel>
             </Link>
           ) : (
             <button

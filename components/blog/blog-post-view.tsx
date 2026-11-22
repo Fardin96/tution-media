@@ -2,15 +2,23 @@
 
 import { BackLink } from "@/components/ui/back-link";
 import { BlogMarkdown } from "@/components/blog/blog-markdown";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
 import { ApiError } from "@/lib/profile";
-import { formatPostDate, useBlogPost } from "@/lib/blog";
+import { formatPostDate, useBlogPost, type BlogPost } from "@/lib/blog";
 import { useRefreshExpiredMedia } from "@/lib/files";
 
-export function BlogPostView({ slug }: { slug: string }) {
+export function BlogPostView({
+  slug,
+  initialPost,
+}: {
+  slug: string;
+  initialPost?: BlogPost;
+}) {
   const refreshExpired = useRefreshExpiredMedia();
-  const query = useBlogPost(slug);
+  const query = useBlogPost(slug, initialPost);
   const post = query.data;
   const notFound =
     query.error instanceof ApiError && query.error.status === 404;
@@ -21,12 +29,7 @@ export function BlogPostView({ slug }: { slug: string }) {
         <BackLink href="/blog">Blog</BackLink>
 
         {query.isPending ? (
-          <p
-            role="status"
-            className="mt-8 text-sm text-[var(--color-text-secondary)]"
-          >
-            Loading post...
-          </p>
+          <PostSkeleton />
         ) : notFound ? (
           <div className="mt-8 flex flex-col gap-2">
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)]">
@@ -45,9 +48,11 @@ export function BlogPostView({ slug }: { slug: string }) {
             <button
               type="button"
               onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching || undefined}
               className={secondaryButton}
             >
-              Try again
+              <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
             </button>
           </div>
         ) : post ? (
@@ -88,5 +93,33 @@ export function BlogPostView({ slug }: { slug: string }) {
         ) : null}
       </div>
     </main>
+  );
+}
+
+/** The article's shape: date, title, excerpt, cover and paragraphs. */
+function PostSkeleton() {
+  return (
+    <div role="status" className="mt-6">
+      <span className="sr-only">Loading…</span>
+      <div className="flex flex-col" aria-hidden="true">
+        <header className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-full sm:h-12" />
+          <Skeleton className="h-10 w-3/4 sm:h-12" />
+          <Skeleton className="mt-1 h-5 w-full max-w-[65ch]" />
+        </header>
+        <Skeleton className="mt-8 aspect-[16/9] w-full rounded-[24px]" />
+        <div className="mt-8 flex flex-col gap-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="mt-2 h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+      </div>
+    </div>
   );
 }

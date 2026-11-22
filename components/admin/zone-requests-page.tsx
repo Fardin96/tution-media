@@ -15,6 +15,8 @@ import {
 } from "@/components/profile/styles";
 import { AdminPage } from "@/components/admin/admin-ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatRequestDate } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { queryKeys, type ZoneRequestStatus } from "@/lib/query-keys";
@@ -139,16 +141,33 @@ export function ZoneRequestsPage() {
         <TabsContent value={tabValue} className="mt-4">
           {queue.isPending ? (
             <div role="status" className="grid gap-4">
-              <span className="sr-only">Loading requests</span>
+              <span className="sr-only">Loading requests…</span>
               {[0, 1].map((i) => (
                 <div
                   key={i}
                   aria-hidden="true"
-                  className={cn(
-                    card,
-                    "h-32 animate-pulse p-5 motion-reduce:animate-none",
-                  )}
-                />
+                  className={cn(card, "grid gap-4 p-5")}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="grid gap-1.5">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-4 w-56 max-w-full" />
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <Skeleton className="h-11 w-full rounded-full sm:w-28" />
+                    <Skeleton className="h-11 w-full rounded-full sm:w-28" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : queue.isError ? (
@@ -164,9 +183,13 @@ export function ZoneRequestsPage() {
               <button
                 type="button"
                 onClick={() => void queue.refetch()}
+                disabled={queue.isFetching}
+                aria-busy={queue.isFetching || undefined}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Try again
+                <PendingLabel pending={queue.isFetching}>
+                  Try again
+                </PendingLabel>
               </button>
             </div>
           ) : requests.length === 0 ? (
@@ -199,9 +222,12 @@ export function ZoneRequestsPage() {
                     type="button"
                     onClick={() => void queue.fetchNextPage()}
                     disabled={queue.isFetchingNextPage}
+                    aria-busy={queue.isFetchingNextPage || undefined}
                     className={cn(secondaryButton, "min-h-11")}
                   >
-                    {queue.isFetchingNextPage ? "Loading..." : "Load more"}
+                    <PendingLabel pending={queue.isFetchingNextPage}>
+                      Load more
+                    </PendingLabel>
                   </button>
                 </div>
               )}
@@ -386,6 +412,7 @@ function DecisionForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (approve) {
       if (limitError) return;
@@ -501,7 +528,9 @@ function DecisionForm({
             "min-h-11 sm:min-w-36",
           )}
         >
-          {saving ? "Saving..." : approve ? "Approve request" : "Deny request"}
+          <PendingLabel pending={saving}>
+            {approve ? "Approve request" : "Deny request"}
+          </PendingLabel>
         </button>
       </div>
     </form>

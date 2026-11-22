@@ -1,4 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
+import { refreshMyTutorProfile } from "./tutor-profile.actions";
 
 export type RequirementStatus = "active" | "archived" | "all";
 export type ZoneRequestStatus = "PENDING" | "APPROVED" | "DENIED";
@@ -181,74 +183,108 @@ export const queryKeys = {
   },
 };
 
+/**
+ * Runs a refresh that must never block or fail the action that triggered it. Errors are dropped:
+ * the public pages expire on their own timers anyway.
+ */
+function quietly(task: () => Promise<unknown>): void {
+  void (async () => {
+    try {
+      await task();
+    } catch {
+      // Ignored on purpose; see above.
+    }
+  })();
+}
+
 /** Any application change (apply, act, reopen) moves the lists, the detail, browse rows that show myApplication, and me. */
-export function invalidateApplications(queryClient: QueryClient) {
+export function invalidateApplications(
+  queryClient: QueryClient,
+): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
     invalidateNotifications(queryClient),
-  ]);
+  ]).then(() => undefined);
 }
 
 /** A settled or refused payment moves the tutor's fee list, the fee detail and the application's fee summary. */
-export function invalidateFees(queryClient: QueryClient) {
+export function invalidateFees(queryClient: QueryClient): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.fees.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
-  ]);
+  ]).then(() => undefined);
 }
 
 /** Alerts are written by application changes, so the bell's list and unread count refresh with them. */
-export function invalidateNotifications(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({
-    queryKey: queryKeys.notifications.all,
-  });
+export function invalidateNotifications(
+  queryClient: QueryClient,
+): Promise<void> {
+  return Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.notifications.all,
+    }),
+  ]).then(() => undefined);
 }
 
 /** Every tutor-requirement mutation invalidates the same keys; the prefix covers all status lists and details. */
-export function invalidateTutorRequirements(queryClient: QueryClient) {
+export function invalidateTutorRequirements(
+  queryClient: QueryClient,
+): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({
       queryKey: queryKeys.tutor.requirements.all,
     }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
     queryClient.invalidateQueries({ queryKey: queryKeys.match }),
-  ]);
+  ]).then(() => undefined);
 }
 
 /** Package writes move the tutor's list, the student browse and detail, request lists (expired on close) and alerts. */
-export function invalidatePackages(queryClient: QueryClient) {
+export function invalidatePackages(queryClient: QueryClient): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.packages.mine }),
     invalidateApplications(queryClient),
-  ]);
+  ]).then(() => undefined);
 }
 
-/** Profile writes (#28-31) change what the public tutor profile shows: details, areas, subjects. */
+/**
+ * Profile writes (#28-31) change what the public tutor profile shows: details, areas, subjects.
+ * The signed-in tutor's own public page is also expired on the server, so a save shows at once
+ * there too. That refresh is fire-and-forget and is skipped when nobody is signed in.
+ */
 export function invalidateTutorProfile(
   queryClient: QueryClient,
   tutorId: string,
-) {
-  return queryClient.invalidateQueries({
-    queryKey: queryKeys.tutors.profile(tutorId),
-  });
+): Promise<void> {
+  const tokens = getStoredTokens();
+  if (tokens) {
+    quietly(() => refreshMyTutorProfile(tokens.accessToken));
+  }
+  return queryClient
+    .invalidateQueries({
+      queryKey: queryKeys.tutors.profile(tutorId),
+    })
+    .then(() => undefined);
 }
 
 /** Zone writes change the zone list and, through cascades, requirement sets and apply readiness. */
-export function invalidateTutorZones(queryClient: QueryClient) {
+export function invalidateTutorZones(queryClient: QueryClient): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.tutor.zones }),
     invalidateTutorRequirements(queryClient),
-  ]);
+  ]).then(() => undefined);
 }
 
 /** A verified phone changes the status and the profile's number, so both refetch. */
-export function invalidatePhoneVerification(queryClient: QueryClient) {
+export function invalidatePhoneVerification(
+  queryClient: QueryClient,
+): Promise<void> {
   return Promise.all([
     queryClient.invalidateQueries({
       queryKey: queryKeys.phoneVerification.status,
     }),
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
-  ]);
+  ]).then(() => undefined);
 }

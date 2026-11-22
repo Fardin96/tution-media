@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Chip } from "@/components/profile/profile-fields";
 import { ghostButton } from "@/components/profile/styles";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatRadius, useTutorZones } from "@/lib/tutor-zones";
 
 const ZONES_HREF = "/dashboard/tutor/zones";
@@ -68,9 +69,13 @@ export function ZonePicker({
           <button
             type="button"
             onClick={() => void zonesQuery.refetch()}
+            disabled={zonesQuery.isFetching}
+            aria-busy={zonesQuery.isFetching || undefined}
             className={linkClass}
           >
-            Try again
+            <PendingLabel pending={zonesQuery.isFetching}>
+              Try again
+            </PendingLabel>
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-3">{manageLink}</div>

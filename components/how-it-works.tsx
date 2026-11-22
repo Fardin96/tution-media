@@ -10,6 +10,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { Tabs } from "radix-ui";
+import { useSaveData } from "@/lib/use-save-data";
 import { SectionHeader } from "@/components/section-header";
 import { VideoCard } from "@/components/video-card";
 import {
@@ -40,6 +41,7 @@ export function HowItWorks({ content }: { content: HowItWorksBlock }) {
   const userPaused = useRef(false);
   const videoBoxRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
+  const saveData = useSaveData();
   const flow = flows[mode];
 
   // Autoplay while the video is on screen; pause when it leaves.
@@ -51,7 +53,7 @@ export function HowItWorks({ content }: { content: HowItWorksBlock }) {
         if (!entry.isIntersecting) {
           userPaused.current = false;
           setPlaying(false);
-        } else if (!reduceMotion && !userPaused.current) {
+        } else if (!reduceMotion && !saveData && !userPaused.current) {
           setPlaying(true);
         }
       },
@@ -59,7 +61,7 @@ export function HowItWorks({ content }: { content: HowItWorksBlock }) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [reduceMotion]);
+  }, [reduceMotion, saveData]);
 
   return (
     <section

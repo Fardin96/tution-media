@@ -1,11 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  type MockInstance,
+} from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TutorProfilePage } from "@/components/tutor-profile/tutor-profile-page";
 import { ApiError } from "@/lib/profile";
 import {
   formatMemberSince,
+  tutorProfileApi,
   useTutorProfile,
   type PublicTutor,
 } from "@/lib/tutor-profile";
@@ -86,13 +95,16 @@ function mockQuery(state: QueryState) {
   } as unknown as ReturnType<typeof useTutorProfile>);
 }
 
-function renderPage(id = "tutor-1") {
+function renderPage(
+  id = "tutor-1",
+  props: { initialProfile?: PublicTutor; signedIn?: boolean } = {},
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <TutorProfilePage id={id} />
+      <TutorProfilePage id={id} {...props} />
     </QueryClientProvider>,
   );
 }
@@ -210,9 +222,17 @@ describe("TutorProfilePage", () => {
     mockQuery({ data: undefined, isPending: true });
     renderPage();
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Loading tutor profile",
-    );
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+  });
+
+  it("passes the server copy and the signed-in flag to the hook", () => {
+    mockQuery({ data: TUTOR });
+    renderPage("tutor-1", { initialProfile: TUTOR, signedIn: true });
+
+    expect(useTutorProfile).toHaveBeenCalledWith("tutor-1", {
+      initialData: TUTOR,
+      signedIn: true,
+    });
   });
 
   it("says the profile is not available when the API answers 404", () => {
@@ -258,5 +278,54 @@ describe("TutorProfilePage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TutorProfilePage with the server-rendered copy", () => {
+  // These run the real hook (the block above mocks it) and spy on the request it makes.
+  let get: MockInstance<typeof tutorProfileApi.get>;
+
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import("@/lib/tutor-profile")>(
+      "@/lib/tutor-profile",
+    );
+    vi.mocked(useTutorProfile).mockImplementation(actual.useTutorProfile);
+    get = vi.spyOn(tutorProfileApi, "get").mockResolvedValue(TUTOR);
+  });
+
+  afterEach(() => {
+    get.mockRestore();
+  });
+
+  it("renders the server copy without a request for an anonymous visitor", async () => {
+    renderPage("tutor-1", { initialProfile: TUTOR, signedIn: false });
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Nusrat Jahan" }),
+    ).toBeInTheDocument();
+    // Give any mount-time fetch a chance to start before asserting none did.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("renders the server copy and refetches at once for a signed-in viewer", async () => {
+    renderPage("tutor-1", { initialProfile: TUTOR, signedIn: true });
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Nusrat Jahan" }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(get).toHaveBeenCalledWith("tutor-1"));
+  });
+
+  it("requests the profile on the client when the server had no copy", async () => {
+    renderPage("tutor-1", { signedIn: false });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Nusrat Jahan" }),
+      ).toBeInTheDocument(),
+    );
+    expect(get).toHaveBeenCalledWith("tutor-1");
   });
 });

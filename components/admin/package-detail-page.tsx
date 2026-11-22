@@ -30,6 +30,7 @@ import {
   subjectNames,
 } from "@/components/applications/format";
 import { formatAmount, formatDateTime } from "@/lib/admin";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { useAdminPackage, type AdminPackage } from "@/lib/admin-packages";
 import { useEducationLookup } from "@/lib/education";
 import {
@@ -108,9 +109,11 @@ export function AdminPackageDetailPage({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={secondaryButton}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );

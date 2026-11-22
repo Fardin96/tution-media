@@ -3,13 +3,15 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Minus, Plus } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { TUITION_TYPES } from "@/lib/profile";
 import type { EducationFields } from "@/lib/education";
 import { EducationLevelPicker } from "@/components/requirements/education-level-picker";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   DaysOfWeekField,
   DaysPerWeekField,
@@ -150,6 +152,7 @@ export function RequirementForm({
   };
 
   const handleSubmit = async (targetStatus?: "OPEN" | "DRAFT") => {
+    if (savingAction) return;
     const desiredStatus =
       targetStatus ?? (isEdit && !isDraft ? "OPEN" : "OPEN");
     const foundErrors = validateRequirementForm(form, desiredStatus);
@@ -630,7 +633,7 @@ export function RequirementForm({
       <div className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Link href="/dashboard" className={cn(ghostButton, "sm:min-w-28")}>
-            Cancel
+            <LinkPendingLabel>Cancel</LinkPendingLabel>
           </Link>
 
           {isEdit ? (
@@ -639,72 +642,47 @@ export function RequirementForm({
                 <button
                   type="button"
                   disabled={!!savingAction}
+                  aria-busy={savingAction === "DRAFT" || undefined}
                   onClick={() => handleSubmit("DRAFT")}
                   className={secondaryButton}
                 >
-                  {savingAction === "DRAFT" ? (
-                    <>
-                      <Loader2
-                        aria-hidden="true"
-                        className="size-4 animate-spin motion-reduce:animate-none"
-                      />
-                      Saving…
-                    </>
-                  ) : (
-                    "Save changes"
-                  )}
+                  <PendingLabel pending={savingAction === "DRAFT"}>
+                    Save changes
+                  </PendingLabel>
                 </button>
 
                 <button
                   type="button"
                   disabled={!!savingAction}
+                  aria-busy={savingAction === "OPEN" || undefined}
                   onClick={() => handleSubmit("OPEN")}
                   className={cn(primaryButton, "sm:min-w-40")}
                 >
-                  {savingAction === "OPEN" ? (
-                    <>
-                      <Loader2
-                        aria-hidden="true"
-                        className="size-4 animate-spin motion-reduce:animate-none"
-                      />
-                      Posting…
-                    </>
-                  ) : (
-                    <>
-                      Save and post
-                      <Check
-                        aria-hidden="true"
-                        className="size-4"
-                        strokeWidth={2.5}
-                      />
-                    </>
-                  )}
+                  <PendingLabel pending={savingAction === "OPEN"}>
+                    Save and post
+                    <Check
+                      aria-hidden="true"
+                      className="size-4"
+                      strokeWidth={2.5}
+                    />
+                  </PendingLabel>
                 </button>
               </>
             ) : (
               <button
                 type="submit"
                 disabled={!!savingAction}
+                aria-busy={savingAction === "UPDATE" || undefined}
                 className={cn(primaryButton, "sm:min-w-40")}
               >
-                {savingAction === "UPDATE" ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Saving…
-                  </>
-                ) : (
-                  <>
-                    Save changes
-                    <Check
-                      aria-hidden="true"
-                      className="size-4"
-                      strokeWidth={2.5}
-                    />
-                  </>
-                )}
+                <PendingLabel pending={savingAction === "UPDATE"}>
+                  Save changes
+                  <Check
+                    aria-hidden="true"
+                    className="size-4"
+                    strokeWidth={2.5}
+                  />
+                </PendingLabel>
               </button>
             )
           ) : (
@@ -712,46 +690,30 @@ export function RequirementForm({
               <button
                 type="button"
                 disabled={!!savingAction}
+                aria-busy={savingAction === "DRAFT" || undefined}
                 onClick={() => handleSubmit("DRAFT")}
                 className={secondaryButton}
               >
-                {savingAction === "DRAFT" ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Saving…
-                  </>
-                ) : (
-                  "Save as draft"
-                )}
+                <PendingLabel pending={savingAction === "DRAFT"}>
+                  Save as draft
+                </PendingLabel>
               </button>
 
               <button
                 type="button"
                 disabled={!!savingAction}
+                aria-busy={savingAction === "OPEN" || undefined}
                 onClick={() => handleSubmit("OPEN")}
                 className={cn(primaryButton, "sm:min-w-44")}
               >
-                {savingAction === "OPEN" ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Posting…
-                  </>
-                ) : (
-                  <>
-                    Post requirement
-                    <Check
-                      aria-hidden="true"
-                      className="size-4"
-                      strokeWidth={2.5}
-                    />
-                  </>
-                )}
+                <PendingLabel pending={savingAction === "OPEN"}>
+                  Post requirement
+                  <Check
+                    aria-hidden="true"
+                    className="size-4"
+                    strokeWidth={2.5}
+                  />
+                </PendingLabel>
               </button>
             </>
           )}

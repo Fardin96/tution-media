@@ -3,11 +3,20 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
-import { formatPostDate, useBlogPosts, type BlogPostSummary } from "@/lib/blog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  blogPostQueryOptions,
+  formatPostDate,
+  useBlogPosts,
+  type BlogPostPage,
+  type BlogPostSummary,
+} from "@/lib/blog";
 import { useRefreshExpiredMedia } from "@/lib/files";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
-export function BlogIndex() {
-  const query = useBlogPosts();
+export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
+  const query = useBlogPosts(initialPage);
   const posts = query.data?.pages.flatMap((page) => page.posts) ?? [];
 
   return (
@@ -22,12 +31,7 @@ export function BlogIndex() {
 
         <div className="mt-8">
           {query.isPending ? (
-            <p
-              role="status"
-              className="text-sm text-[var(--color-text-secondary)]"
-            >
-              Loading posts...
-            </p>
+            <IndexSkeleton />
           ) : query.isError ? (
             <div
               className={cn(
@@ -41,9 +45,13 @@ export function BlogIndex() {
               <button
                 type="button"
                 onClick={() => void query.refetch()}
+                disabled={query.isFetching}
+                aria-busy={query.isFetching || undefined}
                 className={secondaryButton}
               >
-                Try again
+                <PendingLabel pending={query.isFetching}>
+                  Try again
+                </PendingLabel>
               </button>
             </div>
           ) : posts.length === 0 ? (
@@ -73,7 +81,9 @@ export function BlogIndex() {
                     aria-busy={query.isFetchingNextPage || undefined}
                     className={secondaryButton}
                   >
-                    {query.isFetchingNextPage ? "Loading..." : "Load more"}
+                    <PendingLabel pending={query.isFetchingNextPage}>
+                      Load more
+                    </PendingLabel>
                   </button>
                 </div>
               )}
@@ -85,11 +95,42 @@ export function BlogIndex() {
   );
 }
 
+/** Cards in the grid's shape: cover, date, title and excerpt. */
+function IndexSkeleton() {
+  return (
+    <div role="status">
+      <span className="sr-only">Loading…</span>
+      <ul
+        className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        aria-hidden="true"
+      >
+        {Array.from({ length: 6 }, (_, index) => (
+          <li key={index}>
+            <div
+              className={cn(card, "flex h-full flex-col overflow-hidden p-2")}
+            >
+              <Skeleton className="aspect-[16/9] w-full rounded-[16px]" />
+              <div className="flex flex-1 flex-col gap-2 p-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-5 w-4/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/5" />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function PostCard({ post }: { post: BlogPostSummary }) {
   const refreshExpired = useRefreshExpiredMedia();
+  const intent = useIntentPrefetch();
   return (
     <Link
       href={`/blog/${encodeURIComponent(post.slug)}`}
+      {...intent(blogPostQueryOptions(post.slug))}
       className={cn(
         card,
         "group flex h-full flex-col overflow-hidden p-2 transition-[box-shadow] duration-150 ease-out motion-reduce:transition-none",

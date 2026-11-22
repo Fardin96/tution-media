@@ -32,10 +32,13 @@ export async function fetchEducationLookup(): Promise<EducationLookup> {
   return unwrap(client.GET("/api/v1/lookups/education"));
 }
 
+// The lookup changes rarely; a mounted copy is trusted for 30 minutes and kept for an hour.
 export const educationLookupQuery = {
   queryKey: queryKeys.lookups.education,
   queryFn: fetchEducationLookup,
-  staleTime: 60 * 60 * 1000,
+  staleTime: 30 * 60_000,
+  gcTime: 60 * 60_000,
+  refetchOnWindowFocus: false,
 } as const;
 
 export function useEducationLookup() {

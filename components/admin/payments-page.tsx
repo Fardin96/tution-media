@@ -13,8 +13,10 @@ import {
   StatusPill,
 } from "@/components/admin/admin-ui";
 import { formatAmount, formatDateTime } from "@/lib/admin";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   ATTEMPT_STATUS_META,
+  adminPaymentAttemptQueryOptions,
   useAdminPaymentAttempts,
   useAdminPaymentSummary,
   type AdminPaymentAttempt,
@@ -242,6 +244,7 @@ function StatTile({
 
 function AttemptRow({ attempt }: { attempt: AdminPaymentAttempt }) {
   const meta = ATTEMPT_STATUS_META[attempt.status];
+  const intent = useIntentPrefetch();
   const items = [
     { label: "Total", value: formatAmount(attempt.totalAmount) },
     { label: "Fee part", value: formatAmount(attempt.feeAmount) },
@@ -254,6 +257,7 @@ function AttemptRow({ attempt }: { attempt: AdminPaymentAttempt }) {
   return (
     <Link
       href={`/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`}
+      {...intent(adminPaymentAttemptQueryOptions(attempt.tranId))}
       className={cn(card, "grid gap-4 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

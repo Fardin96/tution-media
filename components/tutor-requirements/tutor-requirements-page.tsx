@@ -12,12 +12,16 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEducationLookup } from "@/lib/education";
 import { optionName } from "@/lib/profile";
 import { useSubjects } from "@/lib/subjects";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   MAX_ACTIVE_SETS,
+  tutorRequirementQueryOptions,
   useProfileSubjects,
   useTutorRequirements,
   type TutorRequirement,
@@ -77,6 +81,7 @@ export function TutorRequirementsPage() {
   const profileSubjects = useProfileSubjects();
   const lookup = useEducationLookup();
   const { archive, restore, makeDefault, pendingId } = useSetActions();
+  const intent = useIntentPrefetch();
 
   const { active, archived } = useMemo(() => {
     const all = requirements.data ?? [];
@@ -121,8 +126,10 @@ export function TutorRequirementsPage() {
       </button>
     ) : (
       <Link href={NEW_SET_HREF} className={primaryButton}>
-        <Plus aria-hidden="true" className="size-4" />
-        New set
+        <LinkPendingLabel>
+          <Plus aria-hidden="true" className="size-4" />
+          New set
+        </LinkPendingLabel>
       </Link>
     );
 
@@ -131,8 +138,10 @@ export function TutorRequirementsPage() {
   ) : active.length === 0 ? (
     <EmptyBlock title="No active sets yet. Create one so you can apply to tuitions.">
       <Link href={NEW_SET_HREF} className={primaryButton}>
-        <Plus aria-hidden="true" className="size-4" />
-        New set
+        <LinkPendingLabel>
+          <Plus aria-hidden="true" className="size-4" />
+          New set
+        </LinkPendingLabel>
       </Link>
     </EmptyBlock>
   ) : (
@@ -148,27 +157,34 @@ export function TutorRequirementsPage() {
               <>
                 <Link
                   href={editHref(set.id)}
+                  {...intent(tutorRequirementQueryOptions(set.id))}
                   className={cn(secondaryButton, "min-h-10 px-4")}
                 >
-                  Edit
+                  <LinkPendingLabel>Edit</LinkPendingLabel>
                 </Link>
                 {!set.isDefault && (
                   <>
                     <button
                       type="button"
                       disabled={pendingId === set.id}
+                      aria-busy={pendingId === set.id || undefined}
                       onClick={() => void makeDefault(set)}
                       className={cn(secondaryButton, "min-h-10 px-4")}
                     >
-                      Make default
+                      <PendingLabel pending={pendingId === set.id}>
+                        Make default
+                      </PendingLabel>
                     </button>
                     <button
                       type="button"
                       disabled={pendingId === set.id}
+                      aria-busy={pendingId === set.id || undefined}
                       onClick={() => void archive(set)}
                       className={cn(ghostButton, "min-h-10 px-4")}
                     >
-                      Archive
+                      <PendingLabel pending={pendingId === set.id}>
+                        Archive
+                      </PendingLabel>
                     </button>
                   </>
                 )}
@@ -206,9 +222,10 @@ export function TutorRequirementsPage() {
                     <>
                       <Link
                         href={editHref(set.id)}
+                        {...intent(tutorRequirementQueryOptions(set.id))}
                         className={cn(primaryButton, "min-h-10 px-4")}
                       >
-                        Edit set
+                        <LinkPendingLabel>Edit set</LinkPendingLabel>
                       </Link>
                       <p className="basis-full text-sm text-[var(--color-semantic-error-text)]">
                         Add a subject before restoring.
@@ -219,19 +236,23 @@ export function TutorRequirementsPage() {
                       <button
                         type="button"
                         disabled={atLimit || pendingId === set.id}
+                        aria-busy={pendingId === set.id || undefined}
                         title={
                           atLimit ? "Archive an active set first" : undefined
                         }
                         onClick={() => void restore(set)}
                         className={cn(primaryButton, "min-h-10 px-4")}
                       >
-                        Restore
+                        <PendingLabel pending={pendingId === set.id}>
+                          Restore
+                        </PendingLabel>
                       </button>
                       <Link
                         href={editHref(set.id)}
+                        {...intent(tutorRequirementQueryOptions(set.id))}
                         className={cn(secondaryButton, "min-h-10 px-4")}
                       >
-                        Edit
+                        <LinkPendingLabel>Edit</LinkPendingLabel>
                       </Link>
                     </>
                   )
@@ -280,9 +301,13 @@ export function TutorRequirementsPage() {
           <button
             type="button"
             onClick={() => void requirements.refetch()}
+            disabled={requirements.isFetching}
+            aria-busy={requirements.isFetching || undefined}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Try again
+            <PendingLabel pending={requirements.isFetching}>
+              Try again
+            </PendingLabel>
           </button>
         </div>
       ) : (

@@ -48,7 +48,7 @@ export function Navbar({ links, cta }: NavbarProps) {
             className="h-11 w-auto sm:h-14"
             width={183}
             height={17}
-            priority
+            preload
           />
         </Link>
 

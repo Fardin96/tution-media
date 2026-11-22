@@ -5,8 +5,13 @@ import Link from "next/link";
 import { AlertCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { missingRequirementLabel } from "@/lib/api-errors";
-import type { TutorRequirement } from "@/lib/tutor-requirements";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import {
+  tutorRequirementQueryOptions,
+  type TutorRequirement,
+} from "@/lib/tutor-requirements";
 import { card, focusRing } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 
 const PROFILE_HREF = "/dashboard#profile";
 const SETS_HREF = "/dashboard/tutor/requirements";
@@ -17,6 +22,8 @@ export interface ReadinessFix {
   /** Why it blocks, or exactly what to change. */
   detail?: string;
   href: string;
+  /** Set when the fix opens a requirement set, so hovering or focusing the link preloads it. */
+  setId?: string;
 }
 
 /** Where each missing profile item is fixed. Keys are the API's tutor_missing_requirements() values. */
@@ -71,6 +78,7 @@ function defaultSetFix(set: TutorRequirement | null | undefined): ReadinessFix {
       ? "Add a teaching zone to it, or turn on “I also teach online”."
       : "Add at least one subject to it.",
     href: `${SETS_HREF}/${set.id}/edit`,
+    setId: set.id,
   };
 }
 
@@ -103,6 +111,7 @@ export function ReadinessChecklist({
   className?: string;
 }) {
   const id = useId();
+  const intent = useIntentPrefetch();
   const items = [...new Set(missing)].map((key) => ({
     key,
     ...readinessFix(key, defaultSet),
@@ -137,10 +146,22 @@ export function ReadinessChecklist({
         {items.map((item) => {
           const labelId = `${id}-${item.key}-label`;
           const detailId = `${id}-${item.key}-detail`;
+          const fixLabel = (
+            <>
+              Fix
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+              />
+            </>
+          );
           return (
             <li key={item.key}>
               <Link
                 href={item.href}
+                {...(item.setId
+                  ? intent(tutorRequirementQueryOptions(item.setId))
+                  : {})}
                 aria-labelledby={labelId}
                 aria-describedby={item.detail ? detailId : undefined}
                 className={cn(
@@ -171,11 +192,13 @@ export function ReadinessChecklist({
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--color-primary-core)]">
-                  Fix
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="size-4 transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
-                  />
+                  {item.href.includes("#") ? (
+                    fixLabel
+                  ) : (
+                    <LinkPendingLabel className="gap-1">
+                      {fixLabel}
+                    </LinkPendingLabel>
+                  )}
                 </span>
               </Link>
             </li>

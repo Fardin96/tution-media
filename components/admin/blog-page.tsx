@@ -12,12 +12,15 @@ import {
   StatusPill,
 } from "@/components/admin/admin-ui";
 import {
+  adminBlogPostQueryOptions,
   BLOG_STATUS_META,
   useAdminBlogPosts,
   type AdminBlogPost,
   type BlogStatus,
 } from "@/lib/admin-blog";
 import { formatDateTime } from "@/lib/admin";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 type View = "ALL" | BlogStatus;
 
@@ -50,7 +53,7 @@ export function AdminBlogPage() {
           href="/dashboard/admin/blog/new"
           className={cn(primaryButton, "min-h-11")}
         >
-          New post
+          <LinkPendingLabel>New post</LinkPendingLabel>
         </Link>
       }
     >
@@ -83,9 +86,11 @@ export function AdminBlogPage() {
 
 function PostRow({ post }: { post: AdminBlogPost }) {
   const meta = BLOG_STATUS_META[post.status];
+  const intent = useIntentPrefetch();
   return (
     <Link
       href={`/dashboard/admin/blog/${encodeURIComponent(post.id)}`}
+      {...intent(adminBlogPostQueryOptions(post.id))}
       className={cn(card, "grid gap-3 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

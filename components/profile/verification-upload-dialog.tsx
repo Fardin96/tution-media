@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { AdminDialog, DialogActions, Field } from "@/components/admin/admin-ui";
 import { FilePicker } from "@/components/files/file-picker";
+import { PendingLabel } from "@/components/ui/pending-label";
 import type { FileAsset } from "@/lib/files";
 import { toastError } from "@/lib/toast";
 import {
@@ -139,9 +140,10 @@ function IdForm({
         <button
           type="submit"
           disabled={!file || uploading || submitting}
+          aria-busy={submitting || undefined}
           className={primaryButton}
         >
-          {submitting ? "Sending…" : "Send for review"}
+          <PendingLabel pending={submitting}>Send for review</PendingLabel>
         </button>
       </DialogActions>
     </form>

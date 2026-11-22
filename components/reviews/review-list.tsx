@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatDay } from "@/components/applications/format";
 import { StarRating } from "@/components/reviews/star-rating";
 import {
@@ -16,6 +18,7 @@ type ReviewQuery = {
   data?: { pages: ReviewListPage[] };
   isPending: boolean;
   isError: boolean;
+  isFetching: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => unknown;
@@ -35,15 +38,45 @@ export function StudentReviewList({ studentId }: { studentId: string }) {
 export function ReviewListView({ query }: { query: ReviewQuery }) {
   if (query.isPending) {
     return (
-      <div role="status" className="grid gap-3">
-        <span className="sr-only">Loading reviews</span>
-        {[0, 1].map((i) => (
-          <div
-            key={i}
-            aria-hidden="true"
-            className="h-20 animate-pulse rounded-[16px] bg-[var(--color-surface-subtle)] motion-reduce:animate-none"
-          />
-        ))}
+      <div role="status" className="grid gap-5">
+        <span className="sr-only">Loading reviews…</span>
+        <div
+          aria-hidden="true"
+          className="flex flex-wrap items-center gap-x-8 gap-y-4"
+        >
+          <div className="grid gap-2">
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="grid min-w-0 flex-1 basis-56 gap-1.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-3 w-14 shrink-0" />
+                <Skeleton className="h-2 min-w-0 flex-1 rounded-full" />
+                <Skeleton className="h-3 w-6 shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div aria-hidden="true" className="grid gap-3">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <div className="grid gap-1.5">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -60,9 +93,11 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -118,7 +153,9 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
             aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            {query.isFetchingNextPage ? "Loading..." : "Show more"}
+            <PendingLabel pending={query.isFetchingNextPage}>
+              Show more
+            </PendingLabel>
           </button>
         </div>
       )}

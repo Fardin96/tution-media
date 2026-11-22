@@ -21,8 +21,12 @@ import {
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { formatAmount, formatDateTime } from "@/lib/admin";
 import {
+  adminPackageQueryOptions,
   useAdminPackages,
   useModeratePackage,
   validateRejectNote,
@@ -169,7 +173,7 @@ export function ReviewDialog({ review }: { review: PackageReviewState }) {
             aria-busy={review.saving || undefined}
             className={cn(primaryButton, "min-h-11 sm:min-w-28")}
           >
-            {review.saving ? "Saving..." : "Approve"}
+            <PendingLabel pending={review.saving}>Approve</PendingLabel>
           </button>
         </DialogActions>
       ) : (
@@ -200,6 +204,7 @@ function RejectForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (noteError) return;
     onSubmit(note.trim());
@@ -238,7 +243,7 @@ function RejectForm({
             "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
           )}
         >
-          {saving ? "Saving..." : "Reject"}
+          <PendingLabel pending={saving}>Reject</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -331,6 +336,7 @@ function PackageSummary({
 }) {
   const pending = pkg.moderationStatus === "PENDING";
   const rejected = pkg.moderationStatus === "REJECTED";
+  const intent = useIntentPrefetch();
 
   return (
     <>
@@ -379,9 +385,10 @@ function PackageSummary({
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href={`${QUEUE_PATH}/${pkg.id}`}
+            {...intent(adminPackageQueryOptions(pkg.id))}
             className={cn(ghostButton, "min-h-11")}
           >
-            Review
+            <LinkPendingLabel>Review</LinkPendingLabel>
           </Link>
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button

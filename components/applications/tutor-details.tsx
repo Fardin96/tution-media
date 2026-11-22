@@ -3,6 +3,7 @@ import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
 import { secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
 import { RatingInline, TutorInitial } from "@/components/browse/browse-ui";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { Rows, Section } from "@/components/applications/detail-sections";
 import { TonePill } from "@/components/applications/status-pill";
 import {
@@ -97,7 +98,7 @@ export function TutorProfileSection({
             href={`/tutors/${profile.id}`}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            View full profile
+            <LinkPendingLabel>View full profile</LinkPendingLabel>
           </Link>
         </div>
       </div>

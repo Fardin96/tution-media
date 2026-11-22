@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { secondaryButton, primaryButton } from "@/components/profile/styles";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   DialogActions,
   Field,
@@ -49,6 +50,7 @@ export function ReviewNoteForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (noteError || extraError) return;
     const trimmed = note.trim();
@@ -129,7 +131,7 @@ export function ReviewNoteForm({
             danger && "text-[var(--color-semantic-error-text)]",
           )}
         >
-          {saving ? "Saving..." : submitLabel}
+          <PendingLabel pending={saving}>{submitLabel}</PendingLabel>
         </button>
       </DialogActions>
     </form>

@@ -87,6 +87,12 @@
   --color-surface-inverse: #1e242c;
   /* Quiet fill for small chips/badges on white (FAQ numbers). */
   --color-surface-subtle: #f4f5f7;
+  /* Skeleton fill: about 1.22:1 on white and 1.17:1 on off-white, visible but quiet. */
+  --color-skeleton: color-mix(
+    in oklab,
+    var(--color-neutral-charcoal) 10%,
+    var(--color-neutral-white)
+  );
   /* Decorative step numerals (How it works). Tint of the charcoal text hue so it
      stays in-family; order is carried by the <ol>, so the numerals are aria-hidden. */
   --color-step-number: color-mix(
@@ -206,5 +212,46 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Spinner 05 (Ellipsis): components/shadcn-space/spinner/spinner-05.tsx */
+.spinner-ellipsis-dot {
+  animation: spinner-ellipsis 1s ease-in-out infinite;
+}
+@keyframes spinner-ellipsis {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* Reduced motion: the dots only fade, they don't grow. */
+@keyframes spinner-ellipsis-fade {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner-ellipsis-dot {
+    animation-name: spinner-ellipsis-fade;
+    animation-duration: 1.6s;
+  }
+}
+
+/* Skeleton shimmer: components/ui/skeleton.tsx. Transform only, so it stays on the compositor. */
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }

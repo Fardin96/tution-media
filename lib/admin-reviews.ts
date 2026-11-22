@@ -3,9 +3,11 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
+import { refreshTutorProfilesAsAdmin } from "./tutor-profile.actions";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminReview = Schemas["AdminReview"];
@@ -57,12 +59,29 @@ export interface ModerateReviewVariables {
   note: string;
 }
 
+/**
+ * Expires the cached public tutor pages after a moderation that changes them. Fire-and-forget:
+ * the admin's change has already succeeded, so a failed refresh is dropped.
+ */
+async function refreshPublicTutors(): Promise<void> {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshTutorProfilesAsAdmin(tokens.accessToken);
+  } catch {
+    // The public profile catches up within 60 seconds anyway.
+  }
+}
+
 /** Hides or restores a review. Refreshes the admin lists and the public rating screens. */
 export function useModerateReview() {
   const queryClient = useQueryClient();
   return useMutation<AdminReview, ApiError, ModerateReviewVariables>({
     mutationFn: ({ id, status, note }) =>
       adminReviewsApi.moderate(id, { status, note }),
+    onSuccess: () => {
+      void refreshPublicTutors();
+    },
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.reviewsAll }),

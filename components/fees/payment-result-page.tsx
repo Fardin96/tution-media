@@ -22,7 +22,10 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PageFrame } from "@/components/ui/page-frame";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatMoney } from "@/components/fees/fee-format";
 import {
   isFeeOpen,
@@ -197,7 +200,7 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
         href={feeHref}
         className="text-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 hover:underline"
       >
-        Open the fee
+        <LinkPendingLabel>Open the fee</LinkPendingLabel>
       </Link>
     ),
   };
@@ -220,9 +223,11 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
             <button
               type="button"
               onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching || undefined}
               className={cn(secondaryButton, "min-h-11")}
             >
-              Try again
+              <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
             </button>
           ),
         };
@@ -238,11 +243,11 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
             onError: (err) => toastError("Couldn't start a new payment.", err),
           })
         }
-        disabled={checkout.isPending}
-        aria-busy={checkout.isPending || undefined}
+        disabled={checkout.redirecting}
+        aria-busy={checkout.redirecting || undefined}
         className={cn(primaryButton, "min-h-11")}
       >
-        {checkout.isPending ? "Starting..." : "Try again"}
+        <PendingLabel pending={checkout.redirecting}>Try again</PendingLabel>
       </button>
     ) : null;
     outcome = statusOutcome(view, { tranId, feeId, retry, longWait });
@@ -250,6 +255,10 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
 
   return (
     <PageFrame>
+      <BlockingOverlay
+        open={checkout.redirecting}
+        label="Taking you to SSLCommerz…"
+      />
       <div className="grid gap-6">
         <BackLink href={feeHref}>Fee</BackLink>
         <OutcomeCard outcome={outcome} />
@@ -326,13 +335,13 @@ function statusOutcome(
               href={`/dashboard/fees/${encodeURIComponent(feeId)}`}
               className={cn(primaryButton, "min-h-11")}
             >
-              View fee
+              <LinkPendingLabel>View fee</LinkPendingLabel>
             </Link>
             <Link
               href="/dashboard/fees"
               className={cn(secondaryButton, "min-h-11")}
             >
-              All fees
+              <LinkPendingLabel>All fees</LinkPendingLabel>
             </Link>
           </>
         ),

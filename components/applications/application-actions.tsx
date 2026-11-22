@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { primaryButton, secondaryButton } from "@/components/profile/styles";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   ACTION_META,
   useApplicationAction,
@@ -26,13 +27,21 @@ export function ApplicationActions({
   const [confirming, setConfirming] = useState<ApplicationAction | null>(null);
   const action = useApplicationAction();
 
+  // The action that is running: its button shows the spinner, the rest are disabled.
+  const pending = action.isPending ? action.variables?.action : undefined;
+
   if (allowedActions.length === 0) return null;
 
-  function run(name: ApplicationAction) {
+  // onDone runs only on success, so a confirm dialog stays open with its spinner until the
+  // request lands, and stays open on error for the user to retry or cancel.
+  function run(name: ApplicationAction, onDone?: () => void) {
     action.mutate(
       { id: applicationId, action: name },
       {
-        onSuccess: () => toastSuccess(ACTION_META[name].done),
+        onSuccess: () => {
+          toastSuccess(ACTION_META[name].done);
+          onDone?.();
+        },
         onError: (err) =>
           toastError("Couldn't update this application. Try again.", err),
       },
@@ -48,6 +57,7 @@ export function ApplicationActions({
   }
 
   const confirmMeta = confirming ? ACTION_META[confirming].confirm : null;
+  const confirmPending = confirming !== null && pending === confirming;
 
   return (
     <>
@@ -57,13 +67,16 @@ export function ApplicationActions({
             key={name}
             type="button"
             disabled={action.isPending}
+            aria-busy={pending === name || undefined}
             onClick={() => choose(name)}
             className={cn(
               PRIMARY_ACTIONS.includes(name) ? primaryButton : secondaryButton,
               "min-h-10 px-4",
             )}
           >
-            {ACTION_META[name].label}
+            <PendingLabel pending={pending === name}>
+              {ACTION_META[name].label}
+            </PendingLabel>
           </button>
         ))}
       </div>
@@ -83,9 +96,9 @@ export function ApplicationActions({
           {
             label: confirmMeta?.confirmLabel ?? "Confirm",
             variant: "primary",
+            pending: confirmPending,
             onSelect: () => {
-              if (confirming) run(confirming);
-              setConfirming(null);
+              if (confirming) run(confirming, () => setConfirming(null));
             },
           },
         ]}

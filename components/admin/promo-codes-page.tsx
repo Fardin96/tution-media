@@ -24,6 +24,7 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   PROMO_STATE_META,
+  adminPromoCodeQueryOptions,
   discountText,
   promoState,
   useAdminPromoCodes,
@@ -38,6 +39,8 @@ import { formatAmount, formatDateTime, useAdminMe } from "@/lib/admin";
 import { errorCodeMessage, mapServerIssuesToFields } from "@/lib/api-errors";
 import { localDateTimeToIso, parseAmount } from "@/lib/admin-fees";
 import { ApiError } from "@/lib/profile";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { toastError } from "@/lib/toast";
 
 /* ───────── Shared rules (mirror tuition-api's promo schema) ───────── */
@@ -239,6 +242,7 @@ export function usedText(
 
 function PromoRow({ promo }: { promo: AdminPromoCode }) {
   const meta = PROMO_STATE_META[promoState(promo)];
+  const intent = useIntentPrefetch();
   const ends = promo.endsAt
     ? `Ends ${formatDateTime(promo.endsAt)}`
     : "No end date";
@@ -246,6 +250,7 @@ function PromoRow({ promo }: { promo: AdminPromoCode }) {
   return (
     <Link
       href={`/dashboard/admin/promo-codes/${encodeURIComponent(promo.id)}`}
+      {...intent(adminPromoCodeQueryOptions(promo.id))}
       className={cn(card, "grid gap-3 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -421,6 +426,7 @@ function CreatePromoForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (CREATE_FIELDS.some((field) => clientErrors[field])) return;
     onSubmit(buildCreateBody(values), (err) => {
@@ -622,7 +628,7 @@ function CreatePromoForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving..." : "Create code"}
+          <PendingLabel pending={saving}>Create code</PendingLabel>
         </button>
       </DialogActions>
     </form>

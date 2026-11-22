@@ -11,10 +11,10 @@ import { HowItWorks } from "@/components/how-it-works";
 import { Faq } from "@/components/faq";
 import { Footer } from "@/components/footer";
 import { hiddenAnchors } from "@/lib/site-content";
-import { getSiteContent } from "@/lib/site-content.server";
+import { getSiteContentForPage } from "@/lib/site-content.server";
 
 export default async function Home() {
-  const content = await getSiteContent();
+  const content = await getSiteContentForPage();
 
   return (
     <div className="flex flex-1 flex-col">

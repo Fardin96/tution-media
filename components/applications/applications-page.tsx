@@ -13,6 +13,9 @@ import {
 import { ApplicationCard } from "@/components/applications/application-card";
 import { BackLink } from "@/components/ui/back-link";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   STATUS_META,
   useMyApplications,
@@ -54,16 +57,33 @@ const COPY = {
 function ListSkeleton() {
   return (
     <div role="status" className="grid gap-4">
-      <span className="sr-only">Loading applications</span>
+      <span className="sr-only">Loading applications…</span>
       {[0, 1, 2].map((i) => (
         <div
           key={i}
           aria-hidden="true"
-          className={cn(
-            card,
-            "h-56 animate-pulse p-5 motion-reduce:animate-none",
-          )}
-        />
+          className={cn(card, "flex flex-col gap-4 p-5")}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="grid gap-2">
+              <Skeleton className="h-5 w-44" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <div className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-10 w-20 rounded-full" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -111,9 +131,11 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -126,7 +148,7 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
               {copy.emptyAll}
             </p>
             <Link href={copy.headerLink.href} className={primaryButton}>
-              {copy.emptyNext}
+              <LinkPendingLabel>{copy.emptyNext}</LinkPendingLabel>
             </Link>
           </>
         ) : (
@@ -161,7 +183,7 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
     <PageFrame
       headerAction={
         <HeaderLink href={copy.headerLink.href}>
-          {copy.headerLink.label}
+          <LinkPendingLabel>{copy.headerLink.label}</LinkPendingLabel>
         </HeaderLink>
       }
     >
@@ -219,9 +241,12 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
             type="button"
             onClick={() => void query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
+            aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-5")}
           >
-            {query.isFetchingNextPage ? "Loading…" : "Load more"}
+            <PendingLabel pending={query.isFetchingNextPage}>
+              Load more
+            </PendingLabel>
           </button>
         </div>
       )}

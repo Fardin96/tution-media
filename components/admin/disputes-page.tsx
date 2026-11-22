@@ -13,8 +13,10 @@ import {
   Parties,
 } from "@/components/admin/case-parts";
 import { formatDateTime } from "@/lib/admin";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   DISPUTE_TYPE_LABEL,
+  adminDisputeQueryOptions,
   ageText,
   partyName,
   useAdminDisputes,
@@ -110,9 +112,11 @@ export function AdminDisputesPage() {
 }
 
 function DisputeRow({ dispute }: { dispute: AdminDispute }) {
+  const intent = useIntentPrefetch();
   return (
     <CaseLink
       href={`/dashboard/admin/disputes/${encodeURIComponent(dispute.id)}`}
+      {...intent(adminDisputeQueryOptions(dispute.id))}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="min-w-0 font-semibold break-words text-[var(--color-neutral-charcoal)]">

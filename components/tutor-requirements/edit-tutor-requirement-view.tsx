@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/profile";
 import { useTutorRequirement } from "@/lib/tutor-requirements";
 import { TutorRequirementForm } from "@/components/tutor-requirements/tutor-requirement-form";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { card, primaryButton } from "@/components/profile/styles";
 
 export function EditTutorRequirementView({ id }: { id: string }) {
@@ -41,10 +42,14 @@ export function EditTutorRequirementView({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching || undefined}
               className={primaryButton}
             >
-              <RotateCw aria-hidden="true" className="size-4" />
-              Try again
+              <PendingLabel pending={query.isFetching}>
+                <RotateCw aria-hidden="true" className="size-4" />
+                Try again
+              </PendingLabel>
             </button>
           </div>
         )}

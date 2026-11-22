@@ -7,6 +7,9 @@ import { api, type UserRole } from "@/lib/api";
 import { client, type Schemas } from "@/lib/api-client";
 import { profileApi, profileOf } from "@/lib/profile";
 import { cn } from "@/lib/utils";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { PendingLabel } from "@/components/ui/pending-label";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { GoogleIcon } from "./google-icon";
 
 type AuthRole = Extract<UserRole, "STUDENT" | "TUTOR" | "ADMIN">;
@@ -62,6 +65,9 @@ export function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  // Ignores a second Google callback while one is running (the state update lags a render).
+  const signingInRef = useRef(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,6 +77,9 @@ export function GoogleSignInButton({
     window.google.accounts.id.initialize({
       client_id: clientId,
       callback: async (result) => {
+        if (signingInRef.current) return;
+        signingInRef.current = true;
+        setSigningIn(true);
         try {
           // No role on sign-in: the API then refuses to create a new account.
           const {
@@ -82,6 +91,8 @@ export function GoogleSignInButton({
           });
 
           if (res.status === 404) {
+            signingInRef.current = false;
+            setSigningIn(false);
             onError?.(NO_ACCOUNT);
             return;
           }
@@ -116,6 +127,9 @@ export function GoogleSignInButton({
               : "/dashboard",
           );
         } catch (err) {
+          // Success leaves the overlay up: the router navigates away and this unmounts.
+          signingInRef.current = false;
+          setSigningIn(false);
           onError?.(err instanceof Error ? err.message : "Sign in failed");
         }
       },
@@ -138,6 +152,12 @@ export function GoogleSignInButton({
 
   return (
     <div className="relative">
+      <BlockingOverlay
+        open={signingIn}
+        label={
+          mode === "sign-up" ? "Creating your account…" : "Signing you in…"
+        }
+      />
       <Script
         src="https://accounts.google.com/gsi/client?hl=en"
         strategy="afterInteractive"
@@ -148,18 +168,25 @@ export function GoogleSignInButton({
         ref={overlayRef}
         className={cn(
           "absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-full opacity-[0.01]",
-          (!ready || disabled) && "pointer-events-none invisible",
+          (!ready || disabled || signingIn) && "pointer-events-none invisible",
         )}
       />
       <button
         type="button"
         aria-hidden={ready && !disabled}
         tabIndex={-1}
-        disabled={!ready || disabled}
+        disabled={!ready || disabled || signingIn}
+        aria-busy={!ready || signingIn || undefined}
         className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[var(--color-neutral-white)] px-6 text-base font-semibold text-[var(--color-neutral-charcoal)] shadow-[0_1px_2px_0_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow,scale] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] hover:shadow-[0_4px_12px_-2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <GoogleIcon />
-        {mode === "sign-up" ? "Sign up with Google" : "Continue with Google"}
+        <PendingLabel pending={signingIn}>
+          {ready ? (
+            <GoogleIcon />
+          ) : (
+            <SpinnerEllipsis className="text-[var(--color-neutral-gray)]" />
+          )}
+          {mode === "sign-up" ? "Sign up with Google" : "Continue with Google"}
+        </PendingLabel>
       </button>
     </div>
   );

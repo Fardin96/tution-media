@@ -36,6 +36,11 @@ import { useSubjects } from "@/lib/subjects";
 import { ApiError, formatBdPhone } from "@/lib/profile";
 import { formatTaka } from "@/lib/requirements";
 import { useApplication, type ApplicationDetail } from "@/lib/applications";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import { adminFeeQueryOptions } from "@/lib/admin-fees";
+import { myFeeQueryOptions } from "@/lib/fees";
 
 type FeeStatus = NonNullable<ApplicationDetail["fee"]>["status"];
 
@@ -100,6 +105,7 @@ export function ApplicationDetailPage({
   const lookup = useEducationLookup();
   const { subjects } = useSubjects();
   const { areas } = useAreas();
+  const intent = useIntentPrefetch();
 
   // Back returns to the applicants list only when we came from there and the
   // target is a requirement (the applicants list is keyed by requirement id).
@@ -139,9 +145,11 @@ export function ApplicationDetailPage({
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -283,9 +291,10 @@ export function ApplicationDetailPage({
               {isAdmin && (
                 <Link
                   href={`/dashboard/admin/fees/${encodeURIComponent(fee.id)}`}
+                  {...intent(adminFeeQueryOptions(fee.id))}
                   className={cn(secondaryButton, "min-h-10 self-start px-4")}
                 >
-                  Open fee
+                  <LinkPendingLabel>Open fee</LinkPendingLabel>
                 </Link>
               )}
               {fee.unpaid && isTutor && (
@@ -297,9 +306,10 @@ export function ApplicationDetailPage({
               {feeOpen && (
                 <Link
                   href={`/dashboard/fees/${encodeURIComponent(fee.id)}`}
+                  {...intent(myFeeQueryOptions(fee.id))}
                   className={cn(primaryButton, "min-h-10 self-start px-4")}
                 >
-                  Pay now
+                  <LinkPendingLabel>Pay now</LinkPendingLabel>
                 </Link>
               )}
             </div>

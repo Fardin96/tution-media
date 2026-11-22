@@ -10,6 +10,7 @@ import {
   SEGMENT_TRACK,
 } from "@/components/browse/browse-ui";
 import { Field, inputClass } from "@/components/admin/admin-ui";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 /** The Required / Ranks higher / Off control. Same tokens as Segmented, plus a disabled state. */
 export function ModeControl<T extends string>({
@@ -50,18 +51,20 @@ export function ModeControl<T extends string>({
   );
 }
 
-/** A switch with its name and description read by screen readers. */
+/** A switch with its name and description read by screen readers. `pending` marks a running save. */
 export function ToggleSwitch({
   label,
   description,
   on,
   disabled = false,
+  pending = false,
   onChange,
 }: {
   label: string;
   description?: string;
   on: boolean;
   disabled?: boolean;
+  pending?: boolean;
   onChange: (on: boolean) => void;
 }) {
   const labelId = useId();
@@ -90,7 +93,8 @@ export function ToggleSwitch({
         aria-checked={on}
         aria-labelledby={labelId}
         aria-describedby={description ? descriptionId : undefined}
-        disabled={disabled}
+        disabled={disabled || pending}
+        aria-busy={pending || undefined}
         onClick={() => onChange(!on)}
         className={cn(
           "inline-flex min-h-11 shrink-0 items-center gap-3 rounded-full text-sm font-semibold text-[var(--color-neutral-charcoal)] transition-[scale] duration-150 ease-out active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 motion-reduce:transition-none",
@@ -113,7 +117,7 @@ export function ToggleSwitch({
             )}
           />
         </span>
-        {on ? "On" : "Off"}
+        <PendingLabel pending={pending}>{on ? "On" : "Off"}</PendingLabel>
       </button>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRequestPackage } from "@/lib/applications";
+import { applicationQueryOptions, useRequestPackage } from "@/lib/applications";
 import { usePackage } from "@/lib/browse";
 import { useEducationLookup } from "@/lib/education";
 import {
@@ -32,6 +32,9 @@ import { useSubjects } from "@/lib/subjects";
 import { TutorReviewList } from "@/components/reviews/review-list";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   admissionNamesText,
   curriculaText,
@@ -50,6 +53,7 @@ export function PackageDetailPage({ id }: { id: string }) {
   const request = useRequestPackage();
   const { data: lookup } = useEducationLookup();
   const { subjects } = useSubjects();
+  const intent = useIntentPrefetch();
 
   if (query.isPending) {
     return (
@@ -76,6 +80,7 @@ export function PackageDetailPage({ id }: { id: string }) {
             <ErrorBlock
               message="Couldn't load this package."
               onRetry={() => void query.refetch()}
+              retrying={query.isFetching}
             />
           )}
         </div>
@@ -203,7 +208,7 @@ export function PackageDetailPage({ id }: { id: string }) {
               href={`/tutors/${pkg.tutor.id}`}
               className={cn(secondaryButton, "min-h-10 px-4")}
             >
-              View profile
+              <LinkPendingLabel>View profile</LinkPendingLabel>
             </Link>
           </section>
 
@@ -225,9 +230,10 @@ export function PackageDetailPage({ id }: { id: string }) {
                 </p>
                 <Link
                   href={`/dashboard/applications/${mine.id}`}
+                  {...intent(applicationQueryOptions(mine.id))}
                   className={cn(secondaryButton, "w-full")}
                 >
-                  View application
+                  <LinkPendingLabel>View application</LinkPendingLabel>
                 </Link>
                 <button
                   type="button"
@@ -262,9 +268,12 @@ export function PackageDetailPage({ id }: { id: string }) {
                   type="button"
                   onClick={sendRequest}
                   disabled={request.isPending}
+                  aria-busy={request.isPending || undefined}
                   className={cn(primaryButton, "w-full")}
                 >
-                  {request.isPending ? "Sending…" : "Request this package"}
+                  <PendingLabel pending={request.isPending}>
+                    Request this package
+                  </PendingLabel>
                 </button>
               </>
             )}

@@ -8,10 +8,13 @@ import {
   card,
   focusRing,
   ghostButton,
+  primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
 import { control, FieldError } from "@/components/profile/profile-fields";
 import { BackLink } from "@/components/ui/back-link";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* ───────── Page frame ───────── */
 
@@ -145,7 +148,12 @@ export function QueryState({
   skeletonCount = 3,
   children,
 }: {
-  query: { isPending: boolean; isError: boolean; refetch: () => unknown };
+  query: {
+    isPending: boolean;
+    isError: boolean;
+    isFetching?: boolean;
+    refetch: () => unknown;
+  };
   isEmpty: boolean;
   loadingLabel: string;
   errorText: string;
@@ -161,11 +169,11 @@ export function QueryState({
           <div
             key={i}
             aria-hidden="true"
-            className={cn(
-              card,
-              "h-24 animate-pulse motion-reduce:animate-none",
-            )}
-          />
+            className={cn(card, "flex flex-col gap-3 p-5 sm:p-6")}
+          >
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
         ))}
       </div>
     );
@@ -181,9 +189,13 @@ export function QueryState({
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={secondaryButton}
         >
-          Try again
+          <PendingLabel pending={Boolean(query.isFetching)}>
+            Try again
+          </PendingLabel>
         </button>
       </div>
     );
@@ -220,9 +232,12 @@ export function LoadMore({
         type="button"
         onClick={() => void query.fetchNextPage()}
         disabled={query.isFetchingNextPage}
+        aria-busy={query.isFetchingNextPage || undefined}
         className={secondaryButton}
       >
-        {query.isFetchingNextPage ? "Loading..." : "Load more"}
+        <PendingLabel pending={query.isFetchingNextPage}>
+          Load more
+        </PendingLabel>
       </button>
     </div>
   );
@@ -357,6 +372,34 @@ export function DialogActions({ children }: { children: React.ReactNode }) {
     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       {children}
     </div>
+  );
+}
+
+/**
+ * Primary button for a form or dialog request. While `pending` it is disabled, marked
+ * aria-busy and shows Spinner 05 in place of its label (the label keeps its size and name).
+ */
+export function PendingButton({
+  pending = false,
+  disabled,
+  type = "submit",
+  className,
+  children,
+  ...props
+}: Omit<React.ComponentProps<"button">, "type"> & {
+  pending?: boolean;
+  type?: "submit" | "button";
+}) {
+  return (
+    <button
+      {...props}
+      type={type}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      className={cn(primaryButton, "min-h-11", className)}
+    >
+      <PendingLabel pending={pending}>{children}</PendingLabel>
+    </button>
   );
 }
 

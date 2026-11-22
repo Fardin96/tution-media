@@ -1,11 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { apiFetch, getStoredTokens } from "@/lib/api";
+import { refreshSiteContentForUser } from "@/lib/site-content.actions";
 import {
   blockedText,
   STORY_STATUS,
   storyTitle,
+  useDeleteStory,
   validateStoryForm,
   type StoryForm,
 } from "@/lib/stories";
+
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  apiFetch: vi.fn(),
+  getStoredTokens: vi.fn(),
+}));
+
+vi.mock("@/lib/site-content.actions", () => ({
+  refreshSiteContentForUser: vi.fn(),
+}));
 
 const consented: StoryForm = {
   headline: "Ana passed her SSC with A+",
@@ -154,5 +170,79 @@ describe("STORY_STATUS and storyTitle", () => {
     expect(
       storyTitle({ headline: null, body: "First line\nSecond line" }),
     ).toBe("First line");
+  });
+});
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+
+function renderDelete() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client }, children);
+  }
+  return renderHook(() => useDeleteStory(), { wrapper: Wrapper });
+}
+
+describe("useDeleteStory", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "access-1",
+      refreshToken: "refresh-1",
+    });
+    vi.mocked(apiFetch).mockResolvedValue(new Response(null, { status: 204 }));
+    vi.mocked(refreshSiteContentForUser).mockResolvedValue(true);
+  });
+
+  it("expires the landing cache with the signed-in token once the story is withdrawn", async () => {
+    const { result } = renderDelete();
+
+    await act(() => result.current.mutateAsync("story-1"));
+
+    await waitFor(() =>
+      expect(refreshSiteContentForUser).toHaveBeenCalledWith("access-1"),
+    );
+  });
+
+  it("does not touch the landing when nobody is signed in", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue(null);
+    const { result } = renderDelete();
+
+    await act(() => result.current.mutateAsync("story-1"));
+
+    expect(refreshSiteContentForUser).not.toHaveBeenCalled();
+  });
+
+  it("does not touch the landing when the delete fails", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(json(404, { error: "Not found" }));
+    const { result } = renderDelete();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync("story-1")).rejects.toBeDefined();
+    });
+
+    expect(refreshSiteContentForUser).not.toHaveBeenCalled();
+  });
+
+  it("still reports the delete as done when the landing refresh fails", async () => {
+    vi.mocked(refreshSiteContentForUser).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const { result } = renderDelete();
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync("story-1"),
+      ).resolves.toBeUndefined();
+    });
+    await waitFor(() =>
+      expect(refreshSiteContentForUser).toHaveBeenCalledTimes(1),
+    );
   });
 });

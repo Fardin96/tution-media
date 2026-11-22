@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { formatAmount } from "./admin";
@@ -95,12 +96,15 @@ export function useAdminFees(filters: AdminFeeFilters) {
   });
 }
 
-export function useAdminFee(id: string) {
-  return useQuery({
+export const adminFeeQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.fee(id),
     queryFn: () => adminFeeApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminFee(id: string) {
+  return useQuery(adminFeeQueryOptions(id));
 }
 
 /** Writes the server's fee detail straight into the cache, then refreshes every fee list. */

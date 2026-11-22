@@ -9,6 +9,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { FieldError } from "@/components/profile/profile-fields";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   Field,
   QueryState,
@@ -154,6 +155,7 @@ function RulesEditor({
   }
 
   function onSave() {
+    if (save.isPending) return;
     setIssues({});
     setTopError(undefined);
     // mutateAsync: a successful save changes the version, which remounts this editor, and
@@ -165,6 +167,7 @@ function RulesEditor({
   }
 
   function onPreview() {
+    if (runPreview.isPending) return;
     setTopError(undefined);
     const key = draftKey;
     void runPreview.mutateAsync(draft).then(
@@ -333,7 +336,7 @@ function RulesEditor({
             aria-busy={runPreview.isPending || undefined}
             className={cn(secondaryButton, "min-h-11")}
           >
-            {runPreview.isPending ? "Checking..." : "Preview"}
+            <PendingLabel pending={runPreview.isPending}>Preview</PendingLabel>
           </button>
         </div>
       )}
@@ -530,7 +533,7 @@ function SaveBar({
         <button
           type="button"
           onClick={onDiscard}
-          disabled={saving}
+          disabled={saving || checking}
           className={cn(ghostButton, "min-h-11")}
         >
           Discard
@@ -538,20 +541,20 @@ function SaveBar({
         <button
           type="button"
           onClick={onPreview}
-          disabled={checking}
+          disabled={saving || checking}
           aria-busy={checking || undefined}
           className={cn(secondaryButton, "min-h-11")}
         >
-          {checking ? "Checking..." : "Preview"}
+          <PendingLabel pending={checking}>Preview</PendingLabel>
         </button>
         <button
           type="button"
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || checking}
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11")}
         >
-          {saving ? "Saving..." : "Save"}
+          <PendingLabel pending={saving}>Save</PendingLabel>
         </button>
       </div>
     </div>

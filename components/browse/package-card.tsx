@@ -7,7 +7,10 @@ import {
 } from "@/components/profile/styles";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { formatDay, subjectNames } from "@/components/applications/format";
-import type { TuitionPackage } from "@/lib/browse";
+import { packageQueryOptions, type TuitionPackage } from "@/lib/browse";
+import { applicationQueryOptions } from "@/lib/applications";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { useEducationLookup } from "@/lib/education";
 import { useSubjects } from "@/lib/subjects";
 import { durationLabel, packageLevelText, priceLabel } from "@/lib/packages";
@@ -31,6 +34,7 @@ export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
   const { subjects: subjectOptions } = useSubjects();
   const subjects = subjectNames(pkg.subjectIds, subjectOptions);
   const mine = pkg.myApplication;
+  const intent = useIntentPrefetch();
 
   return (
     <li className={cn(card, "flex flex-col gap-4 p-5")}>
@@ -104,9 +108,13 @@ export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
             <StatusPill status={mine.status} />
             <Link
               href={`/dashboard/applications/${mine.id}`}
+              {...intent(applicationQueryOptions(mine.id))}
               className={cn(secondaryButton, "min-h-10 px-4")}
             >
-              View<span className="sr-only"> your request for {pkg.title}</span>
+              <LinkPendingLabel>
+                View
+                <span className="sr-only"> your request for {pkg.title}</span>
+              </LinkPendingLabel>
             </Link>
           </>
         ) : pkg.closed ? (
@@ -114,14 +122,17 @@ export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
         ) : (
           <Link
             href={`/dashboard/find-tutors/packages/${pkg.id}`}
+            {...intent(packageQueryOptions(pkg.id))}
             className={cn(ghostButton, "min-h-10 px-3")}
           >
-            View package
-            <span className="sr-only"> {pkg.title}</span>
-            <ArrowRight
-              aria-hidden="true"
-              className="size-4 rtl:-scale-x-100"
-            />
+            <LinkPendingLabel>
+              View package
+              <span className="sr-only"> {pkg.title}</span>
+              <ArrowRight
+                aria-hidden="true"
+                className="size-4 rtl:-scale-x-100"
+              />
+            </LinkPendingLabel>
           </Link>
         )}
       </div>

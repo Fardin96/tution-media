@@ -3,8 +3,9 @@ import { client, unwrap } from "./api-client";
 import type { Option } from "./profile";
 import { queryKeys } from "./query-keys";
 
-/** Subjects change rarely, so a mounted list is trusted for five minutes. */
-const STALE_MS = 5 * 60_000;
+/** Subjects change rarely, so a list is trusted for 30 minutes; admin edits invalidate it. */
+const STALE_MS = 30 * 60_000;
+const GC_MS = 60 * 60_000;
 
 const NO_SUBJECTS: Option[] = [];
 
@@ -44,6 +45,8 @@ export function useSubjects() {
     queryKey: queryKeys.subjects,
     queryFn: loadSubjects,
     staleTime: STALE_MS,
+    gcTime: GC_MS,
+    refetchOnWindowFocus: false,
   });
   return { ...query, subjects: query.data ?? NO_SUBJECTS };
 }

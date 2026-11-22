@@ -1,20 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { card, focusRing } from "@/components/profile/styles";
 import {
   AdminPage,
   FilterChips,
   LoadMore,
   QueryState,
 } from "@/components/admin/admin-ui";
-import {
-  CaseLink,
-  CaseStatusPill,
-  Parties,
-} from "@/components/admin/case-parts";
+import { CaseStatusPill, Parties } from "@/components/admin/case-parts";
 import { formatDateTime } from "@/lib/admin";
 import {
   REPORT_CATEGORY_LABEL,
+  adminReportQueryOptions,
   ageText,
   partyName,
   useAdminReports,
@@ -22,6 +22,7 @@ import {
   type CaseQueue,
   type ReportCategory,
 } from "@/lib/admin-cases";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 const QUEUES: { value: CaseQueue; label: string }[] = [
   { value: "open", label: "Open" },
@@ -113,9 +114,12 @@ export function AdminReportsPage() {
 }
 
 function ReportRow({ report }: { report: AdminReport }) {
+  const intent = useIntentPrefetch();
   return (
-    <CaseLink
+    <Link
       href={`/dashboard/admin/reports/${encodeURIComponent(report.id)}`}
+      {...intent(adminReportQueryOptions(report.id))}
+      className={cn(card, "grid gap-3 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="min-w-0 font-semibold break-words text-[var(--color-neutral-charcoal)]">
@@ -146,6 +150,6 @@ function ReportRow({ report }: { report: AdminReport }) {
             : "No one has taken it"}
         </span>
       </p>
-    </CaseLink>
+    </Link>
   );
 }

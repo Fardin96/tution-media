@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
-import { CircleCheck, Loader2 } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { Label } from "@/components/ui/label";
 import { formatBdPhone } from "@/lib/profile";
 import { cn } from "@/lib/utils";
@@ -121,16 +122,11 @@ export function PhoneVerifier({
           type="button"
           onClick={onSend}
           disabled={sending}
+          aria-busy={sending || undefined}
           aria-describedby={error ? `${hintId} ${errorId}` : hintId}
           className={cn(primaryButton, "self-start active:translate-y-0")}
         >
-          {sending && (
-            <Loader2
-              aria-hidden="true"
-              className="size-4 animate-spin motion-reduce:animate-none"
-            />
-          )}
-          {sending ? "Sending…" : "Send code"}
+          <PendingLabel pending={sending}>Send code</PendingLabel>
         </Button>
         {errorNode(error)}
       </div>
@@ -269,15 +265,10 @@ function ResendControl({
         variant="ghost"
         onClick={onSend}
         disabled={sending || counting}
+        aria-busy={sending || undefined}
         className={ghostButton}
       >
-        {sending && (
-          <Loader2
-            aria-hidden="true"
-            className="size-4 animate-spin motion-reduce:animate-none"
-          />
-        )}
-        Resend code
+        <PendingLabel pending={sending}>Resend code</PendingLabel>
       </Button>
       <span
         aria-hidden="true"

@@ -1,5 +1,9 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  useSetVideoHomePage,
   ApiError,
   SECTIONS,
   conflictField,
@@ -11,12 +15,18 @@ import {
   toPayload,
   validate,
 } from "@/lib/profile";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getStoredTokens } from "@/lib/api";
 import type { Schemas } from "@/lib/api-client";
+import { refreshSiteContentForUser } from "@/lib/site-content.actions";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   apiFetch: vi.fn(),
+  getStoredTokens: vi.fn(),
+}));
+
+vi.mock("@/lib/site-content.actions", () => ({
+  refreshSiteContentForUser: vi.fn(),
 }));
 
 const json = (status: number, body: unknown) =>
@@ -437,4 +447,65 @@ describe("tutor institute", () => {
     expect(
       formFromProfile({ ...tutorProfile, instituteName: null }).instituteName,
     ).toBe(""));
+});
+
+describe("useSetVideoHomePage", () => {
+  const video = { id: "video-1", showOnHomePage: true };
+
+  function renderSetHomePage(onSaved = vi.fn()) {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    function Wrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+    return {
+      onSaved,
+      ...renderHook(() => useSetVideoHomePage(onSaved), { wrapper: Wrapper }),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "access-1",
+      refreshToken: "refresh-1",
+    });
+    vi.mocked(apiFetch).mockResolvedValue(json(200, video));
+    vi.mocked(refreshSiteContentForUser).mockResolvedValue(true);
+  });
+
+  it("expires the landing cache with the signed-in token after the agreement is saved", async () => {
+    const { result, onSaved } = renderSetHomePage();
+
+    await act(() => result.current.mutateAsync({ id: "video-1", show: true }));
+
+    await waitFor(() =>
+      expect(refreshSiteContentForUser).toHaveBeenCalledWith("access-1"),
+    );
+    expect(onSaved).toHaveBeenCalledWith(video);
+  });
+
+  it("does not touch the landing when nobody is signed in", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue(null);
+    const { result } = renderSetHomePage();
+
+    await act(() => result.current.mutateAsync({ id: "video-1", show: false }));
+
+    expect(refreshSiteContentForUser).not.toHaveBeenCalled();
+  });
+
+  it("still hands the saved video over when the landing refresh fails", async () => {
+    vi.mocked(refreshSiteContentForUser).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const { result, onSaved } = renderSetHomePage();
+
+    await act(() => result.current.mutateAsync({ id: "video-1", show: true }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(video));
+  });
 });

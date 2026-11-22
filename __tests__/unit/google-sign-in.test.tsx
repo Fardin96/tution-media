@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { apiFetch } from "@/lib/api";
 import {
   GoogleSignInButton,
@@ -41,6 +41,11 @@ beforeEach(() => {
   };
 });
 
+/** The visible button is aria-hidden while the Google overlay is live, so look it up by its label. */
+function googleButton() {
+  return screen.getByText("Continue with Google").closest("button")!;
+}
+
 const fakeJwt = `x.${btoa(JSON.stringify({ name: "A", picture: "p" }))}.y`;
 
 /** The JSON body the component sent to POST /api/v1/auth/google. */
@@ -68,6 +73,54 @@ describe("GoogleSignInButton", () => {
     expect(JSON.stringify(sentBody())).not.toContain("role");
     expect(onError).toHaveBeenCalledWith(NO_ACCOUNT);
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("shows a blocking status while signing in and clears it after a 404", async () => {
+    let finish!: (r: Response) => void;
+    vi.mocked(apiFetch).mockReturnValue(
+      new Promise<Response>((resolve) => (finish = resolve)),
+    );
+    const onError = vi.fn();
+    render(
+      <GoogleSignInButton clientId="id" mode="sign-in" onError={onError} />,
+    );
+    await waitFor(() => expect(callback).toBeDefined());
+
+    const pending = callback!({ credential: fakeJwt });
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Signing you in…"),
+    );
+    expect(googleButton()).toBeDisabled();
+
+    finish(new Response("{}", { status: 404 }));
+    await pending;
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).not.toHaveTextContent(
+        "Signing you in…",
+      ),
+    );
+    expect(googleButton()).toBeEnabled();
+    expect(onError).toHaveBeenCalledWith(NO_ACCOUNT);
+  });
+
+  it("ignores a second Google callback while one is running", async () => {
+    let finish!: (r: Response) => void;
+    vi.mocked(apiFetch).mockReturnValue(
+      new Promise<Response>((resolve) => (finish = resolve)),
+    );
+    render(
+      <GoogleSignInButton clientId="id" mode="sign-in" onError={vi.fn()} />,
+    );
+    await waitFor(() => expect(callback).toBeDefined());
+
+    const first = callback!({ credential: fakeJwt });
+    await callback!({ credential: fakeJwt });
+
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(1));
+    finish(new Response("{}", { status: 404 }));
+    await first;
   });
 
   it("sign-up sends the chosen role", async () => {

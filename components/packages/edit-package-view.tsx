@@ -4,6 +4,7 @@ import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMyPackages } from "@/lib/packages";
 import { PackageForm } from "@/components/packages/package-form";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { card, primaryButton } from "@/components/profile/styles";
 
 export function EditPackageView({ id }: { id: string }) {
@@ -20,10 +21,14 @@ export function EditPackageView({ id }: { id: string }) {
           <button
             type="button"
             onClick={() => void mine.refetch()}
+            disabled={mine.isFetching}
+            aria-busy={mine.isFetching || undefined}
             className={primaryButton}
           >
-            <RotateCw aria-hidden="true" className="size-4" />
-            Try again
+            <PendingLabel pending={mine.isFetching}>
+              <RotateCw aria-hidden="true" className="size-4" />
+              Try again
+            </PendingLabel>
           </button>
         </div>
       </div>

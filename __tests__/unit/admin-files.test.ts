@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { apiFetch, getStoredTokens } from "@/lib/api";
+import { refreshSiteContent } from "@/lib/site-content.actions";
+import { refreshTutorProfilesAsAdmin } from "@/lib/tutor-profile.actions";
 import {
+  useRemoveFile,
   canRemoveFile,
   PURPOSE_LABEL,
   removeFileText,
@@ -189,5 +196,139 @@ describe("summarizeStats", () => {
     ]);
     expect(rows.find((r) => r.purpose === "TUTOR_ID")?.uploadedCount).toBe(0);
     expect(rows.find((r) => r.purpose === "STUDENT_ID")?.uploadedCount).toBe(5);
+  });
+});
+
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  apiFetch: vi.fn(),
+  getStoredTokens: vi.fn(),
+}));
+
+vi.mock("@/lib/site-content.actions", () => ({
+  refreshSiteContent: vi.fn(),
+}));
+
+vi.mock("@/lib/tutor-profile.actions", () => ({
+  refreshTutorProfilesAsAdmin: vi.fn(),
+}));
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+
+function renderRemoveFile() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client }, children);
+  }
+  return renderHook(() => useRemoveFile(), { wrapper: Wrapper });
+}
+
+const REMOVE = {
+  fileId: "file-1",
+  body: { note: "Blurred ID" },
+} as const;
+
+describe("useRemoveFile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "admin-1",
+      refreshToken: "refresh-1",
+    });
+    vi.mocked(apiFetch).mockResolvedValue(json(200, {}));
+    vi.mocked(refreshSiteContent).mockResolvedValue(true);
+    vi.mocked(refreshTutorProfilesAsAdmin).mockResolvedValue(true);
+  });
+
+  it("expires the public tutor pages with the admin's token after a removal", async () => {
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    await waitFor(() =>
+      expect(refreshTutorProfilesAsAdmin).toHaveBeenCalledWith("admin-1"),
+    );
+  });
+
+  it("does not expire the public tutor pages when nobody is signed in", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue(null);
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    expect(refreshTutorProfilesAsAdmin).not.toHaveBeenCalled();
+  });
+
+  it("does not expire the public tutor pages when the removal fails", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(json(409, { error: "Conflict" }));
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).rejects.toBeDefined();
+    });
+
+    expect(refreshTutorProfilesAsAdmin).not.toHaveBeenCalled();
+  });
+
+  it("still reports the removal as done when the public refresh fails", async () => {
+    vi.mocked(refreshTutorProfilesAsAdmin).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).resolves.toBeDefined();
+    });
+    await waitFor(() =>
+      expect(refreshTutorProfilesAsAdmin).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it("expires the landing cache with the admin's token after a removal", async () => {
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    await waitFor(() =>
+      expect(refreshSiteContent).toHaveBeenCalledWith("admin-1"),
+    );
+  });
+
+  it("does not touch the landing when nobody is signed in", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue(null);
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    expect(refreshSiteContent).not.toHaveBeenCalled();
+  });
+
+  it("does not touch the landing when the removal fails", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(json(409, { error: "Conflict" }));
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).rejects.toBeDefined();
+    });
+
+    expect(refreshSiteContent).not.toHaveBeenCalled();
+  });
+
+  it("still reports the removal as done when the landing refresh fails", async () => {
+    vi.mocked(refreshSiteContent).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).resolves.toBeDefined();
+    });
+    await waitFor(() => expect(refreshSiteContent).toHaveBeenCalledTimes(1));
   });
 });

@@ -9,6 +9,8 @@ import {
   ghostButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { toastError } from "@/lib/toast";
 import {
   notificationHref,
@@ -110,20 +112,25 @@ export function NotificationBell() {
             >
               Notifications
             </h2>
-            {count > 0 && (
+            {/* Stays mounted while its request runs: the count drops to zero at once, but the button goes only once the refreshed count arrives. */}
+            {(count > 0 || markAll.isPending) && (
               <button
                 type="button"
+                disabled={markAll.isPending}
+                aria-busy={markAll.isPending || undefined}
                 className={cn(ghostButton, "min-h-10 px-3")}
                 onClick={() => {
                   markAll.mutate(undefined, {
                     onError: (err) =>
                       toastError("Couldn't mark everything as read.", err),
                   });
-                  // The button leaves the DOM once the count hits zero; keep focus inside the dialog.
+                  // Focus moves to the heading before the button is disabled, so focus stays inside the dialog.
                   headingRef.current?.focus();
                 }}
               >
-                Mark all as read
+                <PendingLabel pending={markAll.isPending}>
+                  Mark all as read
+                </PendingLabel>
               </button>
             )}
           </div>
@@ -153,60 +160,76 @@ export function NotificationBell() {
                 <button
                   type="button"
                   onClick={() => list.refetch()}
+                  disabled={list.isFetching}
+                  aria-busy={list.isFetching || undefined}
                   className={cn(secondaryButton, "min-h-10 px-4")}
                 >
-                  Try again
+                  <PendingLabel pending={list.isFetching}>
+                    Try again
+                  </PendingLabel>
                 </button>
               </div>
             ) : list.data?.notifications.length ? (
               <ul className="grid gap-1">
-                {list.data.notifications.map((n) => (
-                  <li key={n.id}>
-                    <Link
-                      href={notificationHref(n)}
-                      onClick={(e) => openItem(e, n)}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-[16px] px-3 py-3 transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
-                        ITEM_FOCUS,
-                        !n.readAt &&
-                          "bg-[color-mix(in_oklab,var(--color-secondary-sky)_60%,transparent)] hover:bg-[var(--color-secondary-sky)]",
-                      )}
-                    >
-                      <span
-                        aria-hidden="true"
+                {list.data.notifications.map((n) => {
+                  // Only this row shows the spinner: the other rows stay usable while one is marked.
+                  const marking =
+                    markRead.isPending && markRead.variables === n.id;
+                  return (
+                    <li key={n.id}>
+                      <Link
+                        href={notificationHref(n)}
+                        onClick={(e) => openItem(e, n)}
+                        aria-busy={marking || undefined}
                         className={cn(
-                          "mt-1.5 size-2 shrink-0 rounded-full",
-                          n.readAt
-                            ? "bg-transparent"
-                            : "bg-[var(--color-primary-core)]",
+                          "flex w-full items-start gap-3 rounded-[16px] px-3 py-3 transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
+                          ITEM_FOCUS,
+                          !n.readAt &&
+                            "bg-[color-mix(in_oklab,var(--color-secondary-sky)_60%,transparent)] hover:bg-[var(--color-secondary-sky)]",
                         )}
-                      />
-                      <span className="min-w-0 flex-1 text-sm text-pretty">
-                        {!n.readAt && <span className="sr-only">Unread: </span>}
-                        <span
-                          className={cn(
-                            n.readAt
-                              ? "text-[var(--color-text-secondary)]"
-                              : "font-semibold text-[var(--color-neutral-charcoal)]",
-                          )}
-                        >
-                          {notificationText(n)}
-                        </span>
-                        {n.note && (
-                          <span className="mt-1 block break-words text-[var(--color-text-secondary)]">
-                            Note: {n.note}
-                          </span>
-                        )}
-                      </span>
-                      <time
-                        dateTime={n.createdAt}
-                        className="shrink-0 pt-0.5 text-xs text-[var(--color-text-secondary)] tabular-nums"
                       >
-                        {relativeTime(n.createdAt, now)}
-                      </time>
-                    </Link>
-                  </li>
-                ))}
+                        {marking ? (
+                          <SpinnerEllipsis className="mt-1 shrink-0 text-[var(--color-primary-core)]" />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "mt-1.5 size-2 shrink-0 rounded-full",
+                              n.readAt
+                                ? "bg-transparent"
+                                : "bg-[var(--color-primary-core)]",
+                            )}
+                          />
+                        )}
+                        <span className="min-w-0 flex-1 text-sm text-pretty">
+                          {!n.readAt && (
+                            <span className="sr-only">Unread: </span>
+                          )}
+                          <span
+                            className={cn(
+                              n.readAt
+                                ? "text-[var(--color-text-secondary)]"
+                                : "font-semibold text-[var(--color-neutral-charcoal)]",
+                            )}
+                          >
+                            {notificationText(n)}
+                          </span>
+                          {n.note && (
+                            <span className="mt-1 block break-words text-[var(--color-text-secondary)]">
+                              Note: {n.note}
+                            </span>
+                          )}
+                        </span>
+                        <time
+                          dateTime={n.createdAt}
+                          className="shrink-0 pt-0.5 text-xs text-[var(--color-text-secondary)] tabular-nums"
+                        >
+                          {relativeTime(n.createdAt, now)}
+                        </time>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="px-3 py-8 text-center text-sm text-[var(--color-text-secondary)]">

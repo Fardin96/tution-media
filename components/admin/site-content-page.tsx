@@ -25,6 +25,7 @@ import {
   useSiteMediaStore,
 } from "@/components/admin/site-content/media";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   BLOCK_META,
   apiFieldErrors,
@@ -410,7 +411,7 @@ function EditorPane({
   }
 
   function save() {
-    if (media.busy > 0) return;
+    if (media.busy > 0 || update.isPending) return;
     setSubmitted(true);
     if (!check.ok) {
       setFocusRequest((n) => n + 1);
@@ -546,6 +547,7 @@ function EditorPane({
               label: "Reset",
               variant: "primary",
               onSelect: resetToDefault,
+              pending: reset.isPending,
             },
           ]}
         >
@@ -611,7 +613,7 @@ function SaveBar({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11")}
         >
-          {saving ? "Saving..." : "Save"}
+          <PendingLabel pending={saving}>Save</PendingLabel>
         </button>
       </div>
     </div>

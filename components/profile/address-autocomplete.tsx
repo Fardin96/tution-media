@@ -11,6 +11,9 @@ import {
   type PlacePrediction,
 } from "@/lib/places";
 
+// Typing waits this long before a suggestion request goes out.
+const DEBOUNCE_MS = 250;
+
 const control =
   "w-full rounded-[12px] border border-[var(--color-border-control)] bg-[var(--color-neutral-white)] px-4 text-base text-[var(--color-neutral-charcoal)] transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-[var(--color-neutral-gray)] hover:border-[var(--color-neutral-charcoal)] focus-visible:border-[var(--color-primary-core)] focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-primary-core)_16%,transparent)] focus-visible:outline-none aria-invalid:border-[var(--color-semantic-error-text)]";
 
@@ -75,6 +78,8 @@ export function AddressAutocomplete({
   const [districtPrompt, setDistrictPrompt] = useState(false);
   const sessionTokenRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped by every new search and by a selection or clear: an answer for an older id is dropped.
+  const requestRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const district = value.district?.trim() ?? "";
@@ -128,8 +133,16 @@ export function AddressAutocomplete({
     setActiveIndex(-1);
   }, []);
 
+  // Drops a search that is waiting or in flight: its timer is cleared and its answer is ignored.
+  const cancelSearch = useCallback(() => {
+    requestRef.current++;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setLoading(false);
+  }, []);
+
   const selectPrediction = useCallback(
     async (prediction: PlacePrediction) => {
+      cancelSearch();
       setLoading(true);
       closeList();
       const token = ensureSessionToken();
@@ -156,7 +169,7 @@ export function AddressAutocomplete({
         clearSessionToken();
       }
     },
-    [ensureSessionToken, onChange, closeList, clearSessionToken],
+    [ensureSessionToken, onChange, closeList, clearSessionToken, cancelSearch],
   );
 
   const handleInputChange = (next: string) => {
@@ -168,9 +181,11 @@ export function AddressAutocomplete({
       district: null,
     });
     setDistrictPrompt(false);
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     setActiveIndex(-1);
+
+    // Each change starts a new search; an earlier one that answers late is ignored.
+    cancelSearch();
+    const request = requestRef.current;
 
     const trimmed = next.trim();
     if (trimmed.length < 3) {
@@ -183,6 +198,7 @@ export function AddressAutocomplete({
     debounceRef.current = setTimeout(async () => {
       try {
         const results = await fetchPlacePredictions(trimmed, token);
+        if (request !== requestRef.current) return;
         if (!results.length) {
           closeList();
           setAnnouncement("No address suggestions found.");
@@ -192,17 +208,19 @@ export function AddressAutocomplete({
           setAnnouncement(`${results.length} address suggestions available.`);
         }
       } catch (err) {
+        if (request !== requestRef.current) return;
         closeList();
         setAnnouncement(
           err instanceof Error ? err.message : "Couldn't fetch suggestions.",
         );
       } finally {
-        setLoading(false);
+        if (request === requestRef.current) setLoading(false);
       }
-    }, 300);
+    }, DEBOUNCE_MS);
   };
 
   const clear = useCallback(() => {
+    cancelSearch();
     onChange({
       address: "",
       placeId: "",
@@ -213,7 +231,7 @@ export function AddressAutocomplete({
     setDistrictPrompt(false);
     closeList();
     clearSessionToken();
-  }, [onChange, closeList, clearSessionToken]);
+  }, [onChange, closeList, clearSessionToken, cancelSearch]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open || !predictions.length) {

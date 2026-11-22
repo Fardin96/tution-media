@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { SitePageView } from "@/components/site-page";
-import { getSiteContent, getSitePage } from "@/lib/site-content.server";
+import {
+  getSiteContentForPage,
+  getSitePageForPage,
+} from "@/lib/site-content.server";
 
 const linkClass =
   "inline-flex min-h-11 items-center rounded-md px-1 -mx-1 font-medium text-[var(--color-primary-deep)] underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] focus-visible:ring-offset-2";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const page = await getSitePage("contact");
+  const page = await getSitePageForPage("contact");
   return {
     title: `${page.title} · Masters Hub`,
     description: page.description,
@@ -15,8 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const page = await getSitePage("contact");
-  const { footer } = await getSiteContent();
+  const page = await getSitePageForPage("contact");
+  const { footer } = await getSiteContentForPage();
   return (
     <>
       <SitePageView page={page}>
@@ -54,7 +57,7 @@ export default async function ContactPage() {
           </div>
         </dl>
       </SitePageView>
-      <SiteFooter />
+      <SiteFooter strict />
     </>
   );
 }

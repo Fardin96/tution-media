@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { ghostButton } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { profileApi } from "@/lib/profile";
@@ -59,8 +60,10 @@ export function ProfileBack() {
   }
   return (
     <Link href={fallback.href} className={backClass}>
-      <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-      {fallback.label}
+      <LinkPendingLabel>
+        <ArrowLeft aria-hidden="true" className="size-4 rtl:-scale-x-100" />
+        {fallback.label}
+      </LinkPendingLabel>
     </Link>
   );
 }

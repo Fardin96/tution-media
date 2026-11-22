@@ -39,8 +39,15 @@ import {
   type UpdatePromoCodeBody,
 } from "@/lib/admin-promo-codes";
 import { formatAmount, formatDateTime, useAdminMe } from "@/lib/admin";
-import { localDateTimeToIso, localDateTimeValue } from "@/lib/admin-fees";
+import {
+  adminFeeQueryOptions,
+  localDateTimeToIso,
+  localDateTimeValue,
+} from "@/lib/admin-fees";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { toastError } from "@/lib/toast";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 export function AdminPromoCodeDetailPage({ id }: { id: string }) {
   const query = useAdminPromoCode(id);
@@ -92,7 +99,7 @@ export function AdminPromoCodeDetailPage({ id }: { id: string }) {
                   "min-h-11 text-[var(--color-semantic-error-text)]",
                 )}
               >
-                Turn off
+                <PendingLabel pending={update.isPending}>Turn off</PendingLabel>
               </button>
             ) : (
               <button
@@ -102,7 +109,7 @@ export function AdminPromoCodeDetailPage({ id }: { id: string }) {
                 aria-busy={update.isPending || undefined}
                 className={cn(primaryButton, "min-h-11")}
               >
-                Turn on
+                <PendingLabel pending={update.isPending}>Turn on</PendingLabel>
               </button>
             )}
           </>
@@ -223,6 +230,7 @@ function PromoHeader({ promo }: { promo: AdminPromoCodeDetail }) {
 
 function RedemptionRow({ redemption }: { redemption: AdminPromoRedemption }) {
   const active = redemption.status === "ACTIVE";
+  const intent = useIntentPrefetch();
   return (
     <li className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -236,9 +244,10 @@ function RedemptionRow({ redemption }: { redemption: AdminPromoRedemption }) {
         </div>
         <Link
           href={`/dashboard/admin/fees/${encodeURIComponent(redemption.feeId)}`}
+          {...intent(adminFeeQueryOptions(redemption.feeId))}
           className={cn(ghostButton, "min-h-10 px-3")}
         >
-          Open fee
+          <LinkPendingLabel>Open fee</LinkPendingLabel>
         </Link>
       </div>
       <DetailList
@@ -397,6 +406,7 @@ function EditPromoForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (!dirty || EDIT_FIELDS.some((field) => errors[field])) return;
     onSubmit(body, (err) => {
@@ -492,7 +502,7 @@ function EditPromoForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving..." : "Save changes"}
+          <PendingLabel pending={saving}>Save changes</PendingLabel>
         </button>
       </DialogActions>
     </form>

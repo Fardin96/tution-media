@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   card,
   primaryButton,
@@ -233,7 +234,7 @@ function AreaRow({
             aria-label={`Restore ${area.name}`}
             className={cn(secondaryButton, "min-h-11")}
           >
-            Restore
+            <PendingLabel pending={restoring}>Restore</PendingLabel>
           </button>
         )}
       </div>
@@ -327,6 +328,7 @@ function AreaForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (!area && districtCode === "") return;
     if (validateAreaName(name)) return;
@@ -406,7 +408,9 @@ function AreaForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving..." : area ? "Save changes" : "Add area"}
+          <PendingLabel pending={saving}>
+            {area ? "Save changes" : "Add area"}
+          </PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -426,7 +430,7 @@ function RetireDialog({
   const retiring = retire.isPending;
 
   function onRetire() {
-    if (!area) return;
+    if (!area || retiring) return;
     retire.mutate(
       { id: area.id, body: { isActive: false } },
       {
@@ -469,7 +473,7 @@ function RetireDialog({
           aria-busy={retiring || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {retiring ? "Retiring..." : "Retire area"}
+          <PendingLabel pending={retiring}>Retire area</PendingLabel>
         </button>
       </DialogActions>
     </AdminDialog>
