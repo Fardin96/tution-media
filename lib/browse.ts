@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { paths } from "./api-types";
 import { queryKeys } from "./query-keys";
@@ -147,12 +151,15 @@ export function useBrowsePackages(filters: PackageBrowseFilters) {
   });
 }
 
-export function usePackage(id: string) {
-  return useQuery({
+export const packageQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.browse.package(id),
     queryFn: () => browseApi.package(id),
     staleTime: 30_000,
   });
+
+export function usePackage(id: string) {
+  return useQuery(packageQueryOptions(id));
 }
 
 export function useTutorSearch(filters: TutorSearchFilters) {

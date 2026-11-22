@@ -3,9 +3,11 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
 import type { UploadFlags } from "./admin-moderation";
+import { refreshTutorProfilesAsAdmin } from "./tutor-profile.actions";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminTutorVerification = Schemas["AdminTutorVerification"];
@@ -136,6 +138,20 @@ export function useAdminVerifications(
 }
 
 /**
+ * Expires the cached public tutor pages after a moderation that changes them. Fire-and-forget:
+ * the admin's change has already succeeded, so a failed refresh is dropped.
+ */
+async function refreshPublicTutors(): Promise<void> {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshTutorProfilesAsAdmin(tokens.accessToken);
+  } catch {
+    // The public profile catches up within 60 seconds anyway.
+  }
+}
+
+/**
  * An approve or reject. Every verification list refreshes on settle, so a 409 (someone else
  * already decided it) also shows the current state.
  */
@@ -156,6 +172,10 @@ export function useDecideVerification() {
       } else {
         await adminVerificationApi.decideStudent(id, body);
       }
+    },
+    // A tutor's verified badge shows on the public profile; a student's ID does not.
+    onSuccess: (_data, variables) => {
+      if (variables.kind === "tutors") void refreshPublicTutors();
     },
     onSettled: () =>
       Promise.all([

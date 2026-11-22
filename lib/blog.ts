@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
 import { ApiError } from "./profile";
@@ -32,15 +36,20 @@ export function useBlogPosts(initialPage?: BlogPostPage) {
   });
 }
 
-export function useBlogPost(slug: string, initialPost?: BlogPost) {
-  return useQuery({
+export const blogPostQueryOptions = (slug: string) =>
+  queryOptions({
     queryKey: queryKeys.blog.post(slug),
     queryFn: () => blogApi.get(slug),
-    initialData: initialPost,
     // A missing or draft post is final; only server and network errors are retried.
-    retry: (failureCount, err) =>
+    retry: (failureCount: number, err: Error) =>
       failureCount < 2 &&
       !(err instanceof ApiError && err.status >= 400 && err.status < 500),
+  });
+
+export function useBlogPost(slug: string, initialPost?: BlogPost) {
+  return useQuery({
+    ...blogPostQueryOptions(slug),
+    initialData: initialPost,
   });
 }
 

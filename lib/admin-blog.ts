@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
@@ -54,12 +55,15 @@ export function useAdminBlogPosts(filters: AdminBlogFilters) {
   });
 }
 
-export function useAdminBlogPost(id: string) {
-  return useQuery({
+export const adminBlogPostQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.blogPost(id),
     queryFn: () => adminBlogApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminBlogPost(id: string) {
+  return useQuery(adminBlogPostQueryOptions(id));
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { FeeTone } from "./admin-fees";
@@ -83,12 +84,15 @@ export function useAdminRefunds(filters: AdminRefundFilters) {
   });
 }
 
-export function useAdminRefund(id: string) {
-  return useQuery({
+export const adminRefundQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.admin.refund(id),
     queryFn: () => adminRefundsApi.get(id),
     staleTime: 15_000,
   });
+
+export function useAdminRefund(id: string) {
+  return useQuery(adminRefundQueryOptions(id));
 }
 
 /** A refund can add a ledger row and change what an attempt can still refund: refresh those screens too. */

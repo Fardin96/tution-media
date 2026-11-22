@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type InfiniteData,
+  queryOptions,
 } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
@@ -211,12 +212,15 @@ export const recommendationApi = {
 };
 
 /** The student's own requirement. Only its status is read here, to decide whether the tutor list applies. */
-export function useStudentRequirement(requirementId: string) {
-  return useQuery({
+export const studentRequirementQueryOptions = (requirementId: string) =>
+  queryOptions({
     queryKey: queryKeys.applications.studentRequirement(requirementId),
     queryFn: () => requirementApi.get(requirementId),
     staleTime: 15_000,
   });
+
+export function useStudentRequirement(requirementId: string) {
+  return useQuery(studentRequirementQueryOptions(requirementId));
 }
 
 export function useRecommendedTutors(requirementId: string, enabled: boolean) {
@@ -272,12 +276,15 @@ export function useMyApplications(status?: ApplicationStatus) {
   });
 }
 
-export function useApplication(id: string) {
-  return useQuery({
+export const applicationQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.applications.detail(id),
     queryFn: () => applicationApi.get(id),
     staleTime: 15_000,
   });
+
+export function useApplication(id: string) {
+  return useQuery(applicationQueryOptions(id));
 }
 
 export function useRequirementApplicants(requirementId: string) {

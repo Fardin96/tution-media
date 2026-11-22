@@ -5,8 +5,10 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
+import { refreshTutorProfilesAsAdmin } from "./tutor-profile.actions";
 
 export type AdminAccountSummary = Schemas["AdminAccountSummary"];
 export type AdminAccountDetail = Schemas["AdminAccountDetail"];
@@ -85,6 +87,20 @@ export function useAdminAccount(id: string) {
   });
 }
 
+/**
+ * Expires the cached public tutor pages after a moderation that changes them. Fire-and-forget:
+ * the admin's change has already succeeded, so a failed refresh is dropped.
+ */
+async function refreshPublicTutors(): Promise<void> {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshTutorProfilesAsAdmin(tokens.accessToken);
+  } catch {
+    // The public profile catches up within 60 seconds anyway.
+  }
+}
+
 /** Block and unblock move the account lists, its detail and the admin roster. */
 function applyAccountDetail(
   queryClient: QueryClient,
@@ -102,7 +118,10 @@ export function useBlockAccount(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (reason: string) => adminAccountApi.block(id, reason),
-    onSuccess: (detail) => applyAccountDetail(queryClient, id, detail),
+    onSuccess: (detail) => {
+      void refreshPublicTutors();
+      return applyAccountDetail(queryClient, id, detail);
+    },
   });
 }
 
@@ -110,6 +129,9 @@ export function useUnblockAccount(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => adminAccountApi.unblock(id),
-    onSuccess: (detail) => applyAccountDetail(queryClient, id, detail),
+    onSuccess: (detail) => {
+      void refreshPublicTutors();
+      return applyAccountDetail(queryClient, id, detail);
+    },
   });
 }

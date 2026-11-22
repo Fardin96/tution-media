@@ -3,8 +3,10 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
+import { refreshTutorProfilesAsAdmin } from "./tutor-profile.actions";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminVideo = Schemas["AdminVideo"];
@@ -46,12 +48,29 @@ export function useAdminVideos(status: VideoStatus) {
   });
 }
 
+/**
+ * Expires the cached public tutor pages after a moderation that changes them. Fire-and-forget:
+ * the admin's change has already succeeded, so a failed refresh is dropped.
+ */
+async function refreshPublicTutors(): Promise<void> {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshTutorProfilesAsAdmin(tokens.accessToken);
+  } catch {
+    // The public profile catches up within 60 seconds anyway.
+  }
+}
+
 /** An approve, reject or take-down. The public tutor pages and every video queue can change. */
 export function useModerateVideo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: ModerateVideoInput }) =>
       adminVideoApi.moderate(id, body),
+    onSuccess: () => {
+      void refreshPublicTutors();
+    },
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.videosAll }),
@@ -66,6 +85,9 @@ export function useUpdateVideo() {
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: UpdateVideoInput }) =>
       adminVideoApi.update(id, body),
+    onSuccess: () => {
+      void refreshPublicTutors();
+    },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.videosAll }),
   });

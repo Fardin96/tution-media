@@ -1,6 +1,15 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import { queryKeys, invalidateTutorRequirements } from "@/lib/query-keys";
+import {
+  queryKeys,
+  invalidateTutorProfile,
+  invalidateTutorRequirements,
+} from "@/lib/query-keys";
+import { refreshMyTutorProfile } from "@/lib/tutor-profile.actions";
+
+vi.mock("@/lib/tutor-profile.actions", () => ({
+  refreshMyTutorProfile: vi.fn(),
+}));
 
 describe("tutor requirement keys", () => {
   const { requirements } = queryKeys.tutor;
@@ -57,5 +66,62 @@ describe("invalidateTutorRequirements", () => {
       [{ queryKey: ["me"] }],
       [{ queryKey: ["match"] }],
     ]);
+  });
+});
+
+describe("invalidateTutorProfile", () => {
+  const TUTOR_ID = "tutor-1";
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(refreshMyTutorProfile).mockReset();
+    vi.mocked(refreshMyTutorProfile).mockResolvedValue(true);
+  });
+
+  it("refreshes the public profile with the signed-in token", async () => {
+    localStorage.setItem(
+      "auth_tokens",
+      JSON.stringify({ accessToken: "tutor-token", refreshToken: "refresh" }),
+    );
+    const client = new QueryClient();
+
+    await invalidateTutorProfile(client, TUTOR_ID);
+
+    expect(refreshMyTutorProfile).toHaveBeenCalledWith("tutor-token");
+  });
+
+  it("does not refresh the public profile when signed out", async () => {
+    const client = new QueryClient();
+
+    await invalidateTutorProfile(client, TUTOR_ID);
+
+    expect(refreshMyTutorProfile).not.toHaveBeenCalled();
+  });
+
+  it("invalidates the tutor's client profile query and resolves to nothing", async () => {
+    const client = new QueryClient();
+    const spy = vi.spyOn(client, "invalidateQueries");
+
+    const result = await invalidateTutorProfile(client, TUTOR_ID);
+
+    expect(result).toBeUndefined();
+    expect(spy.mock.calls).toEqual([
+      [{ queryKey: ["tutors", "profile", TUTOR_ID] }],
+    ]);
+  });
+
+  it("still resolves when the refresh fails", async () => {
+    localStorage.setItem(
+      "auth_tokens",
+      JSON.stringify({ accessToken: "tutor-token", refreshToken: "refresh" }),
+    );
+    vi.mocked(refreshMyTutorProfile).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const client = new QueryClient();
+
+    await expect(
+      invalidateTutorProfile(client, TUTOR_ID),
+    ).resolves.toBeUndefined();
   });
 });

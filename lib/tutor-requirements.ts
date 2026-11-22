@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import { daysLabel, daysPerWeekError, daysPerWeekLabel } from "./days";
 import type { AcademicGroup, AdmissionTarget, Curriculum } from "./education";
@@ -360,12 +360,15 @@ export function useTutorRequirements(status: SetStatus, enabled = true) {
   });
 }
 
-export function useTutorRequirement(id: string) {
-  return useQuery({
+export const tutorRequirementQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.tutor.requirements.detail(id),
     queryFn: () => tutorRequirementApi.get(id),
     staleTime: 60_000,
   });
+
+export function useTutorRequirement(id: string) {
+  return useQuery(tutorRequirementQueryOptions(id));
 }
 
 export function useProfileSubjects() {

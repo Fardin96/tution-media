@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  queryOptions,
 } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { client, unwrap, type Schemas } from "./api-client";
@@ -65,12 +66,15 @@ export function useMyFees() {
   });
 }
 
-export function useMyFee(id: string) {
-  return useQuery({
+export const myFeeQueryOptions = (id: string) =>
+  queryOptions({
     queryKey: queryKeys.fees.detail(id),
     queryFn: () => feeApi.get(id),
     staleTime: 15_000,
   });
+
+export function useMyFee(id: string) {
+  return useQuery(myFeeQueryOptions(id));
 }
 
 /**

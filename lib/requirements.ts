@@ -1,3 +1,4 @@
+import { queryOptions } from "@tanstack/react-query";
 import { client, unwrap, type Schemas } from "./api-client";
 import {
   emptyEducation,
@@ -5,6 +6,7 @@ import {
   type EducationFields,
 } from "./education";
 import { TUITION_TYPES } from "./profile";
+import { queryKeys } from "./query-keys";
 import { daysPerWeekError, EVERY_DAY } from "./days";
 
 export type TuitionType = (typeof TUITION_TYPES)[number];
@@ -396,3 +398,10 @@ export const requirementApi = {
       }),
     ),
 };
+
+/** A requirement by id, as the post-again copy and other detail views read it. */
+export const requirementQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: queryKeys.requirements.detail(id),
+    queryFn: () => requirementApi.get(id),
+  });

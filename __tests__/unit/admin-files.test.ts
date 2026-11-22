@@ -4,6 +4,7 @@ import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, getStoredTokens } from "@/lib/api";
 import { refreshSiteContent } from "@/lib/site-content.actions";
+import { refreshTutorProfilesAsAdmin } from "@/lib/tutor-profile.actions";
 import {
   useRemoveFile,
   canRemoveFile,
@@ -208,6 +209,10 @@ vi.mock("@/lib/site-content.actions", () => ({
   refreshSiteContent: vi.fn(),
 }));
 
+vi.mock("@/lib/tutor-profile.actions", () => ({
+  refreshTutorProfilesAsAdmin: vi.fn(),
+}));
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -238,6 +243,51 @@ describe("useRemoveFile", () => {
     });
     vi.mocked(apiFetch).mockResolvedValue(json(200, {}));
     vi.mocked(refreshSiteContent).mockResolvedValue(true);
+    vi.mocked(refreshTutorProfilesAsAdmin).mockResolvedValue(true);
+  });
+
+  it("expires the public tutor pages with the admin's token after a removal", async () => {
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    await waitFor(() =>
+      expect(refreshTutorProfilesAsAdmin).toHaveBeenCalledWith("admin-1"),
+    );
+  });
+
+  it("does not expire the public tutor pages when nobody is signed in", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue(null);
+    const { result } = renderRemoveFile();
+
+    await act(() => result.current.mutateAsync(REMOVE));
+
+    expect(refreshTutorProfilesAsAdmin).not.toHaveBeenCalled();
+  });
+
+  it("does not expire the public tutor pages when the removal fails", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(json(409, { error: "Conflict" }));
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).rejects.toBeDefined();
+    });
+
+    expect(refreshTutorProfilesAsAdmin).not.toHaveBeenCalled();
+  });
+
+  it("still reports the removal as done when the public refresh fails", async () => {
+    vi.mocked(refreshTutorProfilesAsAdmin).mockRejectedValue(
+      new TypeError("fetch failed"),
+    );
+    const { result } = renderRemoveFile();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(REMOVE)).resolves.toBeDefined();
+    });
+    await waitFor(() =>
+      expect(refreshTutorProfilesAsAdmin).toHaveBeenCalledTimes(1),
+    );
   });
 
   it("expires the landing cache with the admin's token after a removal", async () => {

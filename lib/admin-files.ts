@@ -10,6 +10,7 @@ import type { FilePurpose } from "./files";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
 import { refreshSiteContent } from "./site-content.actions";
+import { refreshTutorProfilesAsAdmin } from "./tutor-profile.actions";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminFile = Schemas["AdminFile"];
@@ -175,6 +176,20 @@ async function refreshLanding() {
   }
 }
 
+/**
+ * A removed file can be a tutor's video or credential, so the cached public tutor pages expire
+ * too. Fire-and-forget like the landing refresh.
+ */
+async function refreshPublicTutors() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshTutorProfilesAsAdmin(tokens.accessToken);
+  } catch {
+    // The public profile catches up within 60 seconds anyway.
+  }
+}
+
 export function useRemoveFile() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -182,6 +197,7 @@ export function useRemoveFile() {
       adminFileApi.removeFile(fileId, body),
     onSuccess: () => {
       void refreshLanding();
+      void refreshPublicTutors();
     },
     onSettled: () =>
       Promise.all([
