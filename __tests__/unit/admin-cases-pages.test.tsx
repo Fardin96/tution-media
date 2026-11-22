@@ -393,6 +393,8 @@ describe("Disputes", () => {
       action: "DISMISS",
       note: "No evidence",
     });
+    // The dialog plays its exit animation before the page behind it is reachable again.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getByRole("link", { name: "Disputes" })).toHaveAttribute(
       "href",
       "/dashboard/admin/disputes",

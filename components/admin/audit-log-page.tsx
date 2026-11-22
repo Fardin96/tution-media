@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { card, focusRing } from "@/components/profile/styles";
@@ -9,6 +10,7 @@ import {
   LoadMore,
   QueryState,
 } from "@/components/admin/admin-ui";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatDateTime } from "@/lib/admin";
 import {
   actionLabel,
@@ -78,8 +80,13 @@ export function AuditLogPage() {
         emptyText="No changes match this filter yet."
       >
         <ul className="grid gap-4">
-          {entries.map((entry) => (
-            <AuditRow key={entry.id} entry={entry} />
+          {entries.map((entry, index) => (
+            <AuditRow
+              key={entry.id}
+              entry={entry}
+              className={enterClass}
+              style={enterStyle(index)}
+            />
           ))}
         </ul>
         <LoadMore query={audit} />
@@ -88,10 +95,18 @@ export function AuditLogPage() {
   );
 }
 
-function AuditRow({ entry }: { entry: AuditEntry }) {
+function AuditRow({
+  entry,
+  className,
+  style,
+}: {
+  entry: AuditEntry;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const actor = entry.actor;
   return (
-    <li className={cn(card, "grid gap-4 p-5")}>
+    <li className={cn(card, "grid gap-4 p-5", className)} style={style}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
         <p className="font-semibold text-[var(--color-neutral-charcoal)]">
           {actionLabel(entry.action)}

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -35,6 +36,8 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { ActivePill } from "@/components/motion/active-pill";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import { PackageCard } from "./package-card";
 import { TutorResultCard } from "./tutor-result-card";
@@ -45,7 +48,8 @@ import {
   FilterSelect,
   SEGMENT_BUTTON,
   SEGMENT_IDLE,
-  SEGMENT_SELECTED,
+  SEGMENT_PILL,
+  SEGMENT_TEXT_SELECTED,
   SEGMENT_TRACK,
   Segmented,
   isClientError,
@@ -166,6 +170,7 @@ export function FindTutorsPage() {
     tutors: null,
     packages: null,
   });
+  const pillId = useId();
 
   function selectTab(next: Tab) {
     if (next === tab) return;
@@ -227,9 +232,13 @@ export function FindTutorsPage() {
                 onKeyDown={onTabKeyDown}
                 className={cn(
                   SEGMENT_BUTTON,
-                  selected ? SEGMENT_SELECTED : SEGMENT_IDLE,
+                  "relative isolate",
+                  selected ? SEGMENT_TEXT_SELECTED : SEGMENT_IDLE,
                 )}
               >
+                {selected && (
+                  <ActivePill layoutId={pillId} className={SEGMENT_PILL} />
+                )}
                 {t.label}
               </button>
             );
@@ -302,8 +311,13 @@ function NearbyTutors() {
   } else {
     body = (
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tutors.map((tutor) => (
-          <TutorResultCard key={tutor.id} tutor={tutor} />
+        {tutors.map((tutor, index) => (
+          <TutorResultCard
+            key={tutor.id}
+            tutor={tutor}
+            className={enterClass}
+            style={enterStyle(index)}
+          />
         ))}
       </ul>
     );
@@ -393,8 +407,13 @@ function SearchTutors() {
   } else {
     body = (
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tutors.map((tutor) => (
-          <TutorResultCard key={tutor.id} tutor={tutor} />
+        {tutors.map((tutor, index) => (
+          <TutorResultCard
+            key={tutor.id}
+            tutor={tutor}
+            className={enterClass}
+            style={enterStyle(index)}
+          />
         ))}
       </ul>
     );
@@ -549,8 +568,13 @@ function PackagesPanel() {
     body = (
       <>
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} />
+          {packages.map((pkg, index) => (
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              className={enterClass}
+              style={enterStyle(index)}
+            />
           ))}
         </ul>
         {query.hasNextPage && (

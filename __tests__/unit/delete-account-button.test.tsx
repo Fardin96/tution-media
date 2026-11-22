@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
@@ -27,7 +27,6 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   profileApi: {
-    deleteMe: vi.fn(),
     hardDeleteMe: vi.fn(),
   },
 }));
@@ -37,103 +36,113 @@ beforeEach(() => {
   replace.mockReset();
 });
 
-async function openDeleteFlow() {
+async function openDeleteDialog() {
   render(<DeleteAccountButton />);
-  await userEvent.click(
-    screen.getByRole("button", { name: /delete account/i }),
-  );
+  await userEvent.click(screen.getByRole("button", { name: "Delete account" }));
+  return screen.getByRole("alertdialog", { name: "Delete your account?" });
 }
 
 describe("DeleteAccountButton", () => {
-  it("shows soft and hard delete options after the initial click", async () => {
-    await openDeleteFlow();
+  it("opens a confirmation dialog with Cancel and Delete account", async () => {
+    const dialog = await openDeleteDialog();
 
     expect(
-      screen.getByRole("button", { name: /soft delete/i }),
+      within(dialog).getByText(/permanently deletes your account/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /hard delete/i }),
+      within(dialog).getByRole("button", { name: "Cancel" }),
+    ).toHaveFocus();
+    expect(
+      within(dialog).getByRole("button", { name: "Delete account" }),
     ).toBeInTheDocument();
-  });
-
-  it("calls profileApi.deleteMe and redirects on soft delete confirmation", async () => {
-    vi.mocked(profileApi.deleteMe).mockResolvedValue(undefined);
-
-    await openDeleteFlow();
-    await userEvent.click(screen.getByRole("button", { name: /soft delete/i }));
-    await userEvent.click(
-      screen.getByRole("button", { name: /confirm soft delete/i }),
-    );
-
-    expect(profileApi.deleteMe).toHaveBeenCalledTimes(1);
     expect(profileApi.hardDeleteMe).not.toHaveBeenCalled();
-    expect(api.clearTokens).toHaveBeenCalledTimes(1);
-    expect(replace).toHaveBeenCalledWith("/");
+    expect(api.clearTokens).not.toHaveBeenCalled();
   });
 
-  it("calls profileApi.hardDeleteMe and redirects on hard delete confirmation", async () => {
-    vi.mocked(profileApi.hardDeleteMe).mockResolvedValue(undefined);
+  it("offers no soft delete anywhere", async () => {
+    await openDeleteDialog();
 
-    await openDeleteFlow();
-    await userEvent.click(screen.getByRole("button", { name: /hard delete/i }));
-    await userEvent.click(
-      screen.getByRole("button", { name: /yes, hard delete/i }),
-    );
-
-    expect(profileApi.hardDeleteMe).toHaveBeenCalledTimes(1);
-    expect(profileApi.deleteMe).not.toHaveBeenCalled();
-    expect(api.clearTokens).toHaveBeenCalledTimes(1);
-    expect(replace).toHaveBeenCalledWith("/");
+    expect(screen.queryByText(/soft delete/i)).not.toBeInTheDocument();
   });
 
-  it("shows an error toast when deletion fails", async () => {
-    vi.mocked(profileApi.deleteMe).mockRejectedValue(new Error("Server busy"));
+  it("closes on Cancel and calls nothing", async () => {
+    const dialog = await openDeleteDialog();
 
-    await openDeleteFlow();
-    await userEvent.click(screen.getByRole("button", { name: /soft delete/i }));
     await userEvent.click(
-      screen.getByRole("button", { name: /confirm soft delete/i }),
+      within(dialog).getByRole("button", { name: "Cancel" }),
     );
 
-    await vi.waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Server busy"),
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
     );
+    expect(profileApi.hardDeleteMe).not.toHaveBeenCalled();
+    expect(api.clearTokens).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("returns to the option screen from the confirmation screen", async () => {
-    await openDeleteFlow();
-    await userEvent.click(screen.getByRole("button", { name: /soft delete/i }));
-    await userEvent.click(screen.getByRole("button", { name: /back/i }));
+  it("calls profileApi.hardDeleteMe, clears tokens and redirects on confirm", async () => {
+    vi.mocked(profileApi.hardDeleteMe).mockResolvedValue(undefined);
 
+    const dialog = await openDeleteDialog();
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Delete account" }),
+    );
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(profileApi.hardDeleteMe).toHaveBeenCalledTimes(1);
+    expect(api.clearTokens).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows an error toast and keeps the dialog open when deletion fails", async () => {
+    vi.mocked(profileApi.hardDeleteMe).mockRejectedValue(
+      new Error("Server busy"),
+    );
+
+    const dialog = await openDeleteDialog();
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Delete account" }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Server busy"),
+    );
+    expect(replace).not.toHaveBeenCalled();
+    expect(api.clearTokens).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("button", { name: /soft delete/i }),
+      screen.getByRole("alertdialog", { name: "Delete your account?" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /hard delete/i }),
-    ).toBeInTheDocument();
+      within(screen.getByRole("alertdialog")).getByRole("button", {
+        name: "Delete account",
+      }),
+    ).toBeEnabled();
   });
 
   it("shows a blocking status while the account is being deleted", async () => {
     let finish!: () => void;
-    vi.mocked(profileApi.deleteMe).mockReturnValue(
+    vi.mocked(profileApi.hardDeleteMe).mockReturnValue(
       new Promise<undefined>((resolve) => (finish = () => resolve(undefined))),
     );
 
-    await openDeleteFlow();
-    await userEvent.click(screen.getByRole("button", { name: /soft delete/i }));
+    const dialog = await openDeleteDialog();
     await userEvent.click(
-      screen.getByRole("button", { name: /confirm soft delete/i }),
+      within(dialog).getByRole("button", { name: "Delete account" }),
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Deleting your account…",
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Deleting your account…",
+      ),
     );
+    const pendingDialog = screen.getByRole("alertdialog");
+    expect(
+      within(pendingDialog).getByRole("button", { name: "Cancel" }),
+    ).toBeDisabled();
     expect(replace).not.toHaveBeenCalled();
 
-    finish();
+    await act(async () => finish());
 
-    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
     expect(screen.getByRole("status")).toHaveTextContent(
       "Deleting your account…",
     );

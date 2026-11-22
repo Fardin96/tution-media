@@ -11,6 +11,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { MyPackageCard } from "@/components/packages/my-package-card";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { accentAt } from "@/components/ui/listing-card";
@@ -140,7 +141,7 @@ export function TutorPackagesSection() {
       ) : (
         <ul className="mt-5 grid gap-4 sm:grid-cols-2">
           {visible.map((pkg, index) => (
-            <li key={pkg.id}>
+            <li key={pkg.id} className={enterClass} style={enterStyle(index)}>
               <MyPackageCard
                 pkg={pkg}
                 lookup={lookup.data}

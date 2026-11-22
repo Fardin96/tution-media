@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { card, focusRing } from "@/components/profile/styles";
+import { CountingNumber } from "@/components/motion/counting-number";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   AdminPage,
   DetailList,
@@ -137,8 +139,12 @@ export function AdminPaymentsPage() {
         emptyText={EMPTY_TEXT[view]}
       >
         <ul className="grid gap-4">
-          {attempts.map((attempt) => (
-            <li key={attempt.id}>
+          {attempts.map((attempt, index) => (
+            <li
+              key={attempt.id}
+              className={enterClass}
+              style={enterStyle(index)}
+            >
               <AttemptRow attempt={attempt} />
             </li>
           ))}
@@ -155,8 +161,6 @@ function SummaryStrip() {
   if (summary.isError) return null;
 
   const data: AdminPaymentSummary | undefined = summary.data;
-  const shown = (value: number | undefined) =>
-    value === undefined ? "–" : String(value);
 
   return (
     <ul
@@ -166,22 +170,22 @@ function SummaryStrip() {
     >
       <StatTile
         label="Needs review"
-        value={shown(data?.review)}
+        value={data?.review}
         tone={data && data.review > 0 ? "warning" : "neutral"}
       />
       <StatTile
         label="Not applied"
-        value={shown(data?.unapplied)}
+        value={data?.unapplied}
         tone={data && data.unapplied > 0 ? "error" : "neutral"}
       />
       <StatTile
         label="Stuck over an hour"
-        value={shown(data?.stalePending)}
+        value={data?.stalePending}
         tone="neutral"
       />
       <StatTile
         label="Paid in the last 24 h"
-        value={shown(data?.succeeded24h)}
+        value={data?.succeeded24h}
         tone="neutral"
         detail={
           data ? `${formatAmount(data.collected24h)} collected` : undefined
@@ -210,7 +214,8 @@ function StatTile({
   detail,
 }: {
   label: string;
-  value: string;
+  /** Undefined while the summary loads. */
+  value: number | undefined;
   tone: keyof typeof TILE_TONE;
   detail?: string;
 }) {
@@ -231,7 +236,7 @@ function StatTile({
           TILE_TONE[tone].value,
         )}
       >
-        {value}
+        {value === undefined ? "–" : <CountingNumber value={value} />}
       </p>
       {detail && (
         <p className="mt-1 text-xs break-words text-[var(--color-text-secondary)] tabular-nums">

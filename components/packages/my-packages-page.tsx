@@ -8,6 +8,7 @@ import { card, primaryButton } from "@/components/profile/styles";
 import { ErrorBlock, EmptyCard } from "@/components/browse/browse-ui";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { MyPackageCard } from "@/components/packages/my-package-card";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
@@ -54,7 +55,7 @@ function PackageList({
   return (
     <ul className="grid gap-4 sm:grid-cols-2">
       {packages.map((pkg, index) => (
-        <li key={pkg.id}>
+        <li key={pkg.id} className={enterClass} style={enterStyle(index)}>
           <MyPackageCard pkg={pkg} lookup={lookup} accent={accentAt(index)} />
         </li>
       ))}

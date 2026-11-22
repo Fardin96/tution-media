@@ -15,6 +15,7 @@ import {
 import { formatDateTime, useAdminMe } from "@/lib/admin";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   useAdminTeam,
   useApproveAdmin,
@@ -85,7 +86,7 @@ export function TeamPage() {
         {groups.map((group) => (
           <Section key={group.title} title={group.title}>
             <ul className="grid gap-3">
-              {group.members.map((member) => {
+              {group.members.map((member, index) => {
                 const canApprove =
                   me.isSuperAdmin && member.status === "PENDING";
                 const canRemove =
@@ -96,7 +97,11 @@ export function TeamPage() {
                 return (
                   <li
                     key={member.accountId}
-                    className="flex flex-wrap items-start justify-between gap-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+                    className={cn(
+                      "flex flex-wrap items-start justify-between gap-3 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4",
+                      enterClass,
+                    )}
+                    style={enterStyle(index)}
                   >
                     <div className="min-w-0 flex-1 basis-56">
                       <div className="flex flex-wrap items-center gap-2">

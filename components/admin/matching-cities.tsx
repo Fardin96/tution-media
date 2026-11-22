@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { card, primaryButton } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   Field,
   QueryState,
@@ -49,8 +50,8 @@ export function CitiesTab({ canEdit }: { canEdit: boolean }) {
         emptyText="No cities yet."
       >
         <ul className="grid gap-4">
-          {rows.map((city) => (
-            <li key={city.slug}>
+          {rows.map((city, i) => (
+            <li key={city.slug} className={enterClass} style={enterStyle(i)}>
               <CityRow
                 city={city}
                 district={districtName(city.districtCode)}

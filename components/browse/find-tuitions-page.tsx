@@ -10,6 +10,7 @@ import {
   ghostButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import {
   EmptyCard,
@@ -483,8 +484,12 @@ export function FindTuitionsPage() {
         ) : rows.length > 0 ? (
           <>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {rows.map((row) => (
-                <li key={row.id}>
+              {rows.map((row, index) => (
+                <li
+                  key={row.id}
+                  className={enterClass}
+                  style={enterStyle(index)}
+                >
                   <TuitionCard
                     tuition={row}
                     subjectNames={row.subjectIds.map((id) =>

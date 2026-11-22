@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { card } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   FilterChips,
   QueryState,
@@ -62,8 +63,8 @@ export function UnmatchedTab({
         emptyText={`Every open tuition older than ${windowText} has a matching tutor.`}
       >
         <ul className="grid gap-4">
-          {rows.map((row) => (
-            <li key={row.id}>
+          {rows.map((row, i) => (
+            <li key={row.id} className={enterClass} style={enterStyle(i)}>
               <UnmatchedRow
                 row={row}
                 lookup={lookup}

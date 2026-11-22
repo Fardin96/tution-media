@@ -11,6 +11,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
@@ -147,7 +148,7 @@ export function TutorRequirementsPage() {
   ) : (
     <ul className="mt-5 grid gap-4 sm:grid-cols-2">
       {active.map((set, index) => (
-        <li key={set.id}>
+        <li key={set.id} className={enterClass} style={enterStyle(index)}>
           <TutorRequirementCard
             set={set}
             lookup={lookup.data}
@@ -211,7 +212,7 @@ export function TutorRequirementsPage() {
         {archived.map((set: TutorRequirement, index) => {
           const noSubjects = set.subjectIds.length === 0;
           return (
-            <li key={set.id}>
+            <li key={set.id} className={enterClass} style={enterStyle(index)}>
               <TutorRequirementCard
                 set={set}
                 lookup={lookup.data}

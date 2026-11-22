@@ -41,6 +41,7 @@ import { localDateTimeToIso, parseAmount } from "@/lib/admin-fees";
 import { ApiError } from "@/lib/profile";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { toastError } from "@/lib/toast";
 
 /* ───────── Shared rules (mirror tuition-api's promo schema) ───────── */
@@ -201,8 +202,8 @@ export function AdminPromoCodesPage() {
         emptyText={EMPTY_TEXT[view]}
       >
         <ul className="grid gap-4">
-          {codes.map((promo) => (
-            <li key={promo.id}>
+          {codes.map((promo, index) => (
+            <li key={promo.id} className={enterClass} style={enterStyle(index)}>
               <PromoRow promo={promo} />
             </li>
           ))}

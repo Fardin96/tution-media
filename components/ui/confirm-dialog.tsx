@@ -2,8 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Dialog as DialogPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+} from "@/components/animate-ui/primitives/radix/alert-dialog";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
@@ -15,7 +22,8 @@ import {
 export interface ConfirmAction {
   label: string;
   onSelect: () => void;
-  variant?: "primary" | "secondary" | "ghost";
+  /** `danger` is for an action that can't be undone, such as deleting the account. */
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   href?: string;
   /** Shows Spinner 05 in place of the label and disables every action while true. */
   pending?: boolean;
@@ -25,6 +33,10 @@ const variantClass = {
   primary: primaryButton,
   secondary: secondaryButton,
   ghost: ghostButton,
+  danger: cn(
+    secondaryButton,
+    "bg-[var(--color-semantic-error-surface)] text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
+  ),
 } as const;
 
 export function ConfirmDialog({
@@ -46,25 +58,17 @@ export function ConfirmDialog({
   };
 
   return (
-    <DialogPrimitive.Root
+    <AlertDialog
       open={open}
-      // A running action keeps the dialog open: Escape and outside clicks wait for it.
+      // A running action keeps the dialog open: Escape waits for it. Outside clicks never close an alert dialog.
       onOpenChange={(next) => {
         if (!next && actions.some((a) => a.pending)) return;
         onOpenChange(next);
       }}
     >
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-black/40 duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-            "motion-reduce:animate-none motion-reduce:transition-none",
-          )}
-        />
-        <DialogPrimitive.Content
-          role="alertdialog"
+      <AlertDialogPortal>
+        <AlertDialogOverlay className="fixed inset-0 z-50 bg-black/40" />
+        <AlertDialogContent
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             firstRef.current?.focus();
@@ -72,20 +76,17 @@ export function ConfirmDialog({
           className={cn(
             "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
             "rounded-[24px] bg-[var(--color-neutral-white)] p-6 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-12px_rgb(0_0_0/0.08)]",
-            "duration-150 ease-out focus:outline-none",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-96",
-            "motion-reduce:animate-none motion-reduce:transition-none",
+            "focus:outline-none",
           )}
         >
-          <DialogPrimitive.Title className="text-base font-semibold text-[var(--color-neutral-charcoal)]">
+          <AlertDialogTitle className="text-base font-semibold text-[var(--color-neutral-charcoal)]">
             {title}
-          </DialogPrimitive.Title>
-          <DialogPrimitive.Description asChild>
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
             <div className="mt-2 grid gap-2 text-sm text-pretty text-[var(--color-text-secondary)]">
               {children}
             </div>
-          </DialogPrimitive.Description>
+          </AlertDialogDescription>
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             {actions.map((action, i) => {
               const busy = actions.some((a) => a.pending);
@@ -118,8 +119,8 @@ export function ConfirmDialog({
               );
             })}
           </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </AlertDialogContent>
+      </AlertDialogPortal>
+    </AlertDialog>
   );
 }

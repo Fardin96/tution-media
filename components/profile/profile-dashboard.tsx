@@ -104,6 +104,9 @@ import {
 import { studentRequirementQueryOptions } from "@/lib/applications";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { enterClass, enterStyle } from "@/components/motion/enter";
+import { revealMotion } from "@/components/motion/swap";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
@@ -1217,6 +1220,8 @@ function RemovableRow({
   action,
   preview,
   onRemove,
+  className,
+  style,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -1226,12 +1231,20 @@ function RemovableRow({
   /** Full-width content under the title row, e.g. a video player. */
   preview?: React.ReactNode;
   onRemove: () => Promise<void>;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5">
+    <li
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5",
+        className,
+      )}
+      style={style}
+    >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
         {icon}
       </span>
@@ -1402,7 +1415,7 @@ function CredentialsSection({
           />
         ) : (
           <ul className="divide-y divide-[var(--color-neutral-border)]">
-            {credentials.map((c) => (
+            {credentials.map((c, i) => (
               <RemovableRow
                 key={c.id}
                 icon={<FileText aria-hidden="true" className="size-5" />}
@@ -1412,6 +1425,8 @@ function CredentialsSection({
                   <ViewFileButton fileId={c.file.id} label={c.examLabel} />
                 }
                 onRemove={() => onRemove(c.id)}
+                className={enterClass}
+                style={enterStyle(i)}
               />
             ))}
           </ul>
@@ -1492,7 +1507,7 @@ export function VideosSection({
           />
         ) : (
           <ul className="divide-y divide-[var(--color-neutral-border)]">
-            {videos.map((v) => {
+            {videos.map((v, i) => {
               const s = VIDEO_STATUS[v.status];
               const saving =
                 setHomePage.isPending && setHomePage.variables?.id === v.id;
@@ -1523,6 +1538,8 @@ export function VideosSection({
                   }
                   preview={<VideoPreview video={v} />}
                   onRemove={() => onRemove(v.id)}
+                  className={enterClass}
+                  style={enterStyle(i)}
                 />
               );
             })}
@@ -1727,6 +1744,7 @@ export function RequirementsSection({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showAllPast, setShowAllPast] = useState(false);
+  const reveal = revealMotion(useReducedMotion(), 16);
   const past = requirements?.filter((r) => isPastRequirement(r.status)) ?? [];
 
   useEffect(() => {
@@ -1794,11 +1812,13 @@ export function RequirementsSection({
             <ul className="mt-5 grid gap-4">
               {requirements
                 .filter((r) => r.status === "OPEN" || r.status === "DRAFT")
-                .map((r) => (
+                .map((r, i) => (
                   <RequirementItem
                     key={r.id}
                     requirement={r}
                     onUpdateRequirement={onUpdateRequirement}
+                    className={enterClass}
+                    style={enterStyle(i)}
                   />
                 ))}
             </ul>
@@ -1809,14 +1829,27 @@ export function RequirementsSection({
               <h3 className="mt-8 text-sm font-semibold text-[var(--color-text-secondary)]">
                 Past requirements
               </h3>
-              <ul id="past-requirements" className="mt-3 grid gap-4">
-                {past.slice(0, showAllPast ? undefined : 1).map((r) => (
+              {/* The newest past card always shows; "View more" opens the rest into place and "Show less" closes them. */}
+              <ul id="past-requirements" className="mt-3 flex flex-col">
+                <li className={enterClass}>
                   <RequirementItem
-                    key={r.id}
-                    requirement={r}
+                    as="div"
+                    requirement={past[0]}
                     onUpdateRequirement={onUpdateRequirement}
                   />
-                ))}
+                </li>
+                <AnimatePresence initial={false}>
+                  {showAllPast &&
+                    past.slice(1).map((r) => (
+                      <motion.li key={r.id} {...reveal}>
+                        <RequirementItem
+                          as="div"
+                          requirement={r}
+                          onUpdateRequirement={onUpdateRequirement}
+                        />
+                      </motion.li>
+                    ))}
+                </AnimatePresence>
               </ul>
               {past.length > 1 && (
                 <button
@@ -1845,9 +1878,16 @@ export function RequirementsSection({
 function RequirementItem({
   requirement: r,
   onUpdateRequirement,
+  as: Root = "li",
+  className,
+  style,
 }: {
   requirement: Requirement;
   onUpdateRequirement: (req: Requirement) => void;
+  /** "div" when the caller supplies the list item (the past list animates its own items). */
+  as?: "li" | "div";
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1907,11 +1947,13 @@ function RequirementItem({
   };
 
   return (
-    <li
+    <Root
       className={cn(
         card,
         "flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between",
+        className,
       )}
+      style={style}
     >
       <p aria-live="polite" className="sr-only">
         {announce}
@@ -2086,7 +2128,7 @@ function RequirementItem({
           </>
         )}
       </div>
-    </li>
+    </Root>
   );
 }
 

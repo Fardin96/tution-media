@@ -43,6 +43,8 @@ import { FilePreview } from "@/components/files/file-preview";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { enterClass, enterStyle } from "@/components/motion/enter";
+import { Expand } from "@/components/motion/expand";
 
 const PATH = "/dashboard/admin/verifications";
 
@@ -244,10 +246,11 @@ export function AdminVerificationsPage() {
         emptyText={EMPTY_COPY[status]}
       >
         <ul className="grid gap-4">
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <li
               key={`${row.kind}-${row.decideId}`}
-              className={cn(card, "grid gap-4 p-5")}
+              className={cn(card, "grid gap-4 p-5", enterClass)}
+              style={enterStyle(index)}
             >
               <VerificationCard
                 row={row}
@@ -371,12 +374,14 @@ function VerificationCard({
         </p>
       )}
 
-      {canOpen && showPreview && file && (
-        <FilePreview
-          fileId={file.id}
-          contentType={file.contentType}
-          name={file.fileName}
-        />
+      {file && (
+        <Expand open={canOpen && showPreview}>
+          <FilePreview
+            fileId={file.id}
+            contentType={file.contentType}
+            name={file.fileName}
+          />
+        </Expand>
       )}
 
       {(canOpen ||

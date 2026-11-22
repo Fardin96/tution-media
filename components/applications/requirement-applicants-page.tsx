@@ -6,6 +6,7 @@ import { GraduationCap, Repeat2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
@@ -167,8 +168,12 @@ export function RequirementApplicantsPage({
   } else {
     body = (
       <ul className="grid gap-4">
-        {applicants.map((application) => (
-          <li key={application.id}>
+        {applicants.map((application, index) => (
+          <li
+            key={application.id}
+            className={enterClass}
+            style={enterStyle(index)}
+          >
             <ApplicantCard application={application} />
           </li>
         ))}

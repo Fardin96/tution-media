@@ -5,6 +5,7 @@ import { secondaryButton } from "@/components/profile/styles";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { formatDay } from "@/components/applications/format";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { StarRating } from "@/components/reviews/star-rating";
 import {
   useStudentReviews,
@@ -119,10 +120,14 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
     <div className="grid gap-5">
       <SummaryHeader summary={summary} />
       <ul className="grid gap-3">
-        {reviews.map((review) => (
+        {reviews.map((review, index) => (
           <li
             key={review.id}
-            className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+            className={cn(
+              "grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4",
+              enterClass,
+            )}
+            style={enterStyle(index)}
           >
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <StarRating value={review.rating} size="sm" />

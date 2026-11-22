@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Quote, Trash2 } from "lucide-react";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   AddButton,
   EmptyState,
@@ -120,11 +121,13 @@ export function StoriesSection({ role }: { role: StoryRole }) {
             />
           ) : (
             <ul className="divide-y divide-[var(--color-neutral-border)]">
-              {data.stories.map((story) => (
+              {data.stories.map((story, i) => (
                 <StoryRow
                   key={story.id}
                   story={story}
                   onRemove={() => setRemoving(story)}
+                  className={enterClass}
+                  style={enterStyle(i)}
                 />
               ))}
             </ul>
@@ -154,14 +157,30 @@ export function StoriesSection({ role }: { role: StoryRole }) {
   );
 }
 
-function StoryRow({ story, onRemove }: { story: Story; onRemove: () => void }) {
+function StoryRow({
+  story,
+  onRemove,
+  className,
+  style,
+}: {
+  story: Story;
+  onRemove: () => void;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const refreshExpired = useRefreshExpiredMedia();
   const status = STORY_STATUS[story.status];
   const title = storyTitle(story);
   const hasPreview = Boolean(story.note || story.image || story.video);
 
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5">
+    <li
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:px-5",
+        className,
+      )}
+      style={style}
+    >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
         <Quote aria-hidden="true" className="size-5" />
       </span>

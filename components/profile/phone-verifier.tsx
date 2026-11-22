@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CircleCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { Label } from "@/components/ui/label";
 import { formatBdPhone } from "@/lib/profile";
@@ -136,16 +140,19 @@ export function PhoneVerifier({
   // An expired code has nothing useful to say about an earlier wrong attempt, so the expiry replaces the error.
   const shownError = expired ? null : error;
 
-  const onCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const next = e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH);
+  // Typing, pasting and autofill all arrive here as a string. The code stays as it is while a check runs.
+  const setCodeFromOtp = (value: string) => {
+    if (verifying) return;
+    const next = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
     setCode(next);
-    if (next.length === CODE_LENGTH && !verifying && !submitting.current) {
+    if (next.length === CODE_LENGTH && !submitting.current) {
       submitting.current = true;
       onVerify(next);
     }
   };
 
-  const describedBy = [hintId, notice && noticeId, shownError && errorId]
+  const hasError = Boolean(shownError);
+  const describedBy = [hintId, notice && noticeId, hasError && errorId]
     .filter(Boolean)
     .join(" ");
 
@@ -167,23 +174,25 @@ export function PhoneVerifier({
             {notice}
           </p>
         )}
-        <Input
+        <InputOTP
           id={inputId}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="\d{6}"
+          maxLength={CODE_LENGTH}
           value={code}
-          onChange={onCodeChange}
+          onChange={setCodeFromOtp}
+          autoComplete="one-time-code"
           readOnly={verifying}
           disabled={expired}
           aria-busy={verifying || undefined}
-          aria-invalid={shownError ? true : undefined}
+          aria-invalid={hasError ? true : undefined}
           aria-describedby={describedBy}
           autoFocus={autoFocus}
-          className={cn(
-            "h-12 max-w-56 rounded-[12px] border-[var(--color-border-control)] bg-[var(--color-neutral-white)] px-4 text-start text-xl tracking-[0.4em] text-[var(--color-neutral-charcoal)] tabular-nums transition-[border-color,box-shadow] duration-150 ease-out hover:border-[var(--color-neutral-charcoal)] focus-visible:border-[var(--color-primary-core)] focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-primary-core)_16%,transparent)] focus-visible:ring-0 focus-visible:outline-none disabled:opacity-60 aria-invalid:border-[var(--color-semantic-error-text)] aria-invalid:ring-0 motion-reduce:transition-none md:text-xl",
-          )}
-        />
+        >
+          <InputOTPGroup>
+            {Array.from({ length: CODE_LENGTH }, (_, index) => (
+              <InputOTPSlot key={index} index={index} invalid={hasError} />
+            ))}
+          </InputOTPGroup>
+        </InputOTP>
         {verifying && (
           <p
             role="status"

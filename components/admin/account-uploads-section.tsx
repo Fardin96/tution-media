@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { primaryButton, secondaryButton } from "@/components/profile/styles";
 import {
@@ -14,6 +14,7 @@ import {
   ReviewNoteForm,
   type ReviewSubmit,
 } from "@/components/admin/review-dialog";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatBytes } from "@/lib/files";
 import { formatDateTime } from "@/lib/admin";
 import { issueText, repeatedIssues } from "@/lib/admin-moderation";
@@ -120,8 +121,13 @@ export function AccountUploadsSection({
               </p>
             ) : (
               <ul className="grid gap-3">
-                {events.map((event) => (
-                  <HistoryItem key={event.id} event={event} />
+                {events.map((event, index) => (
+                  <HistoryItem
+                    key={event.id}
+                    event={event}
+                    className={enterClass}
+                    style={enterStyle(index)}
+                  />
                 ))}
               </ul>
             )}
@@ -226,11 +232,25 @@ function BlockDetails({ block }: { block: UploadBlockView }) {
   );
 }
 
-function HistoryItem({ event }: { event: UploadReviewEvent }) {
+function HistoryItem({
+  event,
+  className,
+  style,
+}: {
+  event: UploadReviewEvent;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const what = purposeText(event.purpose);
   const size = event.sizeBytes !== null ? formatBytes(event.sizeBytes) : null;
   return (
-    <li className="grid min-w-0 gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4">
+    <li
+      className={cn(
+        "grid min-w-0 gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4",
+        className,
+      )}
+      style={style}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-[var(--color-neutral-charcoal)]">
           {eventTitle(event)}
