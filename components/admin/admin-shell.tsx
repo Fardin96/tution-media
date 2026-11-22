@@ -206,7 +206,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             alt="Masters Hub"
             width={860}
             height={220}
-            priority
+            preload
             className="h-10 w-auto"
           />
         </Link>
@@ -251,7 +251,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 alt="Masters Hub"
                 width={860}
                 height={220}
-                priority
+                preload
                 className="h-8 w-auto"
               />
             </Link>

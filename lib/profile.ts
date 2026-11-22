@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { api } from "./api";
+import { api, getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { loadAreas } from "./areas";
+import { refreshSiteContentForUser } from "./site-content.actions";
 import { loadSubjects } from "./subjects";
 
 export type ProfileRole = "STUDENT" | "TUTOR";
@@ -638,11 +639,28 @@ export const profileOf = (me: Me) => me.student ?? me.tutor;
  * Saves a video's home-page agreement. The dashboard keeps its video list in state, not in the
  * query cache, so `onSaved` receives the server's copy and the dashboard swaps it in.
  */
+/**
+ * Ticking or unticking the home page changes the landing at once, so the landing cache is
+ * expired now. Failure is ignored: the landing catches up within 30 minutes anyway.
+ */
+async function refreshLandingForUser() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshSiteContentForUser(tokens.accessToken);
+  } catch {
+    // The landing refreshes within 30 minutes anyway.
+  }
+}
+
 export function useSetVideoHomePage(onSaved?: (video: Video) => void) {
   return useMutation({
     mutationFn: ({ id, show }: { id: string; show: boolean }) =>
       profileApi.setVideoHomePage(id, show),
-    onSuccess: (video) => onSaved?.(video),
+    onSuccess: (video) => {
+      void refreshLandingForUser();
+      onSaved?.(video);
+    },
   });
 }
 

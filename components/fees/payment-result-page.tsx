@@ -22,7 +22,9 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
 import { PageFrame } from "@/components/ui/page-frame";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { formatMoney } from "@/components/fees/fee-format";
 import {
   isFeeOpen,
@@ -238,11 +240,18 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
             onError: (err) => toastError("Couldn't start a new payment.", err),
           })
         }
-        disabled={checkout.isPending}
-        aria-busy={checkout.isPending || undefined}
+        disabled={checkout.redirecting}
+        aria-busy={checkout.redirecting || undefined}
         className={cn(primaryButton, "min-h-11")}
       >
-        {checkout.isPending ? "Starting..." : "Try again"}
+        {checkout.redirecting ? (
+          <>
+            Starting…
+            <SpinnerEllipsis />
+          </>
+        ) : (
+          "Try again"
+        )}
       </button>
     ) : null;
     outcome = statusOutcome(view, { tranId, feeId, retry, longWait });
@@ -250,6 +259,10 @@ export function PaymentResultPage({ feeId }: { feeId: string }) {
 
   return (
     <PageFrame>
+      <BlockingOverlay
+        open={checkout.redirecting}
+        label="Taking you to SSLCommerz…"
+      />
       <div className="grid gap-6">
         <BackLink href={feeHref}>Fee</BackLink>
         <OutcomeCard outcome={outcome} />

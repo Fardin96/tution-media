@@ -12,6 +12,8 @@ import {
 } from "@/components/profile/styles";
 import { control, FieldError } from "@/components/profile/profile-fields";
 import { BackLink } from "@/components/ui/back-link";
+import { Skeleton } from "@/components/ui/skeleton";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 
 /* ───────── Page frame ───────── */
 
@@ -161,11 +163,11 @@ export function QueryState({
           <div
             key={i}
             aria-hidden="true"
-            className={cn(
-              card,
-              "h-24 animate-pulse motion-reduce:animate-none",
-            )}
-          />
+            className={cn(card, "flex flex-col gap-3 p-5 sm:p-6")}
+          >
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
         ))}
       </div>
     );
@@ -222,7 +224,14 @@ export function LoadMore({
         disabled={query.isFetchingNextPage}
         className={secondaryButton}
       >
-        {query.isFetchingNextPage ? "Loading..." : "Load more"}
+        {query.isFetchingNextPage ? (
+          <>
+            <SpinnerEllipsis />
+            Loading...
+          </>
+        ) : (
+          "Load more"
+        )}
       </button>
     </div>
   );

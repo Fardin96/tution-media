@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
 import { invalidateFees, queryKeys } from "./query-keys";
@@ -78,7 +79,7 @@ export function useMyFee(id: string) {
  */
 export function useCheckout(feeId: string) {
   const queryClient = useQueryClient();
-  return useMutation<CheckoutSession, ApiError, void>({
+  const mutation = useMutation<CheckoutSession, ApiError, void>({
     mutationFn: () => feeApi.checkout(feeId),
     onSuccess: (session) => {
       window.location.assign(session.gatewayUrl);
@@ -86,6 +87,24 @@ export function useCheckout(feeId: string) {
     // A 409 means the fee moved (paid, or a payment in progress): show the fresh state.
     onError: () => invalidateFees(queryClient),
   });
+  const { reset } = mutation;
+
+  // Restored from the back-forward cache: the redirect to the gateway was undone, so the page
+  // must not stay locked behind the "Taking you to SSLCommerz" overlay.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) reset();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [reset]);
+
+  // isSuccess stays true after the POST resolves, so the page keeps the button off while the
+  // browser leaves for the gateway. Only an error (or a back-forward restore) brings it back.
+  return {
+    ...mutation,
+    redirecting: mutation.isPending || mutation.isSuccess,
+  };
 }
 
 /**

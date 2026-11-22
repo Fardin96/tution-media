@@ -9839,9 +9839,9 @@ export interface paths {
     };
     /**
      * Get the landing page content
-     * @description The ten landing blocks: hero, nav, categories, testimonials, showcase, how_it_works, faq, cta_banner, footer and seo. A block with no row, or a stored row that no longer fits, shows its default.
+     * @description The ten landing blocks: hero, nav, categories, testimonials, showcase, how_it_works, faq, cta_banner, footer and seo. A block with no row, or a stored row that no longer fits, shows its default. The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** 120/min per account.
      */
@@ -9900,9 +9900,9 @@ export interface paths {
     };
     /**
      * Get a static page
-     * @description One of about-us, terms, privacy or contact. updatedAt is null while the page shows its default.
+     * @description One of about-us, terms, privacy or contact. updatedAt is null while the page shows its default. The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** 120/min per account.
      */
@@ -9972,9 +9972,9 @@ export interface paths {
     };
     /**
      * Get education lookups
-     * @description Curricula with their levels and groups, admission targets, retaker labels and the level range. Cached for 5 minutes; signed-in callers get no-store.
+     * @description Curricula with their levels and groups, admission targets, retaker labels and the level range. The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** 120/min per IP.
      */
@@ -10033,9 +10033,9 @@ export interface paths {
     };
     /**
      * List areas
-     * @description Active areas grouped by division, then district. Divisions, districts and areas are each sorted by name. code is the district code that tutor-city checks compare against (null when the district name is not recognised). Cached for 5 minutes; signed-in callers get no-store.
+     * @description Active areas grouped by division, then district. Divisions, districts and areas are each sorted by name. code is the district code that tutor-city checks compare against (null when the district name is not recognised). The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** 120/min per IP.
      */
@@ -10094,9 +10094,9 @@ export interface paths {
     };
     /**
      * List subjects
-     * @description Active subjects only, ordered by sortOrder then name. Cached for 5 minutes; signed-in callers get no-store.
+     * @description Active subjects only, ordered by sortOrder then name. The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** 120/min per IP.
      */

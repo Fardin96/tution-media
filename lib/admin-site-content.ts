@@ -91,7 +91,7 @@ function writeItem(queryClient: QueryClient, item: AdminSiteContentItem) {
 }
 
 /**
- * The landing caches its content for up to 5 minutes. A saved change asks the server to expire
+ * The landing caches its content for up to 30 minutes. A saved change asks the server to expire
  * that cache now. Failure is ignored: the landing still catches up on its own.
  */
 async function refreshLanding() {
@@ -100,7 +100,7 @@ async function refreshLanding() {
   try {
     await refreshSiteContent(tokens.accessToken);
   } catch {
-    // The landing refreshes within 5 minutes anyway.
+    // The landing refreshes within 30 minutes anyway.
   }
 }
 

@@ -29,7 +29,7 @@ interface ZonePlaceSearchProps {
 }
 
 const MIN_QUERY = 3;
-const DEBOUNCE_MS = 300;
+const DEBOUNCE_MS = 250;
 
 export function ZonePlaceSearch({
   id,
@@ -130,7 +130,9 @@ export function ZonePlaceSearch({
   }
 
   async function selectPrediction(prediction: PlacePrediction) {
+    // Drop a search that is still waiting or in flight, so its results can't reopen the list.
     requestRef.current++;
+    if (timerRef.current) clearTimeout(timerRef.current);
     closeList();
     setLoading(true);
     try {

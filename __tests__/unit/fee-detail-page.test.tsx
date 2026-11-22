@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -221,6 +221,75 @@ describe("FeeDetailPage pay online", () => {
     expect(new URL(post![0], "http://localhost").pathname).toBe(
       `/api/v1/fees/${FEE_ID}/checkout`,
     );
+  });
+
+  it("keeps the pay button off and shows the redirect once the session is made", async () => {
+    mockApi(detail());
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Pay ৳1,537.50 with SSLCommerz",
+      }),
+    );
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(GATEWAY_URL));
+    const status = await screen.findByText("Taking you to SSLCommerz…");
+    expect(status.closest('[role="status"]')).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Opening SSLCommerz…" }),
+    ).toBeDisabled();
+  });
+
+  it("releases the pay button when the page is restored from the back-forward cache", async () => {
+    mockApi(detail());
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Pay ৳1,537.50 with SSLCommerz",
+      }),
+    );
+    await screen.findByText("Taking you to SSLCommerz…");
+
+    act(() => {
+      const event = new Event("pageshow");
+      Object.defineProperty(event, "persisted", { value: true });
+      window.dispatchEvent(event);
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Taking you to SSLCommerz…"),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Pay ৳1,537.50 with SSLCommerz" }),
+    ).toBeEnabled();
+  });
+
+  it("keeps the redirect state on a page show that is not a restore", async () => {
+    mockApi(detail());
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Pay ৳1,537.50 with SSLCommerz",
+      }),
+    );
+    await screen.findByText("Taking you to SSLCommerz…");
+
+    act(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+
+    expect(screen.getByText("Taking you to SSLCommerz…")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Opening SSLCommerz…" }),
+    ).toBeDisabled();
   });
 
   it("shows Opening SSLCommerz and disables the button while the session starts", async () => {

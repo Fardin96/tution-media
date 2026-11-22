@@ -225,6 +225,8 @@ test.describe("Admin navigation", () => {
     await page.goto("/dashboard/admin/reviews");
 
     const nav = page.getByRole("navigation", { name: "Admin" }).first();
+    // The route skeleton streams first; read the links once the shell is in.
+    await expect(nav.getByRole("link", { name: /Videos/ })).toBeVisible();
     const labels = await nav.getByRole("link").allInnerTexts();
     const trimmed = labels.map((l) => l.trim().split("\n")[0]);
     const videos = trimmed.indexOf("Videos");

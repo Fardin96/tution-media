@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -101,6 +102,7 @@ import {
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -112,13 +114,7 @@ import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { StoriesSection } from "@/components/stories/stories-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { EditSection, SaveCancelled } from "./edit-section";
-import { PhoneVerifyDialog } from "./phone-verify-dialog";
-import { CredentialDialog } from "./credential-dialog";
-import {
-  VerificationUploadDialog,
-  type SubmittedVerification,
-} from "./verification-upload-dialog";
-import { VideoDialog } from "./video-dialog";
+import type { SubmittedVerification } from "./verification-upload-dialog";
 import {
   AddButton,
   EmptyState,
@@ -135,6 +131,33 @@ import {
   primaryButton,
   secondaryButton,
 } from "./styles";
+
+// Each dialog loads the first time it opens (see useStayMounted), so its form and upload code
+// stay out of the profile's first bundle.
+const PhoneVerifyDialog = dynamic(() =>
+  import("./phone-verify-dialog").then((m) => m.PhoneVerifyDialog),
+);
+const CredentialDialog = dynamic(() =>
+  import("./credential-dialog").then((m) => m.CredentialDialog),
+);
+const VerificationUploadDialog = dynamic(() =>
+  import("./verification-upload-dialog").then(
+    (m) => m.VerificationUploadDialog,
+  ),
+);
+const VideoDialog = dynamic(() =>
+  import("./video-dialog").then((m) => m.VideoDialog),
+);
+
+/**
+ * True while `open`, and after it has been open once. A lazy dialog mounts on its first open and
+ * then stays mounted, so its exit fade plays as before and the form resets on close as before.
+ */
+function useStayMounted(open: boolean) {
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
+  return open || opened;
+}
 
 const WASH = [
   "radial-gradient(55% 80% at 0% 0%, color-mix(in oklab, var(--color-primary-core) 18%, transparent), transparent 70%)",
@@ -269,6 +292,7 @@ export function ProfileDashboard({
     open: boolean;
     initialNumber: string | null;
   }>({ open: false, initialNumber: null });
+  const phoneDialogMounted = useStayMounted(phoneDialog.open);
   const phoneStatus = usePhoneVerificationStatus();
   const phoneRequired = phoneStatus.data?.required ?? false;
   const openPhoneDialog = (initialNumber: string | null = null) =>
@@ -726,7 +750,7 @@ export function ProfileDashboard({
         </>
       )}
 
-      {profile && (
+      {profile && phoneDialogMounted && (
         <PhoneVerifyDialog
           open={phoneDialog.open}
           onOpenChange={(open) => setPhoneDialog((d) => ({ ...d, open }))}
@@ -765,7 +789,7 @@ function TopBar({ name, picture }: { name: string; picture?: string }) {
             alt="Masters Hub home"
             width={860}
             height={220}
-            priority
+            preload
             className="h-9 w-auto"
           />
         </Link>
@@ -1309,6 +1333,7 @@ function CredentialsSection({
   onAdded: (credential: Credential) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const addingMounted = useStayMounted(adding);
   const uploadStatus = useUploadStatus();
   const blockedText = pausedText(uploadStatus.data, "documents");
   // Without the list the count is unknown, so the add button waits for a reload.
@@ -1368,11 +1393,13 @@ function CredentialsSection({
           one to add another.
         </p>
       )}
-      <CredentialDialog
-        open={adding}
-        onOpenChange={setAdding}
-        onAdded={onAdded}
-      />
+      {addingMounted && (
+        <CredentialDialog
+          open={adding}
+          onOpenChange={setAdding}
+          onAdded={onAdded}
+        />
+      )}
     </section>
   );
 }
@@ -1389,6 +1416,7 @@ export function VideosSection({
   onUpdated: (video: Video) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const addingMounted = useStayMounted(adding);
   const uploadStatus = useUploadStatus();
   const blockedText = pausedText(uploadStatus.data, "videos");
   // Without the list the count is unknown, so the add button waits for a reload.
@@ -1483,7 +1511,9 @@ export function VideosSection({
           add another.
         </p>
       )}
-      <VideoDialog open={adding} onOpenChange={setAdding} onAdded={onAdded} />
+      {addingMounted && (
+        <VideoDialog open={adding} onOpenChange={setAdding} onAdded={onAdded} />
+      )}
     </section>
   );
 }
@@ -2112,6 +2142,7 @@ function VerificationCard({
   onSubmitted: (result: SubmittedVerification) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const uploadingMounted = useStayMounted(uploading);
   const uploadStatus = useUploadStatus();
   const v = VERIFICATION[status];
   const canUpload = status === "NOT_SUBMITTED" || status === "REJECTED";
@@ -2173,13 +2204,15 @@ function VerificationCard({
             </button>
           </div>
         ))}
-      <VerificationUploadDialog
-        open={uploading}
-        onOpenChange={setUploading}
-        role={role}
-        hasStudentIdNumber={hasStudentIdNumber}
-        onSubmitted={onSubmitted}
-      />
+      {uploadingMounted && (
+        <VerificationUploadDialog
+          open={uploading}
+          onOpenChange={setUploading}
+          role={role}
+          hasStudentIdNumber={hasStudentIdNumber}
+          onSubmitted={onSubmitted}
+        />
+      )}
     </section>
   );
 }
@@ -2305,30 +2338,29 @@ function HelpCard() {
 /* ───────── Loading ───────── */
 
 function DashboardSkeleton() {
-  const bar =
-    "animate-pulse rounded-full bg-[color-mix(in_oklab,var(--color-neutral-charcoal)_8%,transparent)] motion-reduce:animate-none";
   return (
     <div
+      role="status"
       aria-busy="true"
-      aria-label="Loading your profile"
       className="mx-auto w-full max-w-6xl px-4 pt-12 sm:px-6"
     >
+      <span className="sr-only">Loading your profile</span>
       <div className="flex items-center gap-5">
-        <div className={cn(bar, "size-24")} />
+        <Skeleton className="size-24 rounded-full" />
         <div className="grid flex-1 gap-3">
-          <div className={cn(bar, "h-4 w-32")} />
-          <div className={cn(bar, "h-8 w-64 max-w-full")} />
-          <div className={cn(bar, "h-5 w-48")} />
+          <Skeleton className="h-4 w-32 rounded-full" />
+          <Skeleton className="h-8 w-64 max-w-full rounded-full" />
+          <Skeleton className="h-5 w-48 rounded-full" />
         </div>
       </div>
       <div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={cn(bar, "h-32 rounded-[20px]")} />
+          <Skeleton key={i} className="h-32 rounded-[20px]" />
         ))}
       </div>
       <div className="mt-10 grid gap-4">
         {[0, 1].map((i) => (
-          <div key={i} className={cn(bar, "h-48 rounded-[24px]")} />
+          <Skeleton key={i} className="h-48 rounded-[24px]" />
         ))}
       </div>
     </div>

@@ -21,7 +21,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/site-content.server", async () => {
   const { SITE_CONTENT_DEFAULTS } = await import("@/lib/site-content");
-  return { getSiteContent: async () => SITE_CONTENT_DEFAULTS };
+  return {
+    getSiteContent: async () => SITE_CONTENT_DEFAULTS,
+    getSiteContentForPage: async () => SITE_CONTENT_DEFAULTS,
+  };
 });
 
 // Snapshots pin the year in the footer copyright.

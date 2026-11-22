@@ -4,7 +4,9 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
+import { refreshBlog } from "./blog.actions";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
 
@@ -60,12 +62,27 @@ export function useAdminBlogPost(id: string) {
   });
 }
 
+/**
+ * The public blog caches for up to 5 minutes. A saved change asks the server to expire that
+ * cache now. Failure is ignored: the blog still catches up on its own.
+ */
+async function refreshPublicBlog() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshBlog(tokens.accessToken);
+  } catch {
+    // The public blog refreshes within 5 minutes anyway.
+  }
+}
+
 export function useCreateBlogPost() {
   const queryClient = useQueryClient();
   return useMutation<AdminBlogPost, ApiError, CreateBlogPostBody>({
     mutationFn: adminBlogApi.create,
     onSuccess: (post) => {
       queryClient.setQueryData(queryKeys.admin.blogPost(post.id), post);
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),
@@ -78,6 +95,7 @@ export function useUpdateBlogPost(id: string) {
     mutationFn: (body) => adminBlogApi.update(id, body),
     onSuccess: (post) => {
       queryClient.setQueryData(queryKeys.admin.blogPost(id), post);
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),
@@ -90,6 +108,7 @@ export function useDeleteBlogPost(id: string) {
     mutationFn: () => adminBlogApi.remove(id),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.admin.blogPost(id) });
+      void refreshPublicBlog();
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.blogAll }),

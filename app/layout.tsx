@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Manrope } from "next/font/google";
+import { Geist_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "./providers";
@@ -9,14 +10,11 @@ import { getSiteContent } from "@/lib/site-content.server";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
+// Mono appears on a few pages only, so don't preload it on every page.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,7 +31,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         "h-full",
         "scroll-smooth motion-reduce:scroll-auto",
         "antialiased",
-        geistSans.variable,
         geistMono.variable,
         "font-sans",
         manrope.variable,
@@ -43,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>{children}</Providers>
         <Toaster />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

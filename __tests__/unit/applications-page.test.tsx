@@ -239,7 +239,7 @@ describe("ApplicationsPage", () => {
   it("shows a skeleton while loading", () => {
     mockList([], { isPending: true });
     renderPage("TUTOR");
-    expect(screen.getByText("Loading applications")).toBeInTheDocument();
+    expect(screen.getByText("Loading applications…")).toBeInTheDocument();
   });
 
   it.each(["TUTOR", "STUDENT"] as const)(

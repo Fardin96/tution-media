@@ -39,7 +39,7 @@ export function PageFrame({
             alt="Masters Hub"
             width={860}
             height={220}
-            priority
+            preload
             className="h-10 w-auto sm:h-12"
           />
         </Link>

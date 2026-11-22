@@ -3,8 +3,9 @@ import { client, unwrap } from "./api-client";
 import type { Option } from "./profile";
 import { queryKeys } from "./query-keys";
 
-/** Areas change rarely, so a mounted list is trusted for five minutes. */
-const STALE_MS = 5 * 60_000;
+/** Areas change rarely, so a list is trusted for 30 minutes; admin edits invalidate it. */
+const STALE_MS = 30 * 60_000;
+const GC_MS = 60 * 60_000;
 
 const NO_AREAS: Option[] = [];
 
@@ -48,6 +49,8 @@ export function useAreas() {
     queryKey: queryKeys.areas,
     queryFn: loadAreas,
     staleTime: STALE_MS,
+    gcTime: GC_MS,
+    refetchOnWindowFocus: false,
   });
   return { ...query, areas: query.data ?? NO_AREAS };
 }

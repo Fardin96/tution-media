@@ -6,11 +6,10 @@ import { MotionConfig, useReducedMotion } from "motion/react";
 import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
 import { VideoCard } from "@/components/video-card";
-import {
-  isRemoteSrc,
-  type ShowcaseBlock,
-  type ShowcaseItem,
-} from "@/lib/site-content";
+import { canOptimizeImage } from "@/lib/media";
+import type { ShowcaseBlock, ShowcaseItem } from "@/lib/site-content";
+import { useRefreshExpiredPageMedia } from "@/lib/use-refresh-expired-page-media";
+import { useSaveData } from "@/lib/use-save-data";
 import { cn } from "@/lib/utils";
 
 // Track padding lines the first card up with the 1240px content column while the
@@ -23,6 +22,8 @@ const focusRing =
 export function TutorShowcase({ content }: { content: ShowcaseBlock }) {
   const trackRef = useRef<HTMLUListElement>(null);
   const reduceMotion = useReducedMotion();
+  // Data saver or slow link: nothing starts on its own; taps still play.
+  const saveData = useSaveData();
   const [playingId, setPlayingId] = useState<string | null>(null);
   // A tap-to-pause wins over autoplay until the section leaves view.
   const userPaused = useRef(false);
@@ -61,14 +62,14 @@ export function TutorShowcase({ content }: { content: ShowcaseBlock }) {
           userPaused.current = false;
           setPlayingId(null);
         } else if (!reduceMotion && !userPaused.current) {
-          setPlayingId(firstVisibleVideo());
+          setPlayingId(saveData ? null : firstVisibleVideo());
         }
       },
       { threshold: 0.4 },
     );
     io.observe(track);
     return () => io.disconnect();
-  }, [reduceMotion, firstVisibleVideo]);
+  }, [reduceMotion, saveData, firstVisibleVideo]);
 
   // Arrow enabled/disabled state; ResizeObserver also fires once on mount.
   const updateEdges = useCallback(() => {
@@ -94,7 +95,9 @@ export function TutorShowcase({ content }: { content: ShowcaseBlock }) {
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
       if (reduceMotion || userPaused.current) return;
-      setPlayingId((id) => (id && isVisible(id) ? id : firstVisibleVideo()));
+      setPlayingId((id) =>
+        id && isVisible(id) ? id : saveData ? null : firstVisibleVideo(),
+      );
     }, 150);
   };
 
@@ -186,6 +189,7 @@ function CommentCard({
 }: {
   item: Extract<ShowcaseItem, { kind: "comment" }>;
 }) {
+  const onMediaError = useRefreshExpiredPageMedia();
   return (
     <article className="flex size-full flex-col overflow-hidden rounded-[20px] bg-[var(--color-surface-inverse)]">
       <div className="relative shrink-0 basis-[50%] sm:basis-1/2">
@@ -193,8 +197,9 @@ function CommentCard({
           src={item.thumbnail}
           alt=""
           fill
-          {...(isRemoteSrc(item.thumbnail) && { unoptimized: true })}
+          {...(!canOptimizeImage(item.thumbnail) && { unoptimized: true })}
           sizes="(min-width: 1024px) 461px, (min-width: 640px) 352px, 80vw"
+          onError={onMediaError}
           className="object-cover object-top"
         />
       </div>

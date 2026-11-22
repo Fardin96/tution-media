@@ -16,7 +16,9 @@ import {
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { BackLink } from "@/components/ui/back-link";
+import { BlockingOverlay } from "@/components/ui/blocking-overlay";
 import { PageFrame } from "@/components/ui/page-frame";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { Rows, Section } from "@/components/applications/detail-sections";
@@ -130,6 +132,10 @@ function PayOnlineSection({
 
   return (
     <Section title="Pay online">
+      <BlockingOverlay
+        open={pay.redirecting}
+        label="Taking you to SSLCommerz…"
+      />
       {checkout.enabled ? (
         <div className="grid gap-5">
           <dl className="grid gap-2">
@@ -170,8 +176,8 @@ function PayOnlineSection({
           <div className="grid gap-3">
             <button
               type="button"
-              aria-busy={pay.isPending}
-              disabled={pay.isPending}
+              aria-busy={pay.redirecting || undefined}
+              disabled={pay.redirecting}
               onClick={() =>
                 pay.mutate(undefined, {
                   onError: (err) =>
@@ -180,9 +186,14 @@ function PayOnlineSection({
               }
               className={cn(primaryButton, "self-start")}
             >
-              {pay.isPending
-                ? "Opening SSLCommerz…"
-                : `Pay ${formatMoney(checkout.totalAmount)} with SSLCommerz`}
+              {pay.redirecting ? (
+                <>
+                  Opening SSLCommerz…
+                  <SpinnerEllipsis />
+                </>
+              ) : (
+                `Pay ${formatMoney(checkout.totalAmount)} with SSLCommerz`
+              )}
             </button>
             <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
               You&apos;ll finish on SSLCommerz&apos;s secure page and come back

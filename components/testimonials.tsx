@@ -13,11 +13,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { ArrowGlyph } from "@/components/arrow-link-button";
 import { SectionHeader } from "@/components/section-header";
-import {
-  isRemoteSrc,
-  type Testimonial,
-  type TestimonialsBlock,
-} from "@/lib/site-content";
+import { canOptimizeImage } from "@/lib/media";
+import type { Testimonial, TestimonialsBlock } from "@/lib/site-content";
+import { useRefreshExpiredPageMedia } from "@/lib/use-refresh-expired-page-media";
+import { useSaveData } from "@/lib/use-save-data";
 import { cn } from "@/lib/utils";
 
 const AUTOPLAY_MS = 3000;
@@ -33,6 +32,7 @@ const focusRing =
 
 export function Testimonials({ content }: { content: TestimonialsBlock }) {
   const items = content.items;
+  const onMediaError = useRefreshExpiredPageMedia();
   const count = items.length;
   // One card has nothing to rotate to: no autoplay, no pause control, no arrows.
   const multi = count > 1;
@@ -270,8 +270,9 @@ export function Testimonials({ content }: { content: TestimonialsBlock }) {
                     src={t.photo}
                     alt=""
                     fill
-                    {...(isRemoteSrc(t.photo) && { unoptimized: true })}
+                    {...(!canOptimizeImage(t.photo) && { unoptimized: true })}
                     sizes="(min-width: 1024px) 500px, 100vw"
+                    onError={onMediaError}
                     className="object-cover object-[50%_30%]"
                   />
                   {t.video && (
@@ -303,13 +304,15 @@ function SlideVideo({
   play: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const saveData = useSaveData();
+  const onMediaError = useRefreshExpiredPageMedia();
   useEffect(() => {
     const video = ref.current;
-    if (!video || !play) return;
+    if (!video || !play || saveData) return;
     // Autoplay can be refused (power saving, data saver); the poster stays.
     Promise.resolve(video.play()).catch(() => {});
     return () => video.pause();
-  }, [play]);
+  }, [play, saveData]);
 
   return (
     <video
@@ -319,9 +322,10 @@ function SlideVideo({
       muted
       loop
       playsInline
-      preload="metadata"
+      preload={saveData ? "none" : "metadata"}
       disablePictureInPicture
       aria-hidden
+      onError={onMediaError}
       className="absolute inset-0 size-full object-cover object-[50%_30%]"
     />
   );

@@ -16,6 +16,7 @@ import type { BrowseRequirement } from "@/lib/browse";
 import { formatDistanceKm } from "@/lib/browse";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
@@ -162,10 +163,12 @@ export function TuitionCard({
               type="button"
               onClick={apply.onApply}
               disabled={apply.applying || apply.blockedReason !== null}
+              aria-busy={apply.applying || undefined}
               aria-describedby={apply.blockedReason ? applyId : undefined}
               className={cn(primaryButton, "w-full sm:w-auto")}
             >
               {apply.applying ? "Applying…" : "Apply"}
+              {apply.applying && <SpinnerEllipsis />}
               <span className="sr-only"> for {subjectsText}</span>
             </button>
             {apply.blockedReason && (

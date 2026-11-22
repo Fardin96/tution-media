@@ -13,6 +13,7 @@ import {
   useFallbackBack,
 } from "@/components/tutor-profile/profile-back";
 import { card, secondaryButton } from "@/components/profile/styles";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/profile";
 import { useRefreshExpiredMedia } from "@/lib/files";
 import {
@@ -28,8 +29,17 @@ const CHIP =
 const SECTION_TITLE =
   "text-lg font-semibold tracking-tight text-[var(--color-neutral-charcoal)]";
 
-export function TutorProfilePage({ id }: { id: string }) {
-  const query = useTutorProfile(id);
+export function TutorProfilePage({
+  id,
+  initialProfile,
+  signedIn = false,
+}: {
+  id: string;
+  /** The anonymous copy rendered on the server (app/tutors/[id]/page.tsx). */
+  initialProfile?: PublicTutor;
+  signedIn?: boolean;
+}) {
+  const query = useTutorProfile(id, { initialData: initialProfile, signedIn });
   const tutor = query.data;
   const notFound =
     query.error instanceof ApiError && query.error.status === 404;
@@ -47,7 +57,7 @@ export function TutorProfilePage({ id }: { id: string }) {
       ) : query.isPending ? (
         <>
           <ProfileBack />
-          <ProfileSkeleton />
+          <TutorProfileSkeleton />
         </>
       ) : tutor ? (
         <>
@@ -80,18 +90,36 @@ function TutorNotFound() {
   );
 }
 
-function ProfileSkeleton() {
+/**
+ * Placeholder shaped like the profile: header card, then the section cards. Also used by
+ * app/tutors/[id]/loading.tsx, so navigation shows the page shape at once.
+ */
+export function TutorProfileSkeleton() {
   return (
     <div role="status" className="grid gap-6">
-      <span className="sr-only">Loading tutor profile</span>
-      <div
-        aria-hidden="true"
-        className="h-44 animate-pulse rounded-[24px] bg-[var(--color-surface-subtle)] motion-reduce:animate-none"
-      />
-      <div
-        aria-hidden="true"
-        className="h-64 animate-pulse rounded-[24px] bg-[var(--color-surface-subtle)] motion-reduce:animate-none"
-      />
+      <span className="sr-only">Loading…</span>
+      <div className={cn(card, "flex items-start gap-4 p-6")}>
+        <Skeleton className="size-11 shrink-0 rounded-full" />
+        <div className="grid min-w-0 flex-1 gap-3">
+          <Skeleton className="h-7 w-48 max-w-full" />
+          <Skeleton className="h-4 w-56 max-w-full" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-36" />
+        </div>
+      </div>
+      <div className={cn(card, "grid gap-3 p-6")}>
+        <Skeleton className="h-6 w-28" />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-16 rounded-full" />
+        </div>
+      </div>
+      <div className={cn(card, "grid gap-3 p-6")}>
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-32" />
+      </div>
     </div>
   );
 }

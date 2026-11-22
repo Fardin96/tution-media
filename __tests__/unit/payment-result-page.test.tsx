@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PaymentResultPage } from "@/components/fees/payment-result-page";
@@ -226,6 +226,47 @@ describe("Try again", () => {
             `/api/v1/fees/${FEE_ID}/checkout` && init?.method === "POST",
       );
     expect(checkoutPosts).toHaveLength(1);
+  });
+});
+
+describe("Try again while redirecting", () => {
+  it("keeps Try again off and shows the redirect once the session is made", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    mockApi(attempt({ status: "CANCELLED" }));
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(GATEWAY_URL));
+    const status = await screen.findByText("Taking you to SSLCommerz…");
+    expect(status.closest('[role="status"]')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Starting/ })).toBeDisabled();
+  });
+
+  it("releases Try again when the page is restored from the back-forward cache", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    mockApi(attempt({ status: "CANCELLED" }));
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
+    await screen.findByText("Taking you to SSLCommerz…");
+
+    act(() => {
+      const event = new Event("pageshow");
+      Object.defineProperty(event, "persisted", { value: true });
+      window.dispatchEvent(event);
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Taking you to SSLCommerz…"),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
   });
 });
 

@@ -228,7 +228,7 @@ function BrandPanel() {
             alt="Masters Hub"
             width={860}
             height={220}
-            priority
+            preload
             className="h-14 w-auto sm:h-16"
           />
         </Link>

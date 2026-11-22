@@ -12,6 +12,8 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { Skeleton } from "@/components/ui/skeleton";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { isRateLimit } from "@/lib/api-errors";
 import { queryKeys, type ZoneRequestStatus } from "@/lib/query-keys";
@@ -325,7 +327,8 @@ function RequestForm({
           aria-busy={mutation.isPending || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {mutation.isPending ? "Sending..." : "Send request"}
+          Send request
+          {mutation.isPending && <SpinnerEllipsis />}
         </button>
       </div>
     </form>
@@ -362,12 +365,22 @@ function RequestHistory({
       </h3>
 
       {isPending ? (
-        <p
-          role="status"
-          className="mt-3 text-sm text-[var(--color-text-secondary)]"
-        >
-          Loading your requests...
-        </p>
+        <div role="status" className="mt-3 grid gap-3">
+          <span className="sr-only">Loading your requests…</span>
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              aria-hidden="true"
+              className="grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </div>
       ) : isError ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-secondary)]">
           <span>Couldn&apos;t load your requests.</span>
@@ -422,9 +435,11 @@ function RequestHistory({
               type="button"
               onClick={onShowMore}
               disabled={isFetchingNextPage}
+              aria-busy={isFetchingNextPage || undefined}
               className={cn(ghostButton, "mt-3 min-h-11 px-3")}
             >
-              {isFetchingNextPage ? "Loading..." : "Show more"}
+              Show more
+              {isFetchingNextPage && <SpinnerEllipsis />}
             </button>
           )}
         </>

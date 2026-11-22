@@ -5,6 +5,7 @@ import {
   within,
   waitFor,
   fireEvent,
+  act,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -107,5 +108,28 @@ describe("LogoutButton", () => {
     });
     expect(api.clearTokens).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("shows a blocking status while logging out", async () => {
+    let finishRevoke!: (value: unknown) => void;
+    vi.mocked(client.POST).mockReturnValue(
+      new Promise((resolve) => (finishRevoke = resolve)) as never,
+    );
+
+    const dialog = await openLogoutDialog();
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Log out" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Logging out…"),
+    );
+    expect(screen.getByRole("button", { name: "Logging out…" })).toBeDisabled();
+    expect(signOut).not.toHaveBeenCalled();
+
+    await act(async () => finishRevoke({}));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("status")).not.toHaveTextContent("Logging out…");
   });
 });

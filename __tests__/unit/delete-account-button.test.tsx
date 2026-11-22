@@ -113,4 +113,29 @@ describe("DeleteAccountButton", () => {
       screen.getByRole("button", { name: /hard delete/i }),
     ).toBeInTheDocument();
   });
+
+  it("shows a blocking status while the account is being deleted", async () => {
+    let finish!: () => void;
+    vi.mocked(profileApi.deleteMe).mockReturnValue(
+      new Promise<undefined>((resolve) => (finish = () => resolve(undefined))),
+    );
+
+    await openDeleteFlow();
+    await userEvent.click(screen.getByRole("button", { name: /soft delete/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /confirm soft delete/i }),
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Deleting your account…",
+    );
+    expect(replace).not.toHaveBeenCalled();
+
+    finish();
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Deleting your account…",
+    );
+  });
 });

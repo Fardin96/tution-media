@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { queryKeys } from "./query-keys";
+import { refreshSiteContentForUser } from "./site-content.actions";
 import { wordCount } from "./site-content-schema";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
@@ -49,12 +51,30 @@ export function useCreateStory() {
   });
 }
 
+/**
+ * A withdrawn story may be on the landing, so ask the server to expire the landing cache now.
+ * Failure is ignored: the landing catches up within 30 minutes anyway.
+ */
+async function refreshLandingForUser() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshSiteContentForUser(tokens.accessToken);
+  } catch {
+    // The landing refreshes within 30 minutes anyway.
+  }
+}
+
 export function useDeleteStory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => storyApi.remove(id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.stories.mine }),
+    onSuccess: () => {
+      void refreshLandingForUser();
+      return queryClient.invalidateQueries({
+        queryKey: queryKeys.stories.mine,
+      });
+    },
   });
 }
 

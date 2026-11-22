@@ -18,6 +18,8 @@ import {
   RatingInline,
   TutorInitial,
 } from "@/components/browse/browse-ui";
+import { Skeleton } from "@/components/ui/skeleton";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { dedupeBy } from "@/lib/browse";
 import {
   useInviteTutor,
@@ -95,9 +97,11 @@ function RecommendedTutorRow({
         type="button"
         onClick={onInvite}
         disabled={inviting}
+        aria-busy={inviting || undefined}
         className={cn(primaryButton, "min-h-10 px-4")}
       >
-        {inviting ? "Inviting…" : "Invite to apply"}
+        Invite to apply
+        {inviting && <SpinnerEllipsis />}
         <span className="sr-only"> {tutor.name}</span>
       </button>
     );
@@ -187,16 +191,33 @@ export function RecommendedTutorsSection({
   if (list.isPending) {
     body = (
       <div role="status" className="grid gap-4">
-        <span className="sr-only">Loading recommended tutors</span>
+        <span className="sr-only">Loading recommended tutors…</span>
         {[0, 1].map((i) => (
           <div
             key={i}
             aria-hidden="true"
-            className={cn(
-              card,
-              "h-40 animate-pulse p-5 motion-reduce:animate-none",
-            )}
-          />
+            className={cn(card, "flex flex-col gap-4 p-5")}
+          >
+            <div className="flex items-start gap-3">
+              <Skeleton className="size-11 shrink-0 rounded-full" />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <Skeleton className="h-4 w-52 max-w-full" />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-44 max-w-full" />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Skeleton className="h-10 w-28 rounded-full" />
+              <Skeleton className="h-10 w-36 rounded-full" />
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -256,9 +277,11 @@ export function RecommendedTutorsSection({
               type="button"
               onClick={() => void list.fetchNextPage()}
               disabled={list.isFetchingNextPage}
+              aria-busy={list.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              {list.isFetchingNextPage ? "Loading…" : "Show more tutors"}
+              Show more tutors
+              {list.isFetchingNextPage && <SpinnerEllipsis />}
             </button>
           </div>
         )}

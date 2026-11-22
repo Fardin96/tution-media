@@ -4,10 +4,12 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import type { FilePurpose } from "./files";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
+import { refreshSiteContent } from "./site-content.actions";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type AdminFile = Schemas["AdminFile"];
@@ -159,11 +161,28 @@ export function removeFileText(target: RemoveFileTarget): string {
   }
 }
 
+/**
+ * A removed file may be in use on the landing, so ask the server to expire the landing cache now. Failure is ignored: the landing catches up within
+ * 30 minutes anyway.
+ */
+async function refreshLanding() {
+  const tokens = getStoredTokens();
+  if (!tokens) return;
+  try {
+    await refreshSiteContent(tokens.accessToken);
+  } catch {
+    // The landing refreshes within 30 minutes anyway.
+  }
+}
+
 export function useRemoveFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ fileId, body }: { fileId: string; body: RemoveFileInput }) =>
       adminFileApi.removeFile(fileId, body),
+    onSuccess: () => {
+      void refreshLanding();
+    },
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({

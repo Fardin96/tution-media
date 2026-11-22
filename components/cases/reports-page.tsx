@@ -9,6 +9,8 @@ import {
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
+import { Skeleton } from "@/components/ui/skeleton";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
@@ -26,16 +28,19 @@ const COLLAPSED_LENGTH = 140;
 function SkeletonRows() {
   return (
     <div role="status" className="grid gap-3">
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">Loading…</span>
       {[0, 1].map((i) => (
-        <div
-          key={i}
-          aria-hidden="true"
-          className={cn(
-            card,
-            "h-28 animate-pulse p-5 motion-reduce:animate-none",
-          )}
-        />
+        <div key={i} aria-hidden="true" className={cn(card, "grid gap-3 p-5")}>
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <Skeleton className="h-5 w-44 max-w-full" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-64 max-w-full" />
+          <div className="grid gap-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -164,9 +169,11 @@ function Group<T>({
             type="button"
             onClick={() => void query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
+            aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-5")}
           >
-            {query.isFetchingNextPage ? "Loading…" : "Show more"}
+            Show more
+            {query.isFetchingNextPage && <SpinnerEllipsis />}
           </button>
         </div>
       )}

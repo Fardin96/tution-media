@@ -208,3 +208,37 @@
     @apply font-sans;
   }
 }
+
+/* Spinner 05 (Ellipsis): components/shadcn-space/spinner/spinner-05.tsx */
+.spinner-ellipsis-dot {
+  animation: spinner-ellipsis 1s ease-in-out infinite;
+}
+@keyframes spinner-ellipsis {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* Reduced motion: the dots only fade, they don't grow. */
+@keyframes spinner-ellipsis-fade {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner-ellipsis-dot {
+    animation-name: spinner-ellipsis-fade;
+    animation-duration: 1.6s;
+  }
+}

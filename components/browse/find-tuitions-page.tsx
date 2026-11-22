@@ -16,9 +16,10 @@ import {
   ErrorBlock,
   FilterSelect,
   Segmented,
-  SkeletonCards,
 } from "@/components/browse/browse-ui";
 import { BackLink } from "@/components/ui/back-link";
+import { Skeleton } from "@/components/ui/skeleton";
+import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import {
   TuitionCard,
   type TuitionApplyState,
@@ -62,6 +63,46 @@ const SORTS: { value: RequirementSort; label: string }[] = [
 
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
+}
+
+/** Placeholder rows shaped like a TuitionCard, so the list does not jump when it loads. */
+function TuitionCardsSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <span className="sr-only">{label}</span>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className={cn(card, "flex flex-col gap-5 p-5 sm:p-6")}
+        >
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+            <Skeleton className="h-7 w-3/4" />
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            {[0, 1, 2, 3].map((j) => (
+              <div key={j} className="grid gap-1">
+                <Skeleton className="h-4 w-14" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-4 w-44 max-w-full" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-10 w-28 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** Copy for a suggestion that would fill an empty set page. */
@@ -413,7 +454,7 @@ export function FindTuitionsPage() {
         )}
 
         {isSetMode && sets.isPending ? (
-          <SkeletonCards label="Loading your sets" />
+          <TuitionCardsSkeleton label="Loading your sets…" />
         ) : isSetMode && sets.isError ? (
           <ErrorBlock
             message="Couldn't load your sets."
@@ -431,7 +472,7 @@ export function FindTuitionsPage() {
         ) : isSetMode && selectedSetId === undefined ? (
           <EmptyCard title="Choose a set to see matching tuitions." />
         ) : browse.isPending ? (
-          <SkeletonCards label="Loading tuitions" />
+          <TuitionCardsSkeleton label="Loading tuitions…" />
         ) : rows.length > 0 ? (
           <>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -460,9 +501,11 @@ export function FindTuitionsPage() {
                   type="button"
                   onClick={() => void browse.fetchNextPage()}
                   disabled={browse.isFetchingNextPage}
+                  aria-busy={browse.isFetchingNextPage || undefined}
                   className={secondaryButton}
                 >
-                  {browse.isFetchingNextPage ? "Loading…" : "Load more"}
+                  Load more
+                  {browse.isFetchingNextPage && <SpinnerEllipsis />}
                 </button>
               </div>
             )}

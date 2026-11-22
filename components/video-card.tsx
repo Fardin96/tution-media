@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { isRemoteSrc } from "@/lib/site-content";
+import { canOptimizeImage } from "@/lib/media";
+import { useRefreshExpiredPageMedia } from "@/lib/use-refresh-expired-page-media";
+import { useSaveData } from "@/lib/use-save-data";
 import { cn } from "@/lib/utils";
 
 type VideoCardProps = {
@@ -35,6 +37,8 @@ export function VideoCard({
   className,
 }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const saveData = useSaveData();
+  const onMediaError = useRefreshExpiredPageMedia();
 
   useEffect(() => {
     const v = videoRef.current;
@@ -50,7 +54,9 @@ export function VideoCard({
       aria-pressed={playing}
       aria-label={label}
       onClick={onToggle}
-      onPointerEnter={(e) => e.pointerType === "mouse" && onHover()}
+      onPointerEnter={(e) =>
+        e.pointerType === "mouse" && !saveData && onHover()
+      }
       // No double-tap-to-zoom: quick play→pause taps must both register.
       className={cn(
         "relative block size-full cursor-pointer touch-manipulation overflow-hidden rounded-[20px] bg-[var(--color-surface-inverse)] text-left outline-1 -outline-offset-1 outline-[oklch(0_0_0/0.1)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary-core)] focus-visible:ring-offset-2 focus-visible:outline-none",
@@ -61,8 +67,9 @@ export function VideoCard({
         src={thumbnail}
         alt=""
         fill
-        {...(isRemoteSrc(thumbnail) && { unoptimized: true })}
+        {...(!canOptimizeImage(thumbnail) && { unoptimized: true })}
         sizes={sizes}
+        onError={onMediaError}
         className="object-cover"
       />
       {video && (
@@ -74,7 +81,8 @@ export function VideoCard({
           muted
           loop
           playsInline
-          preload="metadata"
+          preload={saveData ? "none" : "metadata"}
+          onError={onMediaError}
           className="absolute inset-0 size-full object-cover"
         />
       )}
