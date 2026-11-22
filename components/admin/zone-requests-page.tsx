@@ -3,7 +3,15 @@
 import { useId, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog as DialogPrimitive } from "radix-ui";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/animate-ui/primitives/radix/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FieldError, control } from "@/components/profile/profile-fields";
@@ -14,6 +22,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { AdminPage } from "@/components/admin/admin-ui";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PendingLabel } from "@/components/ui/pending-label";
@@ -204,8 +213,12 @@ export function ZoneRequestsPage() {
           ) : (
             <>
               <ul className="grid gap-4">
-                {requests.map((request) => (
-                  <li key={request.id} className={cn(card, "grid gap-4 p-5")}>
+                {requests.map((request, index) => (
+                  <li
+                    key={request.id}
+                    className={cn(card, enterClass, "grid gap-4 p-5")}
+                    style={enterStyle(index)}
+                  >
                     <RequestRow
                       request={request}
                       onApprove={() =>
@@ -345,23 +358,12 @@ function DecisionDialog({
   ) => void;
 }) {
   return (
-    <DialogPrimitive.Root open={decision !== null} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-black/40 duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-            "motion-reduce:animate-none motion-reduce:transition-none",
-          )}
-        />
-        <DialogPrimitive.Content
+    <Dialog open={decision !== null} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/40" />
+        <DialogContent
           className={cn(
             "fixed start-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overscroll-contain rounded-[24px] bg-[var(--color-neutral-white)] p-6 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-12px_rgb(0_0_0/0.08)] focus:outline-none",
-            "duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-96",
-            "motion-reduce:animate-none motion-reduce:transition-none",
           )}
         >
           {decision && (
@@ -373,9 +375,9 @@ function DecisionDialog({
               onSubmit={onSubmit}
             />
           )}
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
@@ -433,16 +435,16 @@ function DecisionForm({
     <form noValidate onSubmit={onFormSubmit}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <DialogPrimitive.Title className="text-lg font-semibold text-[var(--color-neutral-charcoal)]">
+          <DialogTitle className="text-lg font-semibold text-[var(--color-neutral-charcoal)]">
             {approve ? "Approve zone request?" : "Deny zone request?"}
-          </DialogPrimitive.Title>
-          <DialogPrimitive.Description className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
             {request.tutor.name} asked for {request.requestedLimit} zones. Their
             limit is {request.tutor.zoneLimit} and they use{" "}
             {request.tutor.zonesUsed}.
-          </DialogPrimitive.Description>
+          </DialogDescription>
         </div>
-        <DialogPrimitive.Close
+        <DialogClose
           type="button"
           aria-label="Close"
           className={cn(
@@ -451,7 +453,7 @@ function DecisionForm({
           )}
         >
           <X aria-hidden="true" className="size-5" />
-        </DialogPrimitive.Close>
+        </DialogClose>
       </div>
 
       <div className="mt-6 grid gap-5">

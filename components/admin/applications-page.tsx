@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { card, focusRing } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   AdminPage,
   FilterChips,
@@ -127,8 +128,12 @@ export function AdminApplicationsPage() {
         }
       >
         <ul className="grid gap-4">
-          {applications.map((application) => (
-            <li key={application.id}>
+          {applications.map((application, index) => (
+            <li
+              key={application.id}
+              className={enterClass}
+              style={enterStyle(index)}
+            >
               <ApplicationRow
                 application={application}
                 levelText={targetLevel(lookup.data, application)}

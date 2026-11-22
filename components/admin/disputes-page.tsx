@@ -12,6 +12,7 @@ import {
   CaseStatusPill,
   Parties,
 } from "@/components/admin/case-parts";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatDateTime } from "@/lib/admin";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import {
@@ -99,8 +100,12 @@ export function AdminDisputesPage() {
         }
       >
         <ul className="grid gap-4">
-          {disputes.map((dispute) => (
-            <li key={dispute.id}>
+          {disputes.map((dispute, index) => (
+            <li
+              key={dispute.id}
+              className={enterClass}
+              style={enterStyle(index)}
+            >
               <DisputeRow dispute={dispute} />
             </li>
           ))}

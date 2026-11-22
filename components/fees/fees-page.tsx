@@ -25,6 +25,7 @@ import {
   type TutorFee,
 } from "@/lib/fees";
 import { useIntentPrefetch } from "@/lib/prefetch";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 
 function SkeletonRows({ count }: { count: number }) {
   return (
@@ -138,8 +139,8 @@ export function FeesPage() {
   } else {
     body = (
       <ul className="grid gap-4">
-        {list.map((fee) => (
-          <li key={fee.id}>
+        {list.map((fee, index) => (
+          <li key={fee.id} className={enterClass} style={enterStyle(index)}>
             <FeeRow fee={fee} />
           </li>
         ))}

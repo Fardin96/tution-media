@@ -20,6 +20,7 @@ import {
   failureText,
   isConflict,
 } from "@/components/admin/case-parts";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatDateTime } from "@/lib/admin";
 import {
   REVIEW_DIRECTION_LABEL,
@@ -179,8 +180,12 @@ export function AdminReviewsPage() {
         emptyText={EMPTY_TEXT[view]}
       >
         <ul className="grid gap-4">
-          {reviews.map((review) => (
-            <li key={review.id}>
+          {reviews.map((review, index) => (
+            <li
+              key={review.id}
+              className={enterClass}
+              style={enterStyle(index)}
+            >
               <ReviewRow review={review} onModerate={() => setTarget(review)} />
             </li>
           ))}

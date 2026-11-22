@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
+import { AutoHeight } from "@/components/motion/auto-height";
+import { swapMotion } from "@/components/motion/swap";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
@@ -47,6 +50,7 @@ export function EditSection({
   const [draft, setDraft] = useState(values);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const swap = swapMotion(useReducedMotion());
   const editRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const titleId = `section-${section.id}`;
@@ -131,98 +135,109 @@ export function EditSection({
         )}
       </div>
 
-      {editing ? (
-        <form
-          ref={formRef}
-          noValidate
-          onSubmit={submit}
-          onKeyDown={(e) => e.key === "Escape" && !saving && close()}
-          aria-busy={saving}
-          className="mt-6"
-        >
-          <ProfileFields
-            fields={section.fields}
-            form={draft}
-            errors={errors}
-            locked={
-              lockPhone
-                ? {
-                    key: "phoneNumber",
-                    hint: "To change it, verify the new number.",
-                    action: onVerifyNumber && (
-                      <button
-                        type="button"
-                        onClick={onVerifyNumber}
-                        className={cn(
-                          secondaryButton,
-                          "min-h-10 justify-self-start px-4",
-                        )}
-                      >
-                        Change number
-                      </button>
-                    ),
-                  }
-                : undefined
-            }
-            onChange={(patch) => {
-              setDraft((d) => ({ ...d, ...patch }));
-              setErrors((e) => {
-                const next = { ...e };
-                for (const k of Object.keys(patch))
-                  delete next[k as keyof ProfileForm];
-                return next;
-              });
-            }}
-          />
-          {changesVerifiedPhone && (
-            <p className="mt-4 text-sm text-pretty text-[var(--color-semantic-warning-text)]">
-              This is a new number. It won&apos;t count as verified until you
-              confirm it with a code.
-            </p>
-          )}
-          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={close}
-              disabled={saving}
-              className={secondaryButton}
+      {/* The details and the form swap in place while the card's height follows. */}
+      <AutoHeight>
+        <AnimatePresence mode="popLayout" initial={false}>
+          {editing ? (
+            <motion.form
+              key="edit"
+              {...swap}
+              ref={formRef}
+              noValidate
+              onSubmit={submit}
+              onKeyDown={(e) => e.key === "Escape" && !saving && close()}
+              aria-busy={saving}
+              className="mt-6"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              aria-busy={saving || undefined}
-              className={primaryButton}
-            >
-              <PendingLabel pending={saving}>Save changes</PendingLabel>
-            </button>
-          </div>
-        </form>
-      ) : (
-        <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-          {section.fields.map((f) => (
-            <div
-              key={f.key}
-              className={cn(
-                "min-w-0",
-                (f.kind === "textarea" ||
-                  f.kind === "address" ||
-                  f.kind === "areas" ||
-                  f.kind === "subjects") &&
-                  "sm:col-span-2",
+              <ProfileFields
+                fields={section.fields}
+                form={draft}
+                errors={errors}
+                locked={
+                  lockPhone
+                    ? {
+                        key: "phoneNumber",
+                        hint: "To change it, verify the new number.",
+                        action: onVerifyNumber && (
+                          <button
+                            type="button"
+                            onClick={onVerifyNumber}
+                            className={cn(
+                              secondaryButton,
+                              "min-h-10 justify-self-start px-4",
+                            )}
+                          >
+                            Change number
+                          </button>
+                        ),
+                      }
+                    : undefined
+                }
+                onChange={(patch) => {
+                  setDraft((d) => ({ ...d, ...patch }));
+                  setErrors((e) => {
+                    const next = { ...e };
+                    for (const k of Object.keys(patch))
+                      delete next[k as keyof ProfileForm];
+                    return next;
+                  });
+                }}
+              />
+              {changesVerifiedPhone && (
+                <p className="mt-4 text-sm text-pretty text-[var(--color-semantic-warning-text)]">
+                  This is a new number. It won&apos;t count as verified until
+                  you confirm it with a code.
+                </p>
               )}
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={close}
+                  disabled={saving}
+                  className={secondaryButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  aria-busy={saving || undefined}
+                  className={primaryButton}
+                >
+                  <PendingLabel pending={saving}>Save changes</PendingLabel>
+                </button>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.dl
+              key="view"
+              {...swap}
+              className="mt-5 grid w-full gap-x-6 gap-y-5 sm:grid-cols-2"
             >
-              <dt className="text-sm text-[var(--color-text-secondary)]">
-                {f.label}
-              </dt>
-              <dd className="mt-1 text-base font-medium break-words text-[var(--color-neutral-charcoal)]">
-                <Value field={f} values={values} />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
+              {section.fields.map((f) => (
+                <div
+                  key={f.key}
+                  className={cn(
+                    "min-w-0",
+                    (f.kind === "textarea" ||
+                      f.kind === "address" ||
+                      f.kind === "areas" ||
+                      f.kind === "subjects") &&
+                      "sm:col-span-2",
+                  )}
+                >
+                  <dt className="text-sm text-[var(--color-text-secondary)]">
+                    {f.label}
+                  </dt>
+                  <dd className="mt-1 text-base font-medium break-words text-[var(--color-neutral-charcoal)]">
+                    <Value field={f} values={values} />
+                  </dd>
+                </div>
+              ))}
+            </motion.dl>
+          )}
+        </AnimatePresence>
+      </AutoHeight>
     </section>
   );
 }

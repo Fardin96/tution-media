@@ -30,6 +30,7 @@ import {
   UploadFlagsNote,
   useRemoveFileReview,
 } from "@/components/admin/upload-flags";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatDateTime } from "@/lib/admin";
 import {
   useAdminVideos,
@@ -254,8 +255,12 @@ export function AdminVideosPage() {
         emptyText={EMPTY_COPY[status]}
       >
         <ul className="grid gap-4">
-          {videos.map((video) => (
-            <li key={video.id} className={cn(card, "grid gap-4 p-5")}>
+          {videos.map((video, index) => (
+            <li
+              key={video.id}
+              className={cn(card, "grid gap-4 p-5", enterClass)}
+              style={enterStyle(index)}
+            >
               <VideoCard
                 video={video}
                 orderBusy={update.isPending}

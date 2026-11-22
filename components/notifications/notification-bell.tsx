@@ -2,7 +2,6 @@
 
 import { useId, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import { Popover } from "radix-ui";
 import { Bell } from "lucide-react";
 import {
   card,
@@ -23,15 +22,19 @@ import {
   type AppNotification,
 } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverPortal,
+  PopoverTrigger,
+} from "@/components/animate-ui/primitives/radix/popover";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 
 const SKELETON_ROWS = 3;
 
 const CONTENT = cn(
   card,
-  "z-50 flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[min(22rem,calc(100vw-2rem))] origin-[var(--radix-popover-content-transform-origin)] flex-col overflow-hidden p-2 text-[var(--color-neutral-charcoal)] outline-none",
-  "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96 data-[state=open]:duration-150 data-[state=open]:ease-out",
-  "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-96 data-[state=closed]:duration-100 data-[state=closed]:ease-out",
-  "motion-reduce:data-[state=open]:zoom-in-100 motion-reduce:data-[state=closed]:zoom-out-100",
+  "z-50 flex max-h-[min(28rem,var(--radix-popover-content-available-height))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden p-2 text-[var(--color-neutral-charcoal)] outline-none",
 );
 
 const ITEM_FOCUS =
@@ -68,8 +71,8 @@ export function NotificationBell() {
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <button
           type="button"
           aria-label={label}
@@ -88,10 +91,10 @@ export function NotificationBell() {
             </span>
           )}
         </button>
-      </Popover.Trigger>
+      </PopoverTrigger>
 
-      <Popover.Portal>
-        <Popover.Content
+      <PopoverPortal>
+        <PopoverContent
           align="end"
           sideOffset={8}
           collisionPadding={16}
@@ -171,12 +174,12 @@ export function NotificationBell() {
               </div>
             ) : list.data?.notifications.length ? (
               <ul className="grid gap-1">
-                {list.data.notifications.map((n) => {
+                {list.data.notifications.map((n, i) => {
                   // Only this row shows the spinner: the other rows stay usable while one is marked.
                   const marking =
                     markRead.isPending && markRead.variables === n.id;
                   return (
-                    <li key={n.id}>
+                    <li key={n.id} className={enterClass} style={enterStyle(i)}>
                       <Link
                         href={notificationHref(n)}
                         onClick={(e) => openItem(e, n)}
@@ -237,8 +240,8 @@ export function NotificationBell() {
               </p>
             )}
           </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        </PopoverContent>
+      </PopoverPortal>
+    </Popover>
   );
 }

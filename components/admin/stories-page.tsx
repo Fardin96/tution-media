@@ -21,6 +21,7 @@ import {
   type ReviewSubmit,
 } from "@/components/admin/review-dialog";
 import { HiddenFromUser } from "@/components/admin/upload-flags";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatDateTime } from "@/lib/admin";
 import {
   STORY_STATUS_META,
@@ -234,8 +235,12 @@ export function AdminStoriesPage() {
         emptyText={EMPTY_COPY[status]}
       >
         <ul className="grid gap-6">
-          {stories.map((story) => (
-            <li key={story.id} className={cn(card, "grid gap-3 p-5")}>
+          {stories.map((story, index) => (
+            <li
+              key={story.id}
+              className={cn(card, "grid gap-3 p-5", enterClass)}
+              style={enterStyle(index)}
+            >
               <StoryCard
                 story={story}
                 onApprove={() => review.start(story, "APPROVE")}

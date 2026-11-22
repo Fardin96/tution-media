@@ -40,6 +40,24 @@ describe("ConfirmDialog", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("renders a danger action as a button and calls onSelect when clicked", async () => {
+    const onSelect = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        title="Title"
+        actions={[{ label: "Delete account", variant: "danger", onSelect }]}
+        onOpenChange={() => {}}
+      >
+        Body
+      </ConfirmDialog>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete account" }),
+    );
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("renders an href action as a link", () => {
     render(
       <ConfirmDialog

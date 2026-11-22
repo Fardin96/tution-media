@@ -6,6 +6,19 @@ import {
   type PhoneVerifierProps,
 } from "@/components/profile/phone-verifier";
 
+// input-otp measures its container with ResizeObserver, and checks what sits under its
+// password-manager badge with elementFromPoint. jsdom has neither.
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+document.elementFromPoint = () =>
+  document.querySelector("[data-input-otp-container]");
+
 const NUMBER = "+8801712345678";
 const FORMATTED = "+880 1712-345678";
 
@@ -72,7 +85,7 @@ describe("PhoneVerifier", () => {
     const input = screen.getByLabelText("Verification code");
     expect(input).toHaveAttribute("inputmode", "numeric");
     expect(input).toHaveAttribute("autocomplete", "one-time-code");
-    expect(input).not.toHaveAttribute("maxlength");
+    expect(input).toHaveAttribute("maxlength", "6");
     expect(input).toHaveAccessibleDescription(
       `Enter the code we sent to ${FORMATTED}.`,
     );

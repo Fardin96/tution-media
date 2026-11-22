@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import {
@@ -29,7 +30,15 @@ export function studentPlaceText(
 }
 
 /** Renders an `<li>`; the parent list is a `<ul>`. */
-export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
+export function PackageCard({
+  pkg,
+  className,
+  style,
+}: {
+  pkg: TuitionPackage;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const { data: lookup } = useEducationLookup();
   const { subjects: subjectOptions } = useSubjects();
   const subjects = subjectNames(pkg.subjectIds, subjectOptions);
@@ -37,7 +46,10 @@ export function PackageCard({ pkg }: { pkg: TuitionPackage }) {
   const intent = useIntentPrefetch();
 
   return (
-    <li className={cn(card, "flex flex-col gap-4 p-5")}>
+    <li
+      className={cn(card, "flex flex-col gap-4 p-5", className)}
+      style={style}
+    >
       <div className="grid gap-1">
         <h3 className="font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
           {pkg.title}

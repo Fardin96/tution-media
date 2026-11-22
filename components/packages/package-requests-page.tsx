@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { BackLink } from "@/components/ui/back-link";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PageFrame } from "@/components/ui/page-frame";
@@ -148,8 +149,12 @@ export function PackageRequestsPage({ packageId }: { packageId: string }) {
   } else {
     body = (
       <ul className="grid gap-4">
-        {requests.map((application) => (
-          <li key={application.id}>
+        {requests.map((application, index) => (
+          <li
+            key={application.id}
+            className={enterClass}
+            style={enterStyle(index)}
+          >
             <RequestCard application={application} packageId={packageId} />
           </li>
         ))}

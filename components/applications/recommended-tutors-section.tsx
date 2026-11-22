@@ -18,6 +18,7 @@ import {
   RatingInline,
   TutorInitial,
 } from "@/components/browse/browse-ui";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
@@ -257,8 +258,12 @@ export function RecommendedTutorsSection({
     body = (
       <div className="grid gap-4">
         <ul className="grid gap-4">
-          {tutors.map((row) => (
-            <li key={row.tutor.id}>
+          {tutors.map((row, index) => (
+            <li
+              key={row.tutor.id}
+              className={enterClass}
+              style={enterStyle(index)}
+            >
               <RecommendedTutorRow
                 row={row}
                 inviting={invite.isPending && invite.variables === row.tutor.id}

@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Dialog as DialogPrimitive } from "radix-ui";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/animate-ui/primitives/radix/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -313,56 +321,43 @@ export function AdminDialog({
   children: React.ReactNode;
 }) {
   return (
-    <DialogPrimitive.Root
+    <Dialog
       open={open}
       onOpenChange={(next) => {
         if (!next && busy) return;
         onOpenChange(next);
       }}
     >
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-black/40 duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-            "motion-reduce:animate-none",
-          )}
-        />
-        <DialogPrimitive.Content
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/40" />
+        <DialogContent
           className={cn(
             "fixed start-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overscroll-contain rounded-[24px] bg-[var(--color-neutral-white)] p-6 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-12px_rgb(0_0_0/0.08)] focus:outline-none rtl:translate-x-1/2",
-            "duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-96",
-            "motion-reduce:animate-none",
           )}
         >
           <div className="flex items-start justify-between gap-4">
-            <DialogPrimitive.Title className="text-lg font-semibold text-balance text-[var(--color-neutral-charcoal)]">
+            <DialogTitle className="text-lg font-semibold text-balance text-[var(--color-neutral-charcoal)]">
               {title}
-            </DialogPrimitive.Title>
-            <DialogPrimitive.Close
+            </DialogTitle>
+            <DialogClose
               disabled={busy}
               aria-label="Close"
               className={cn(ghostButton, "-me-3 -mt-2 min-h-10 px-3")}
             >
               <X aria-hidden="true" className="size-4" />
-            </DialogPrimitive.Close>
+            </DialogClose>
           </div>
           {description ? (
-            <DialogPrimitive.Description className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+            <DialogDescription className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
               {description}
-            </DialogPrimitive.Description>
+            </DialogDescription>
           ) : (
-            <DialogPrimitive.Description className="sr-only">
-              {title}
-            </DialogPrimitive.Description>
+            <DialogDescription className="sr-only">{title}</DialogDescription>
           )}
           <div className="mt-5 min-w-0">{children}</div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 

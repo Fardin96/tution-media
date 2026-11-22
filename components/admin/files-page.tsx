@@ -9,6 +9,8 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { enterClass, enterStyle } from "@/components/motion/enter";
+import { Expand } from "@/components/motion/expand";
 import {
   AdminPage,
   DetailList,
@@ -187,8 +189,8 @@ export function AdminFilesPage() {
         emptyText="No files match these filters."
       >
         <ul className="grid gap-4">
-          {files.map((file) => (
-            <li key={file.id}>
+          {files.map((file, index) => (
+            <li key={file.id} className={enterClass} style={enterStyle(index)}>
               <FileRow
                 file={file}
                 onView={() => view(file)}
@@ -348,13 +350,13 @@ function FileRow({
         {file.published && <StatusPill tone="success">Public</StatusPill>}
       </div>
 
-      {canView && showPreview && (
+      <Expand open={canView && showPreview}>
         <FilePreview
           fileId={file.id}
           contentType={file.contentType}
           name={file.fileName}
         />
-      )}
+      </Expand>
 
       <DetailList
         items={[

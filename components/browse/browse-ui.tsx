@@ -1,12 +1,17 @@
+import { useId } from "react";
 import { Star } from "lucide-react";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
+import { ActivePill } from "@/components/motion/active-pill";
 import { cn } from "@/lib/utils";
 import { PendingLabel } from "@/components/ui/pending-label";
 
 export const SEGMENT_TRACK =
   "inline-flex max-w-full flex-wrap gap-1 rounded-full bg-[var(--color-surface-subtle)] p-1";
-export const SEGMENT_SELECTED =
-  "bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] shadow-[0_0_0_1px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.06)]";
+/** The selected chip's fill and shadow. Segmented renders it as a sliding ActivePill. */
+export const SEGMENT_PILL =
+  "bg-[var(--color-neutral-white)] shadow-[0_0_0_1px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.06)]";
+export const SEGMENT_TEXT_SELECTED = "text-[var(--color-neutral-charcoal)]";
+export const SEGMENT_SELECTED = `${SEGMENT_PILL} ${SEGMENT_TEXT_SELECTED}`;
 export const SEGMENT_IDLE =
   "text-[var(--color-text-secondary)] hover:text-[var(--color-neutral-charcoal)]";
 export const SEGMENT_BUTTON = `min-h-10 rounded-full px-4 text-sm font-semibold transition-[background-color,box-shadow,color] duration-150 ease-out active:scale-[0.96] motion-reduce:transition-none ${focusRing}`;
@@ -22,6 +27,7 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }) {
+  const pillId = useId();
   return (
     <div role="group" aria-label={label} className={SEGMENT_TRACK}>
       {options.map((option) => {
@@ -34,9 +40,13 @@ export function Segmented<T extends string>({
             onClick={() => onChange(option.value)}
             className={cn(
               SEGMENT_BUTTON,
-              selected ? SEGMENT_SELECTED : SEGMENT_IDLE,
+              "relative isolate",
+              selected ? SEGMENT_TEXT_SELECTED : SEGMENT_IDLE,
             )}
           >
+            {selected && (
+              <ActivePill layoutId={pillId} className={SEGMENT_PILL} />
+            )}
             {option.label}
           </button>
         );

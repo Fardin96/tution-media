@@ -10,6 +10,8 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { AutoHeight } from "@/components/motion/auto-height";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { TutorRequirementCard } from "@/components/tutor-requirements/tutor-requirement-card";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
@@ -172,33 +174,30 @@ export function TutorRequirementsSection() {
           </Link>
         </div>
       ) : (
-        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-          {visible.map((set, index) => (
-            <li
-              key={set.id}
-              className={cn(
-                step === 1 &&
-                  "transition-[opacity,translate] duration-150 ease-out motion-reduce:transition-none starting:translate-y-1 starting:opacity-0",
-              )}
-            >
-              <TutorRequirementCard
-                set={set}
-                lookup={lookup.data}
-                subjectNames={subjectNames}
-                accent={accentAt(index)}
-                actions={
-                  <Link
-                    href={`/dashboard/tutor/requirements/${set.id}/edit`}
-                    {...intent(tutorRequirementQueryOptions(set.id))}
-                    className={cn(secondaryButton, "min-h-10 px-4")}
-                  >
-                    <LinkPendingLabel>Edit</LinkPendingLabel>
-                  </Link>
-                }
-              />
-            </li>
-          ))}
-        </ul>
+        // "View more" grows the section to fit the new cards instead of jumping.
+        <AutoHeight>
+          <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+            {visible.map((set, index) => (
+              <li key={set.id} className={enterClass} style={enterStyle(index)}>
+                <TutorRequirementCard
+                  set={set}
+                  lookup={lookup.data}
+                  subjectNames={subjectNames}
+                  accent={accentAt(index)}
+                  actions={
+                    <Link
+                      href={`/dashboard/tutor/requirements/${set.id}/edit`}
+                      {...intent(tutorRequirementQueryOptions(set.id))}
+                      className={cn(secondaryButton, "min-h-10 px-4")}
+                    >
+                      <LinkPendingLabel>Edit</LinkPendingLabel>
+                    </Link>
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </AutoHeight>
       )}
 
       {!sets.isPending && !sets.isError && (

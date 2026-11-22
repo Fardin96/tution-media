@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { card, focusRing } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   AdminPage,
   DetailList,
@@ -82,8 +83,8 @@ export function AdminFeesPage() {
         }
       >
         <ul className="grid gap-4">
-          {fees.map((fee) => (
-            <li key={fee.id}>
+          {fees.map((fee, index) => (
+            <li key={fee.id} className={enterClass} style={enterStyle(index)}>
               <FeeRow fee={fee} />
             </li>
           ))}

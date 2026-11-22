@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { PendingLabel } from "@/components/ui/pending-label";
 import {
@@ -18,6 +18,7 @@ import {
   StatusPill,
   inputClass,
 } from "@/components/admin/admin-ui";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   useAdminAreas,
   useCreateArea,
@@ -137,12 +138,14 @@ export function AreasPage() {
           emptyText="No areas match these filters."
         >
           <ul className="grid gap-3">
-            {list.map((area) => (
+            {list.map((area, index) => (
               <AreaRow
                 key={area.id}
                 area={area}
                 onRename={() => setDialog({ mode: "rename", area })}
                 onRetire={() => openRetire(area)}
+                className={enterClass}
+                style={enterStyle(index)}
               />
             ))}
           </ul>
@@ -167,10 +170,14 @@ function AreaRow({
   area,
   onRename,
   onRetire,
+  className,
+  style,
 }: {
   area: AdminArea;
   onRename: () => void;
   onRetire: () => void;
+  className?: string;
+  style?: CSSProperties;
 }) {
   const restore = useUpdateArea();
   const restoring = restore.isPending;
@@ -190,7 +197,9 @@ function AreaRow({
       className={cn(
         card,
         "flex flex-wrap items-center justify-between gap-4 p-5",
+        className,
       )}
+      style={style}
     >
       <div className="grid min-w-0 gap-1">
         <div className="flex flex-wrap items-center gap-2">

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { GraduationCap, MapPin } from "lucide-react";
 import { card, focusRing } from "@/components/profile/styles";
@@ -21,7 +22,15 @@ export interface TutorResult {
  * Renders an `<li>`; the parent list is a `<ul>`. The name link stretches over
  * the whole card, so clicking anywhere on the card opens the tutor's profile.
  */
-export function TutorResultCard({ tutor }: { tutor: TutorResult }) {
+export function TutorResultCard({
+  tutor,
+  className,
+  style,
+}: {
+  tutor: TutorResult;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const institute = tutor.instituteName?.trim();
   const areaNames = (tutor.areas ?? []).map((a) => a.name).join(", ");
   const distance =
@@ -31,7 +40,10 @@ export function TutorResultCard({ tutor }: { tutor: TutorResult }) {
   const subjects = tutor.subjects ?? [];
 
   return (
-    <li className={cn(card, "relative flex flex-col gap-4 p-5")}>
+    <li
+      className={cn(card, "relative flex flex-col gap-4 p-5", className)}
+      style={style}
+    >
       <div className="grid gap-2">
         <div className="flex items-center gap-3">
           <TutorInitial name={tutor.name} />

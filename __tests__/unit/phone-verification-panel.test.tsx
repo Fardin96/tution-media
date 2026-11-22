@@ -14,6 +14,19 @@ vi.mock("@/lib/phone-verification", () => ({
   useVerifyPhoneOtp: () => verifyMock,
 }));
 
+// input-otp measures its container with ResizeObserver, and checks what sits under its
+// password-manager badge with elementFromPoint. jsdom has neither.
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+document.elementFromPoint = () =>
+  document.querySelector("[data-input-otp-container]");
+
 const NUMBER = "+8801712345678";
 const NOW = "2026-11-20T10:00:00Z";
 const COOLDOWN_NOTICE = "We sent a code a moment ago. Enter it below.";

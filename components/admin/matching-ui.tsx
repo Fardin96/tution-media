@@ -97,7 +97,7 @@ export function ToggleSwitch({
         aria-busy={pending || undefined}
         onClick={() => onChange(!on)}
         className={cn(
-          "inline-flex min-h-11 shrink-0 items-center gap-3 rounded-full text-sm font-semibold text-[var(--color-neutral-charcoal)] transition-[scale] duration-150 ease-out active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 motion-reduce:transition-none",
+          "group inline-flex min-h-11 shrink-0 items-center gap-3 rounded-full text-sm font-semibold text-[var(--color-neutral-charcoal)] transition-[scale] duration-150 ease-out active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 motion-reduce:transition-none",
           focusRing,
         )}
       >
@@ -112,8 +112,10 @@ export function ToggleSwitch({
         >
           <span
             className={cn(
-              "block size-5 rounded-full bg-[var(--color-neutral-white)] shadow-[0_1px_2px_rgb(0_0_0/0.2)] transition-[translate] duration-150 ease-out motion-reduce:transition-none",
-              on ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0",
+              "block h-5 w-5 rounded-full bg-[var(--color-neutral-white)] shadow-[0_1px_2px_rgb(0_0_0/0.2)] transition-[translate,width] duration-200 ease-[var(--ease-out)] group-active:w-6 motion-reduce:transition-none",
+              on
+                ? "translate-x-5 ltr:group-active:translate-x-4 rtl:-translate-x-5 rtl:group-active:-translate-x-4"
+                : "translate-x-0",
             )}
           />
         </span>

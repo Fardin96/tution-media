@@ -2,7 +2,15 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog as DialogPrimitive } from "radix-ui";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/animate-ui/primitives/radix/dialog";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -114,35 +122,24 @@ export function ZoneLimitRequestDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-black/40 duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-            "motion-reduce:animate-none motion-reduce:transition-none",
-          )}
-        />
-        <DialogPrimitive.Content
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/40" />
+        <DialogContent
           className={cn(
             "fixed start-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overscroll-contain rounded-[24px] bg-[var(--color-neutral-white)] p-6 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-12px_rgb(0_0_0/0.08)] focus:outline-none",
-            "duration-150 ease-out",
-            "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-96",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-96",
-            "motion-reduce:animate-none motion-reduce:transition-none",
           )}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <DialogPrimitive.Title className="text-lg font-semibold text-[var(--color-neutral-charcoal)]">
+              <DialogTitle className="text-lg font-semibold text-[var(--color-neutral-charcoal)]">
                 Request more zones
-              </DialogPrimitive.Title>
-              <DialogPrimitive.Description className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
                 {description}
-              </DialogPrimitive.Description>
+              </DialogDescription>
             </div>
-            <DialogPrimitive.Close
+            <DialogClose
               aria-label="Close"
               className={cn(
                 ghostButton,
@@ -150,7 +147,7 @@ export function ZoneLimitRequestDialog({
               )}
             >
               <X aria-hidden="true" className="size-5" />
-            </DialogPrimitive.Close>
+            </DialogClose>
           </div>
 
           {pendingRequest ? (
@@ -173,9 +170,9 @@ export function ZoneLimitRequestDialog({
             onRetry={() => void history.refetch()}
             onShowMore={() => void history.fetchNextPage()}
           />
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 

@@ -11,6 +11,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { ApplicationCard } from "@/components/applications/application-card";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { BackLink } from "@/components/ui/back-link";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -170,8 +171,12 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
   } else {
     body = (
       <ul className="grid gap-4">
-        {applications.map((application) => (
-          <li key={application.id}>
+        {applications.map((application, index) => (
+          <li
+            key={application.id}
+            className={enterClass}
+            style={enterStyle(index)}
+          >
             <ApplicationCard application={application} role={role} />
           </li>
         ))}

@@ -107,7 +107,9 @@ describe("LogoutButton", () => {
       body: { refreshToken: "refresh-token" },
     });
     expect(api.clearTokens).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("shows a blocking status while logging out", async () => {

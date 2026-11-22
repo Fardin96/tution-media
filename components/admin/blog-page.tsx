@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { card, focusRing, primaryButton } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import {
   AdminPage,
   FilterChips,
@@ -72,8 +73,8 @@ export function AdminBlogPage() {
         emptyText={EMPTY_TEXT[view]}
       >
         <ul className="grid gap-4">
-          {posts.map((post) => (
-            <li key={post.id}>
+          {posts.map((post, index) => (
+            <li key={post.id} className={enterClass} style={enterStyle(index)}>
               <PostRow post={post} />
             </li>
           ))}

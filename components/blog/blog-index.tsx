@@ -14,6 +14,7 @@ import {
 import { useRefreshExpiredMedia } from "@/lib/files";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { useIntentPrefetch } from "@/lib/prefetch";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 
 export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
   const query = useBlogPosts(initialPage);
@@ -66,8 +67,12 @@ export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
           ) : (
             <>
               <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {posts.map((post) => (
-                  <li key={post.slug}>
+                {posts.map((post, index) => (
+                  <li
+                    key={post.slug}
+                    className={enterClass}
+                    style={enterStyle(index)}
+                  >
                     <PostCard post={post} />
                   </li>
                 ))}

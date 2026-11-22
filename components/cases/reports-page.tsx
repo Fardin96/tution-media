@@ -1,12 +1,19 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 import {
   card,
   ghostButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,6 +61,8 @@ function CaseRow({
   counterpartLabel,
   details,
   resolutionNote,
+  className,
+  style,
 }: {
   title: string;
   status: CaseStatus;
@@ -62,6 +71,8 @@ function CaseRow({
   counterpartLabel: string;
   details: string;
   resolutionNote: string | null;
+  className?: string;
+  style?: CSSProperties;
 }) {
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
@@ -73,7 +84,7 @@ function CaseRow({
       : details;
 
   return (
-    <li className={cn(card, "grid gap-3 p-5")}>
+    <li className={cn(card, "grid gap-3 p-5", className)} style={style}>
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <h3 className="min-w-0 text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
           {title}
@@ -139,7 +150,7 @@ function Group<T>({
   emptyTitle: string;
   emptyBody: string;
   errorMessage: string;
-  children: (item: T) => ReactNode;
+  children: (item: T, index: number) => ReactNode;
 }) {
   const headingId = useId();
   let body: ReactNode;
@@ -156,7 +167,11 @@ function Group<T>({
   } else if (items.length === 0) {
     body = <EmptyCard title={emptyTitle} body={emptyBody} />;
   } else {
-    body = <ul className="grid gap-3">{items.map(children)}</ul>;
+    body = (
+      <ul className="grid gap-3">
+        {items.map((item, index) => children(item, index))}
+      </ul>
+    );
   }
 
   return (
@@ -224,7 +239,7 @@ export function ReportsPage() {
           emptyBody="If a confirmed tuition goes wrong, you can open one from its page."
           errorMessage="Couldn't load your disputes."
         >
-          {(dispute) => (
+          {(dispute, index) => (
             <CaseRow
               key={dispute.id}
               title={DISPUTE_TYPE_LABEL[dispute.type]}
@@ -234,6 +249,8 @@ export function ReportsPage() {
               counterpart={dispute.against.name}
               details={dispute.details}
               resolutionNote={dispute.resolutionNote}
+              className={enterClass}
+              style={enterStyle(index)}
             />
           )}
         </Group>
@@ -246,7 +263,7 @@ export function ReportsPage() {
           emptyBody="You can report the other person from any tuition's page."
           errorMessage="Couldn't load your reports."
         >
-          {(report) => (
+          {(report, index) => (
             <CaseRow
               key={report.id}
               title={REPORT_CATEGORY_LABEL[report.category]}
@@ -256,6 +273,8 @@ export function ReportsPage() {
               counterpart={report.target.name}
               details={report.details}
               resolutionNote={report.resolutionNote}
+              className={enterClass}
+              style={enterStyle(index)}
             />
           )}
         </Group>

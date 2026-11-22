@@ -608,21 +608,7 @@ export const profileApi = {
   verifications: async () =>
     (await unwrap(client.GET("/api/v1/tutors/me/verifications"))).verifications,
 
-  deleteMe: async () => unwrap(client.DELETE("/api/v1/me")),
-
-  hardDeleteMe: async () => {
-    const tokens = api.getTokens();
-    const res = await fetch("/api/v1/me/hard-delete", {
-      method: "DELETE",
-      headers: {
-        Accept: "application/json",
-        Authorization: tokens?.accessToken
-          ? `Bearer ${tokens.accessToken}`
-          : "",
-      },
-    });
-    return parseJson(await res);
-  },
+  hardDeleteMe: async () => unwrap(client.DELETE("/api/v1/me/hard-delete")),
 };
 
 /** Saves the tutor's subject and area sets. Both are full replacements. */

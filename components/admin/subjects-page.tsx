@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -30,6 +30,7 @@ import {
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 
 type DialogState = { mode: "create" } | { mode: "edit"; subject: AdminSubject };
 
@@ -63,11 +64,13 @@ export function SubjectsPage() {
         emptyText="No subjects yet. Add the first one."
       >
         <ul className="grid gap-4">
-          {list.map((subject) => (
+          {list.map((subject, index) => (
             <SubjectRow
               key={subject.id}
               subject={subject}
               onEdit={() => setDialog({ mode: "edit", subject })}
+              className={enterClass}
+              style={enterStyle(index)}
             />
           ))}
         </ul>
@@ -81,9 +84,13 @@ export function SubjectsPage() {
 function SubjectRow({
   subject,
   onEdit,
+  className,
+  style,
 }: {
   subject: AdminSubject;
   onEdit: () => void;
+  className?: string;
+  style?: CSSProperties;
 }) {
   const toggle = useUpdateSubject();
   const toggling = toggle.isPending && toggle.variables?.id === subject.id;
@@ -106,7 +113,9 @@ function SubjectRow({
       className={cn(
         card,
         "flex flex-wrap items-center justify-between gap-4 p-5",
+        className,
       )}
+      style={style}
     >
       <div className="grid min-w-0 gap-1">
         <div className="flex flex-wrap items-center gap-2">

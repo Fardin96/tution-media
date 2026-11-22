@@ -255,3 +255,80 @@
     transform: translateX(100%);
   }
 }
+
+/*
+ * App motion (dashboard, admin, onboarding; the landing keeps its own). The CSS here only moves
+ * transform and opacity. Dialogs, alert dialogs, the notification popover and height reveals run
+ * on motion (components/animate-ui/primitives/radix/ and components/motion/).
+ * Under reduced motion every movement drops out and only short fades remain.
+ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A list row or card arriving (first load, Load more). Callers set --enter-index from enterStyle(). */
+.motion-enter {
+  animation: motion-enter 280ms var(--ease-out) both;
+  animation-delay: calc(var(--enter-index, 0) * 35ms);
+}
+
+/* InputOTP (components/ui/input-otp.tsx): each digit pops in, and the caret blinks. */
+.motion-otp-char {
+  display: inline-block;
+  animation: motion-otp-char 180ms var(--ease-out) both;
+}
+.motion-otp-caret {
+  animation: motion-otp-caret 1s steps(2, jump-none) infinite;
+}
+@keyframes motion-otp-char {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.8);
+  }
+}
+@keyframes motion-otp-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes motion-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes motion-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* <details> opens and closes smoothly where the browser supports animating to auto (Chromium); others snap. */
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 220ms var(--ease-out),
+      content-visibility 220ms allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-enter,
+  .motion-otp-char {
+    animation-name: motion-fade-in;
+    animation-duration: 150ms;
+    animation-delay: 0ms;
+  }
+  details::details-content {
+    transition: none;
+  }
+}

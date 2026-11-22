@@ -12,6 +12,7 @@ import {
   accentAt,
   listingTitleClass,
 } from "@/components/ui/listing-card";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { formatRadius, zoneUsageText, type TutorZone } from "@/lib/tutor-zones";
 
 interface ZoneListProps {
@@ -57,7 +58,7 @@ export function ZoneList({
       {zones.map((zone, index) => {
         const selected = zone.id === selectedId;
         return (
-          <li key={zone.id}>
+          <li key={zone.id} className={enterClass} style={enterStyle(index)}>
             <ListingCard
               icon={MapPin}
               accent={accentAt(index)}

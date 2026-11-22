@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { enterClass, enterStyle } from "@/components/motion/enter";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import { formatAmount, formatDateTime } from "@/lib/admin";
 import {
@@ -300,8 +301,12 @@ export function AdminPackagesPage() {
             emptyText={EMPTY_COPY[status]}
           >
             <ul className="grid gap-4">
-              {packages.map((pkg) => (
-                <li key={pkg.id} className={cn(card, "grid gap-4 p-5")}>
+              {packages.map((pkg, index) => (
+                <li
+                  key={pkg.id}
+                  className={cn(card, "grid gap-4 p-5", enterClass)}
+                  style={enterStyle(index)}
+                >
                   <PackageSummary
                     pkg={pkg}
                     levelText={packageLevelText(lookup.data, pkg)}
