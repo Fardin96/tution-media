@@ -19,7 +19,8 @@ import {
   TutorInitial,
 } from "@/components/browse/browse-ui";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { dedupeBy } from "@/lib/browse";
 import {
   useInviteTutor,
@@ -68,10 +69,14 @@ function Suggestions({
 function RecommendedTutorRow({
   row,
   inviting,
+  inviteBusy,
   onInvite,
 }: {
   row: RecommendedTutor;
+  /** This row's invite is the one running. */
   inviting: boolean;
+  /** Any invite is running: the invite mutation is shared, so the other rows wait. */
+  inviteBusy: boolean;
   onInvite: () => void;
 }) {
   const { tutor, reasons, application, invitedAt } = row;
@@ -96,13 +101,14 @@ function RecommendedTutorRow({
       <button
         type="button"
         onClick={onInvite}
-        disabled={inviting}
+        disabled={inviteBusy}
         aria-busy={inviting || undefined}
         className={cn(primaryButton, "min-h-10 px-4")}
       >
-        Invite to apply
-        {inviting && <SpinnerEllipsis />}
-        <span className="sr-only"> {tutor.name}</span>
+        <PendingLabel pending={inviting}>
+          Invite to apply
+          <span className="sr-only"> {tutor.name}</span>
+        </PendingLabel>
       </button>
     );
   }
@@ -153,8 +159,10 @@ function RecommendedTutorRow({
           href={`/tutors/${tutor.id}`}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          View profile
-          <span className="sr-only"> for {tutor.name}</span>
+          <LinkPendingLabel>
+            View profile
+            <span className="sr-only"> for {tutor.name}</span>
+          </LinkPendingLabel>
         </Link>
         {action}
       </div>
@@ -226,6 +234,7 @@ export function RecommendedTutorsSection({
       <ErrorBlock
         message="Couldn't load recommended tutors."
         onRetry={() => void list.refetch()}
+        retrying={list.isFetching}
       />
     );
   } else if (tutors.length === 0) {
@@ -253,6 +262,7 @@ export function RecommendedTutorsSection({
               <RecommendedTutorRow
                 row={row}
                 inviting={invite.isPending && invite.variables === row.tutor.id}
+                inviteBusy={invite.isPending}
                 onInvite={() =>
                   invite.mutate(row.tutor.id, {
                     onSuccess: () =>
@@ -280,8 +290,9 @@ export function RecommendedTutorsSection({
               aria-busy={list.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              Show more tutors
-              {list.isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={list.isFetchingNextPage}>
+                Show more tutors
+              </PendingLabel>
             </button>
           </div>
         )}

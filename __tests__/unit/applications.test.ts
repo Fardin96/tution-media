@@ -38,10 +38,9 @@ describe("ACTION_META", () => {
     );
   });
 
-  it("gives each action a label, pending and done copy", () => {
+  it("gives each action a label and done copy", () => {
     for (const action of APPLICATION_ACTIONS) {
       expect(ACTION_META[action].label).not.toBe("");
-      expect(ACTION_META[action].pending).not.toBe("");
       expect(ACTION_META[action].done).not.toBe("");
     }
   });

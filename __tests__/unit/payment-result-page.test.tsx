@@ -242,7 +242,7 @@ describe("Try again while redirecting", () => {
     await waitFor(() => expect(assign).toHaveBeenCalledWith(GATEWAY_URL));
     const status = await screen.findByText("Taking you to SSLCommerz…");
     expect(status.closest('[role="status"]')).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Starting/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDisabled();
   });
 
   it("releases Try again when the page is restored from the back-forward cache", async () => {

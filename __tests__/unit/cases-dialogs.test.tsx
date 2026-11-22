@@ -104,7 +104,9 @@ describe("ReportDialog", () => {
     await user.type(screen.getByLabelText("Details"), DETAILS);
     await user.click(screen.getByRole("button", { name: "Send report" }));
 
-    await screen.findByRole("button", { name: "Sending..." });
+    const send = await screen.findByRole("button", { name: "Send report" });
+    expect(send).toBeDisabled();
+    expect(send).toHaveAttribute("aria-busy", "true");
     expect(screen.getByLabelText("Details")).toBeDisabled();
     const radios = screen.getAllByRole("radio");
     expect(radios.length).toBeGreaterThan(0);

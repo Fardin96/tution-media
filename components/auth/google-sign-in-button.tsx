@@ -8,6 +8,7 @@ import { client, type Schemas } from "@/lib/api-client";
 import { profileApi, profileOf } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { PendingLabel } from "@/components/ui/pending-label";
 import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { GoogleIcon } from "./google-icon";
 
@@ -175,15 +176,17 @@ export function GoogleSignInButton({
         aria-hidden={ready && !disabled}
         tabIndex={-1}
         disabled={!ready || disabled || signingIn}
-        aria-busy={!ready || undefined}
+        aria-busy={!ready || signingIn || undefined}
         className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[var(--color-neutral-white)] px-6 text-base font-semibold text-[var(--color-neutral-charcoal)] shadow-[0_1px_2px_0_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.1)] transition-[background-color,box-shadow,scale] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] hover:shadow-[0_4px_12px_-2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {ready ? (
-          <GoogleIcon />
-        ) : (
-          <SpinnerEllipsis className="text-[var(--color-neutral-gray)]" />
-        )}
-        {mode === "sign-up" ? "Sign up with Google" : "Continue with Google"}
+        <PendingLabel pending={signingIn}>
+          {ready ? (
+            <GoogleIcon />
+          ) : (
+            <SpinnerEllipsis className="text-[var(--color-neutral-gray)]" />
+          )}
+          {mode === "sign-up" ? "Sign up with Google" : "Continue with Google"}
+        </PendingLabel>
       </button>
     </div>
   );

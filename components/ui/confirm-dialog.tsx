@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
   ghostButton,
   primaryButton,
@@ -98,7 +99,7 @@ export function ConfirmDialog({
                   onClick={action.onSelect}
                   className={className}
                 >
-                  {action.label}
+                  <LinkPendingLabel>{action.label}</LinkPendingLabel>
                 </Link>
               ) : (
                 <button

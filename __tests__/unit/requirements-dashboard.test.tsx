@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RequirementsSection } from "@/components/profile/profile-dashboard";
@@ -73,11 +74,14 @@ const REQUIREMENTS: Requirement[] = [
 ];
 
 function renderSection() {
+  const client = new QueryClient();
   return render(
-    <RequirementsSection
-      requirements={REQUIREMENTS}
-      onUpdateRequirement={vi.fn()}
-    />,
+    <QueryClientProvider client={client}>
+      <RequirementsSection
+        requirements={REQUIREMENTS}
+        onUpdateRequirement={vi.fn()}
+      />
+    </QueryClientProvider>,
   );
 }
 

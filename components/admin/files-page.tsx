@@ -39,6 +39,7 @@ import { formatDateTime } from "@/lib/admin";
 import { openFile, formatBytes, type FilePurpose } from "@/lib/files";
 import { FilePreview } from "@/components/files/file-preview";
 import { toastError } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type PurposeView = "ALL" | FilePurpose;
 type StatusView = "ALL" | FileStatus;
@@ -190,7 +191,7 @@ export function AdminFilesPage() {
             <li key={file.id}>
               <FileRow
                 file={file}
-                onView={() => void view(file)}
+                onView={() => view(file)}
                 onRemove={() =>
                   removal.start({
                     fileId: file.id,
@@ -219,8 +220,9 @@ export function AdminFilesPage() {
             onSelect: () => setDeleting(null),
           },
           {
-            label: remove.isPending ? "Deleting..." : "Delete file",
+            label: "Delete file",
             variant: "primary",
+            pending: remove.isPending,
             onSelect: confirmDelete,
           },
         ]}
@@ -247,7 +249,7 @@ function FileRow({
   onDelete,
 }: {
   file: AdminFile;
-  onView: () => void;
+  onView: () => Promise<void>;
   onRemove: () => void;
   onDelete: () => void;
 }) {
@@ -255,6 +257,18 @@ function FileRow({
   const canDelete = !file.inUse && file.status !== "DELETED";
   const canRemove = canRemoveFile(file);
   const [showPreview, setShowPreview] = useState(false);
+  const [opening, setOpening] = useState(false);
+
+  // The signed link is requested before the tab shows the file, so Open waits for it.
+  async function open() {
+    if (opening) return;
+    setOpening(true);
+    try {
+      await onView();
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <article className={cn(card, "grid gap-4 p-5")}>
@@ -287,10 +301,12 @@ function FileRow({
                 </button>
                 <button
                   type="button"
-                  onClick={onView}
+                  onClick={() => void open()}
+                  disabled={opening}
+                  aria-busy={opening || undefined}
                   className={cn(ghostButton, "min-h-10 px-3")}
                 >
-                  Open
+                  <PendingLabel pending={opening}>Open</PendingLabel>
                 </button>
               </>
             )}

@@ -8,6 +8,7 @@ import { card, primaryButton } from "@/components/profile/styles";
 import { ErrorBlock, EmptyCard } from "@/components/browse/browse-ui";
 import { RequirementPageShell } from "@/components/requirements/requirement-page-shell";
 import { MyPackageCard } from "@/components/packages/my-package-card";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { accentAt } from "@/components/ui/listing-card";
 import { useEducationLookup } from "@/lib/education";
 import { useMyPackages, type MyPackage } from "@/lib/packages";
@@ -35,8 +36,10 @@ function SkeletonCards({ count }: { count: number }) {
 function NewPackageLink() {
   return (
     <Link href={NEW_PACKAGE_HREF} className={primaryButton}>
-      <Plus aria-hidden="true" className="size-4" />
-      New package
+      <LinkPendingLabel>
+        <Plus aria-hidden="true" className="size-4" />
+        New package
+      </LinkPendingLabel>
     </Link>
   );
 }

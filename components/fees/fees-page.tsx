@@ -11,13 +11,20 @@ import {
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
 import { feeStatusDisplay, formatMoney } from "@/components/fees/fee-format";
-import { isFeeOpen, useMyFees, type TutorFee } from "@/lib/fees";
+import {
+  isFeeOpen,
+  myFeeQueryOptions,
+  useMyFees,
+  type TutorFee,
+} from "@/lib/fees";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 function SkeletonRows({ count }: { count: number }) {
   return (
@@ -64,10 +71,12 @@ function FeeRow({ fee }: { fee: TutorFee }) {
   const status = feeStatusDisplay(fee);
   const open = isFeeOpen(fee);
   const what = fee.application.packageTitle ?? "Tuition requirement";
+  const intent = useIntentPrefetch();
 
   return (
     <Link
       href={`/dashboard/fees/${encodeURIComponent(fee.id)}`}
+      {...intent(myFeeQueryOptions(fee.id))}
       className={cn(
         card,
         "grid gap-4 p-5 transition-[background-color] duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
@@ -94,7 +103,7 @@ function FeeRow({ fee }: { fee: TutorFee }) {
       </dl>
       {open && (
         <span className={cn(primaryButton, "min-h-10 self-start px-4")}>
-          Pay
+          <LinkPendingLabel>Pay</LinkPendingLabel>
         </span>
       )}
     </Link>
@@ -164,8 +173,9 @@ export function FeesPage() {
               aria-busy={fees.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              Load more
-              {fees.isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={fees.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

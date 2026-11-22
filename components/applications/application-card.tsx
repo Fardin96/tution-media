@@ -5,7 +5,9 @@ import { card, focusRing } from "@/components/profile/styles";
 import { useEducationLookup } from "@/lib/education";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
-import type { Application } from "@/lib/applications";
+import { applicationQueryOptions, type Application } from "@/lib/applications";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import {
@@ -29,6 +31,7 @@ export function ApplicationCard({
   role: "TUTOR" | "STUDENT";
 }) {
   const lookup = useEducationLookup();
+  const intent = useIntentPrefetch();
   const { subjects } = useSubjects();
   const { areas } = useAreas();
   const { target } = application;
@@ -98,16 +101,19 @@ export function ApplicationCard({
         </p>
         <Link
           href={`/dashboard/applications/${application.id}`}
+          {...intent(applicationQueryOptions(application.id))}
           className={cn(
             "inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-sm font-semibold text-[var(--color-primary-core)] transition-[background-color] duration-150 ease-out hover:bg-[var(--color-secondary-sky)] motion-reduce:transition-none",
             focusRing,
           )}
         >
-          View
-          <ChevronRight
-            aria-hidden="true"
-            className="size-4 rtl:-scale-x-100"
-          />
+          <LinkPendingLabel>
+            View
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4 rtl:-scale-x-100"
+            />
+          </LinkPendingLabel>
         </Link>
       </div>
 

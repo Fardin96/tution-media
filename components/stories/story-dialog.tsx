@@ -10,6 +10,7 @@ import {
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { FilePicker } from "@/components/files/file-picker";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { PausedNotice } from "@/components/profile/dashboard-kit";
 import { FieldError } from "@/components/profile/profile-fields";
 import {
@@ -334,9 +335,10 @@ function StoryForm({ role, onDone }: { role: StoryRole; onDone: () => void }) {
         <button
           type="submit"
           disabled={imageBusy || videoBusy || submitting}
+          aria-busy={submitting || undefined}
           className={primaryButton}
         >
-          {submitting ? "Sending…" : "Send for review"}
+          <PendingLabel pending={submitting}>Send for review</PendingLabel>
         </button>
       </DialogActions>
     </form>

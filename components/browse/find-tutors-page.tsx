@@ -51,7 +51,8 @@ import {
   isClientError,
 } from "./browse-ui";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type Tab = "tutors" | "packages";
 type TutorMode = "nearby" | "search";
@@ -192,7 +193,9 @@ export function FindTutorsPage() {
   return (
     <PageFrame
       headerAction={
-        <HeaderLink href="/dashboard/applications">My applications</HeaderLink>
+        <HeaderLink href="/dashboard/applications">
+          <LinkPendingLabel>My applications</LinkPendingLabel>
+        </HeaderLink>
       }
     >
       <BackLink href="/dashboard">Dashboard</BackLink>
@@ -284,7 +287,7 @@ function NearbyTutors() {
         body="Add your address on your profile to see tutors near you."
       >
         <Link href="/dashboard" className={cn(primaryButton, "min-h-10 px-4")}>
-          Go to your profile
+          <LinkPendingLabel>Go to your profile</LinkPendingLabel>
         </Link>
       </EmptyCard>
     );
@@ -293,6 +296,7 @@ function NearbyTutors() {
       <ErrorBlock
         message="Couldn't load tutors near you."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else {
@@ -371,6 +375,7 @@ function SearchTutors() {
       <ErrorBlock
         message="Couldn't search tutors."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else if (tutors.length === 0) {
@@ -510,6 +515,7 @@ function PackagesPanel() {
       <ErrorBlock
         message="Couldn't load packages."
         onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
       />
     );
   } else if (packages.length === 0) {
@@ -528,13 +534,13 @@ function PackagesPanel() {
             href="/dashboard/find-tutors?tab=tutors"
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Browse tutors
+            <LinkPendingLabel>Browse tutors</LinkPendingLabel>
           </Link>
           <Link
             href="/dashboard/requirements/new"
             className={cn(primaryButton, "min-h-10 px-4")}
           >
-            Post a requirement
+            <LinkPendingLabel>Post a requirement</LinkPendingLabel>
           </Link>
         </div>
       </div>
@@ -556,8 +562,9 @@ function PackagesPanel() {
               onClick={() => void query.fetchNextPage()}
               className={cn(secondaryButton, "min-h-11 px-5")}
             >
-              Load more
-              {query.isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={query.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

@@ -13,8 +13,10 @@ import {
   StatusPill,
 } from "@/components/admin/admin-ui";
 import { formatAmount, formatDateTime } from "@/lib/admin";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   REFUND_STATUS_META,
+  adminRefundQueryOptions,
   useAdminRefunds,
   type AdminRefund,
   type AdminRefundFilters,
@@ -138,9 +140,11 @@ const SOURCE_LABEL: Record<AdminRefund["source"], string> = {
 
 function RefundRow({ refund }: { refund: AdminRefund }) {
   const meta = REFUND_STATUS_META[refund.status];
+  const intent = useIntentPrefetch();
   return (
     <Link
       href={`/dashboard/admin/refunds/${encodeURIComponent(refund.id)}`}
+      {...intent(adminRefundQueryOptions(refund.id))}
       className={cn(card, "grid gap-4 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -173,10 +177,12 @@ function RefundRow({ refund }: { refund: AdminRefund }) {
 /** A compact link row for a refund, used in the refunds sections of the fee and payment pages. */
 export function RefundLinkRow({ refund }: { refund: AdminRefund }) {
   const meta = REFUND_STATUS_META[refund.status];
+  const intent = useIntentPrefetch();
   return (
     <li>
       <Link
         href={`/dashboard/admin/refunds/${encodeURIComponent(refund.id)}`}
+        {...intent(adminRefundQueryOptions(refund.id))}
         className={cn(
           "grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4 transition-[box-shadow] duration-150 ease-out hover:shadow-[0_0_0_1px_rgb(0_0_0/0.1)] motion-reduce:transition-none",
           focusRing,

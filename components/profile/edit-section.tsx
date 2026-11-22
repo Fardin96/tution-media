@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export function EditSection({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const found = validate(section.fields, draft);
     if (Object.keys(found).length) {
       setErrors(found);
@@ -187,14 +189,13 @@ export function EditSection({
             >
               Cancel
             </button>
-            <button type="submit" disabled={saving} className={primaryButton}>
-              {saving && (
-                <Loader2
-                  aria-hidden="true"
-                  className="size-4 animate-spin motion-reduce:animate-none"
-                />
-              )}
-              {saving ? "Saving…" : "Save changes"}
+            <button
+              type="submit"
+              disabled={saving}
+              aria-busy={saving || undefined}
+              className={primaryButton}
+            >
+              <PendingLabel pending={saving}>Save changes</PendingLabel>
             </button>
           </div>
         </form>

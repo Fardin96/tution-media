@@ -238,7 +238,7 @@ describe("FeeDetailPage pay online", () => {
     const status = await screen.findByText("Taking you to SSLCommerz…");
     expect(status.closest('[role="status"]')).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Opening SSLCommerz…" }),
+      screen.getByRole("button", { name: "Pay ৳1,537.50 with SSLCommerz" }),
     ).toBeDisabled();
   });
 
@@ -288,11 +288,11 @@ describe("FeeDetailPage pay online", () => {
 
     expect(screen.getByText("Taking you to SSLCommerz…")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Opening SSLCommerz…" }),
+      screen.getByRole("button", { name: "Pay ৳1,537.50 with SSLCommerz" }),
     ).toBeDisabled();
   });
 
-  it("shows Opening SSLCommerz and disables the button while the session starts", async () => {
+  it("shows the spinner on the pay button and disables it while the session starts", async () => {
     let release!: (res: Response) => void;
     mockApi(detail(), () => new Promise<Response>((res) => (release = res)));
     renderPage();
@@ -305,7 +305,7 @@ describe("FeeDetailPage pay online", () => {
     );
 
     const busy = await screen.findByRole("button", {
-      name: "Opening SSLCommerz…",
+      name: "Pay ৳1,537.50 with SSLCommerz",
     });
     expect(busy).toBeDisabled();
     expect(busy).toHaveAttribute("aria-busy", "true");

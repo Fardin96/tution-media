@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 
 const WASH = [
   "radial-gradient(60% 50% at 10% 0%, color-mix(in oklab, var(--color-primary-core) 16%, transparent), transparent 70%)",
@@ -65,7 +66,7 @@ export function HeaderLink({
 }) {
   return (
     <Link href={href} className={cn(secondaryButton, "min-h-10 px-4")}>
-      {children}
+      <LinkPendingLabel>{children}</LinkPendingLabel>
     </Link>
   );
 }

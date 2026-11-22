@@ -42,6 +42,7 @@ import { openFile, formatBytes } from "@/lib/files";
 import { FilePreview } from "@/components/files/file-preview";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 const PATH = "/dashboard/admin/verifications";
 
@@ -293,6 +294,7 @@ function VerificationCard({
   const audience = row.kind === "tutors" ? "tutor" : "student";
   const actions = verificationActions(row);
   const [showPreview, setShowPreview] = useState(false);
+  const [opening, setOpening] = useState(false);
   const canOpen = file !== null && !fileRemoved;
 
   return (
@@ -395,14 +397,17 @@ function VerificationCard({
               </button>
               <button
                 type="button"
+                disabled={opening}
+                aria-busy={opening || undefined}
                 onClick={() => {
-                  openFile(file.id).catch((err) =>
-                    toastError("Couldn't open the file.", err),
-                  );
+                  setOpening(true);
+                  openFile(file.id)
+                    .catch((err) => toastError("Couldn't open the file.", err))
+                    .finally(() => setOpening(false));
                 }}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Open in new tab
+                <PendingLabel pending={opening}>Open in new tab</PendingLabel>
               </button>
             </div>
           ) : (

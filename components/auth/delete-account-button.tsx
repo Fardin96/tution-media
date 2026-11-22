@@ -9,6 +9,7 @@ import { profileApi } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { ghostButton, secondaryButton } from "@/components/profile/styles";
 import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type Step = "idle" | "choose" | "confirm-soft" | "confirm-hard";
 
@@ -103,9 +104,10 @@ export function DeleteAccountButton({ className }: { className?: string }) {
               type="button"
               disabled={busy}
               onClick={() => execute("soft")}
+              aria-busy={busy || undefined}
               className={cn(secondaryButton, "flex-1")}
             >
-              {busy ? "Deleting…" : "Confirm soft delete"}
+              <PendingLabel pending={busy}>Confirm soft delete</PendingLabel>
             </button>
           </div>
         </div>
@@ -134,12 +136,13 @@ export function DeleteAccountButton({ className }: { className?: string }) {
               type="button"
               disabled={busy}
               onClick={() => execute("hard")}
+              aria-busy={busy || undefined}
               className={cn(
                 secondaryButton,
                 "flex-1 bg-[var(--color-semantic-error-surface)] text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
               )}
             >
-              {busy ? "Deleting…" : "Yes, hard delete"}
+              <PendingLabel pending={busy}>Yes, hard delete</PendingLabel>
             </button>
           </div>
         </div>

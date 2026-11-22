@@ -1,7 +1,20 @@
 import { describe, it, expect } from "vitest";
+import type { ComponentProps } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
 import type { TutorRequirement } from "@/lib/tutor-requirements";
+
+// The checklist's links prefetch through the query client, as they do inside the app.
+function ReadinessChecklistWithClient(
+  props: ComponentProps<typeof ReadinessChecklist>,
+) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <ReadinessChecklist {...props} />
+    </QueryClientProvider>
+  );
+}
 
 function defaultSet(over: Partial<TutorRequirement>): TutorRequirement {
   return {
@@ -19,7 +32,7 @@ function defaultSet(over: Partial<TutorRequirement>): TutorRequirement {
 describe("ReadinessChecklist", () => {
   it("lists each missing item with a link to where it is fixed", () => {
     render(
-      <ReadinessChecklist
+      <ReadinessChecklistWithClient
         missing={[
           "name",
           "address",
@@ -57,7 +70,7 @@ describe("ReadinessChecklist", () => {
   });
 
   it("falls back to the readable key for an unknown item", () => {
-    render(<ReadinessChecklist missing={["phone_otp_limit"]} />);
+    render(<ReadinessChecklistWithClient missing={["phone_otp_limit"]} />);
 
     expect(
       screen.getByRole("link", { name: "Complete your phone otp limit" }),
@@ -65,13 +78,13 @@ describe("ReadinessChecklist", () => {
   });
 
   it("renders nothing when nothing is missing", () => {
-    const { container } = render(<ReadinessChecklist missing={[]} />);
+    const { container } = render(<ReadinessChecklistWithClient missing={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("names the default set and links to its edit page when it has no zone", () => {
     render(
-      <ReadinessChecklist
+      <ReadinessChecklistWithClient
         missing={["default_requirement"]}
         defaultSet={defaultSet({})}
       />,
@@ -92,7 +105,7 @@ describe("ReadinessChecklist", () => {
 
   it("lists both gaps when the default set has no subject and no zone", () => {
     render(
-      <ReadinessChecklist
+      <ReadinessChecklistWithClient
         missing={["default_requirement"]}
         defaultSet={defaultSet({ subjectIds: [] })}
       />,
@@ -106,7 +119,11 @@ describe("ReadinessChecklist", () => {
   });
 
   it("stays general while the sets are not loaded", () => {
-    render(<ReadinessChecklist missing={["default_requirement", "name"]} />);
+    render(
+      <ReadinessChecklistWithClient
+        missing={["default_requirement", "name"]}
+      />,
+    );
 
     expect(
       screen.getByRole("link", { name: "Fix your default requirement set" }),

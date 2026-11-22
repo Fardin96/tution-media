@@ -11,12 +11,17 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
-import type { ApplicationStatus } from "@/lib/applications";
+import {
+  applicationQueryOptions,
+  type ApplicationStatus,
+} from "@/lib/applications";
 import type { BrowseRequirement } from "@/lib/browse";
 import { formatDistanceKm } from "@/lib/browse";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
@@ -28,6 +33,8 @@ export type TuitionApplyState =
   | {
       kind: "open";
       applying: boolean;
+      /** Another row's apply is running (the mutation is shared), so this Apply waits. */
+      busy?: boolean;
       /** Why Apply is unavailable (profile incomplete). Null when Apply is allowed. */
       blockedReason: string | null;
       onApply: () => void;
@@ -64,6 +71,7 @@ export function TuitionCard({
   areaName,
   apply,
 }: TuitionCardProps) {
+  const intent = useIntentPrefetch();
   const distance = formatDistanceKm(tuition.distanceKm);
   const time = formatTime(tuition.timeOfDay);
   const dayParts = [
@@ -148,10 +156,13 @@ export function TuitionCard({
               <StatusPill status={apply.status} />
               <Link
                 href={`/dashboard/applications/${apply.applicationId}`}
+                {...intent(applicationQueryOptions(apply.applicationId))}
                 className={cn(secondaryButton, "min-h-10 px-4")}
               >
-                View
-                <span className="sr-only"> application</span>
+                <LinkPendingLabel>
+                  View
+                  <span className="sr-only"> application</span>
+                </LinkPendingLabel>
               </Link>
             </>
           )}
@@ -162,14 +173,19 @@ export function TuitionCard({
             <button
               type="button"
               onClick={apply.onApply}
-              disabled={apply.applying || apply.blockedReason !== null}
+              disabled={
+                apply.applying ||
+                apply.busy === true ||
+                apply.blockedReason !== null
+              }
               aria-busy={apply.applying || undefined}
               aria-describedby={apply.blockedReason ? applyId : undefined}
               className={cn(primaryButton, "w-full sm:w-auto")}
             >
-              {apply.applying ? "Applying…" : "Apply"}
-              {apply.applying && <SpinnerEllipsis />}
-              <span className="sr-only"> for {subjectsText}</span>
+              <PendingLabel pending={apply.applying}>
+                Apply
+                <span className="sr-only"> for {subjectsText}</span>
+              </PendingLabel>
             </button>
             {apply.blockedReason && (
               <p

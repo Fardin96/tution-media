@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { BlockingOverlay } from "@/components/ui/blocking-overlay";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { cn } from "@/lib/utils";
 import {
   usePhoneVerificationStatus,
@@ -99,6 +100,7 @@ export function OnboardingWizard({
   const [saving, setSaving] = useState(false);
   // Set while the final save runs and kept on success until the router leaves the page.
   const [finishing, setFinishing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const firstRender = useRef(true);
@@ -250,13 +252,16 @@ export function OnboardingWizard({
           />
           <button
             type="button"
+            disabled={signingOut}
+            aria-busy={signingOut || undefined}
             onClick={async () => {
+              setSigningOut(true);
               await clearSession();
               router.replace("/sign-in");
             }}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Sign out
+            <PendingLabel pending={signingOut}>Sign out</PendingLabel>
           </button>
         </header>
 
@@ -425,6 +430,7 @@ export function OnboardingWizard({
               <button
                 type="submit"
                 disabled={checking || saving || nextBlocked}
+                aria-busy={saving || undefined}
                 aria-describedby={
                   nextBlocked && !phoneStatus.isPending
                     ? "finish-blocked-reason"
@@ -432,29 +438,23 @@ export function OnboardingWizard({
                 }
                 className={cn(primaryButton, "sm:min-w-40")}
               >
-                {saving ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Saving…
-                  </>
-                ) : isLast ? (
-                  <>
-                    Finish setup
-                    <Check
-                      aria-hidden="true"
-                      className="size-4"
-                      strokeWidth={2.5}
-                    />
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                  </>
-                )}
+                <PendingLabel pending={saving}>
+                  {isLast ? (
+                    <>
+                      Finish setup
+                      <Check
+                        aria-hidden="true"
+                        className="size-4"
+                        strokeWidth={2.5}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight aria-hidden="true" className="size-4" />
+                    </>
+                  )}
+                </PendingLabel>
               </button>
             </div>
           </form>

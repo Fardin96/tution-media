@@ -22,6 +22,7 @@ import {
 } from "@/lib/admin-settings";
 import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type NumberInput = { unit: "percent" | "days"; max: number; hint?: string };
 
@@ -232,6 +233,7 @@ function NumberForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (update.isPending) return;
     const message = unit.validate(text, input.max);
     if (message) {
       setError(message);
@@ -293,7 +295,7 @@ function NumberForm({
         aria-busy={update.isPending || undefined}
         className={cn(primaryButton, "min-h-11 self-start")}
       >
-        {update.isPending ? "Saving..." : "Save"}
+        <PendingLabel pending={update.isPending}>Save</PendingLabel>
       </button>
     </form>
   );
@@ -329,6 +331,7 @@ function SwitchControl({
       aria-label={title}
       aria-describedby={descriptionId}
       disabled={update.isPending}
+      aria-busy={update.isPending || undefined}
       onClick={() =>
         update.mutate(
           { key: item.key, value: !on },
@@ -343,23 +346,25 @@ function SwitchControl({
         focusRing,
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-[background-color] duration-150 ease-out motion-reduce:transition-none",
-          on
-            ? "bg-[var(--color-primary-core)]"
-            : "bg-[var(--color-neutral-gray)]",
-        )}
-      >
+      <PendingLabel pending={update.isPending} className="gap-3">
         <span
+          aria-hidden="true"
           className={cn(
-            "block size-5 rounded-full bg-[var(--color-neutral-white)] shadow-[0_1px_2px_rgb(0_0_0/0.2)] transition-[translate] duration-150 ease-out motion-reduce:transition-none",
-            on ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0",
+            "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-[background-color] duration-150 ease-out motion-reduce:transition-none",
+            on
+              ? "bg-[var(--color-primary-core)]"
+              : "bg-[var(--color-neutral-gray)]",
           )}
-        />
-      </span>
-      {on ? "On" : "Off"}
+        >
+          <span
+            className={cn(
+              "block size-5 rounded-full bg-[var(--color-neutral-white)] shadow-[0_1px_2px_rgb(0_0_0/0.2)] transition-[translate] duration-150 ease-out motion-reduce:transition-none",
+              on ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0",
+            )}
+          />
+        </span>
+        {on ? "On" : "Off"}
+      </PendingLabel>
     </button>
   );
 }

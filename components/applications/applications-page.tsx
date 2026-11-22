@@ -14,7 +14,8 @@ import { ApplicationCard } from "@/components/applications/application-card";
 import { BackLink } from "@/components/ui/back-link";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   STATUS_META,
   useMyApplications,
@@ -130,9 +131,11 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -145,7 +148,7 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
               {copy.emptyAll}
             </p>
             <Link href={copy.headerLink.href} className={primaryButton}>
-              {copy.emptyNext}
+              <LinkPendingLabel>{copy.emptyNext}</LinkPendingLabel>
             </Link>
           </>
         ) : (
@@ -180,7 +183,7 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
     <PageFrame
       headerAction={
         <HeaderLink href={copy.headerLink.href}>
-          {copy.headerLink.label}
+          <LinkPendingLabel>{copy.headerLink.label}</LinkPendingLabel>
         </HeaderLink>
       }
     >
@@ -241,8 +244,9 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
             aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-5")}
           >
-            Load more
-            {query.isFetchingNextPage && <SpinnerEllipsis />}
+            <PendingLabel pending={query.isFetchingNextPage}>
+              Load more
+            </PendingLabel>
           </button>
         </div>
       )}

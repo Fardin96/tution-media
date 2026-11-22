@@ -2,11 +2,12 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
-import { primaryButton, secondaryButton } from "@/components/profile/styles";
+import { secondaryButton } from "@/components/profile/styles";
 import {
   AdminDialog,
   DialogActions,
   Field,
+  PendingButton,
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { StarRatingInput } from "@/components/reviews/star-rating-input";
@@ -168,6 +169,7 @@ function ReviewForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setAttempted(true);
     if (checked.rating || checked.comment) return;
     onSubmit(rating, comment);
@@ -251,20 +253,9 @@ function ReviewForm({
         >
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={pending}
-          aria-busy={pending || undefined}
-          className={cn(primaryButton, "min-h-11")}
-        >
-          {pending
-            ? editing
-              ? "Saving..."
-              : "Posting..."
-            : editing
-              ? "Save changes"
-              : "Post review"}
-        </button>
+        <PendingButton pending={pending}>
+          {editing ? "Save changes" : "Post review"}
+        </PendingButton>
       </DialogActions>
     </form>
   );

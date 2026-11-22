@@ -11,6 +11,7 @@ import {
 } from "@/components/profile/styles";
 import { TonePill } from "@/components/applications/status-pill";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
   ListingCard,
   listingTitleClass,
@@ -20,6 +21,7 @@ import type { EducationLookup } from "@/lib/education";
 import {
   COVERAGE_LABEL,
   durationLabel,
+  myPackageQueryOptions,
   packagePlaceText,
   packageLevelText,
   packageState,
@@ -27,6 +29,7 @@ import {
   useClosePackage,
   type MyPackage,
 } from "@/lib/packages";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { optionName } from "@/lib/profile";
 import { useSubjects } from "@/lib/subjects";
 import { formatTimeRange } from "@/lib/tutor-requirements";
@@ -58,6 +61,7 @@ export function MyPackageCard({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const close = useClosePackage();
+  const intent = useIntentPrefetch();
   const { subjects: subjectOptions } = useSubjects();
 
   const state = packageState(pkg);
@@ -68,10 +72,14 @@ export function MyPackageCard({
     .map((id) => optionName(subjectOptions, id))
     .join(", ");
 
+  // The dialog stays open until the close request lands: a failure keeps it open with the error toast.
   function confirmClose() {
-    setConfirmOpen(false);
+    if (close.isPending) return;
     close.mutate(pkg.id, {
-      onSuccess: () => toastSuccess("Package closed."),
+      onSuccess: () => {
+        setConfirmOpen(false);
+        toastSuccess("Package closed.");
+      },
       onError: (err) => toastError("Couldn't close this package.", err),
     });
   }
@@ -130,12 +138,13 @@ export function MyPackageCard({
             </p>
             <Link
               href={`/dashboard/tutor/packages/${pkg.id}/requests`}
+              {...intent(myPackageQueryOptions(pkg.id))}
               className={cn(
                 requests.waiting ? primaryButton : secondaryButton,
                 "min-h-10 px-4",
               )}
             >
-              View requests
+              <LinkPendingLabel>View requests</LinkPendingLabel>
             </Link>
             {isLive && (
               <>
@@ -143,7 +152,7 @@ export function MyPackageCard({
                   href={`/dashboard/tutor/packages/${pkg.id}/edit`}
                   className={cn(secondaryButton, "min-h-10 px-4")}
                 >
-                  Edit
+                  <LinkPendingLabel>Edit</LinkPendingLabel>
                 </Link>
                 <button
                   type="button"
@@ -173,6 +182,7 @@ export function MyPackageCard({
             label: "Close package",
             variant: "primary",
             onSelect: confirmClose,
+            pending: close.isPending,
           },
         ]}
       >

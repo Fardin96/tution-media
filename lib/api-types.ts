@@ -9151,7 +9151,7 @@ export interface paths {
      * List approved videos
      * @description Approved videos from all tutors, in display order.
      *
-     *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
      *
      *     **Rate limit:** global 100/min.
      */

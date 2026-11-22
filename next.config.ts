@@ -42,8 +42,9 @@ const nextConfig: NextConfig = {
     qualities: [75],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [32, 48, 64, 96, 128, 256, 384],
-    // Optimized images can't be purged, so keep the cache to a day. /assets files may be
-    // replaced in place.
+    // The floor for optimized copies; Next keeps the larger of this and the source's max-age
+    // (7 days for the public media bucket). A day, because optimized images can't be purged
+    // and /assets files may be replaced in place.
     minimumCacheTTL: 86400,
     remotePatterns: mediaRemotePatterns(),
     // dangerouslyAllowSVG stays off: SVG can carry script.

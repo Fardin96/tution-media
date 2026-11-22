@@ -16,6 +16,7 @@ import {
   type PillTone,
 } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatDateTime, useAdminMe } from "@/lib/admin";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
@@ -260,7 +261,7 @@ export function AccountDetailPage({ id }: { id: string }) {
                 }
                 className={cn(primaryButton, "min-h-11 sm:min-w-28")}
               >
-                {unblock.isPending ? "Unblocking..." : "Unblock"}
+                <PendingLabel pending={unblock.isPending}>Unblock</PendingLabel>
               </button>
             </DialogActions>
           </AdminDialog>
@@ -328,7 +329,7 @@ function BlockForm({
             "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
           )}
         >
-          {busy ? "Blocking..." : "Block"}
+          <PendingLabel pending={busy}>Block</PendingLabel>
         </button>
       </DialogActions>
     </form>

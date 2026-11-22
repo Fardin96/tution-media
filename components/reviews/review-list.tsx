@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatDay } from "@/components/applications/format";
 import { StarRating } from "@/components/reviews/star-rating";
 import {
@@ -18,6 +18,7 @@ type ReviewQuery = {
   data?: { pages: ReviewListPage[] };
   isPending: boolean;
   isError: boolean;
+  isFetching: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => unknown;
@@ -92,9 +93,11 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -150,8 +153,9 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
             aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            Show more
-            {query.isFetchingNextPage && <SpinnerEllipsis />}
+            <PendingLabel pending={query.isFetchingNextPage}>
+              Show more
+            </PendingLabel>
           </button>
         </div>
       )}

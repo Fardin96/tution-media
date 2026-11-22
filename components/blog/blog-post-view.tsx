@@ -2,6 +2,7 @@
 
 import { BackLink } from "@/components/ui/back-link";
 import { BlogMarkdown } from "@/components/blog/blog-markdown";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
@@ -47,9 +48,11 @@ export function BlogPostView({
             <button
               type="button"
               onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching || undefined}
               className={secondaryButton}
             >
-              Try again
+              <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
             </button>
           </div>
         ) : post ? (

@@ -13,8 +13,10 @@ import {
   StatusPill,
 } from "@/components/admin/admin-ui";
 import { formatAmount } from "@/lib/admin";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   FEE_STATUS_META,
+  adminFeeQueryOptions,
   formatDueDate,
   useAdminFees,
   type AdminFee,
@@ -94,9 +96,11 @@ export function AdminFeesPage() {
 
 function FeeRow({ fee }: { fee: AdminFee }) {
   const meta = FEE_STATUS_META[fee.status];
+  const intent = useIntentPrefetch();
   return (
     <Link
       href={`/dashboard/admin/fees/${encodeURIComponent(fee.id)}`}
+      {...intent(adminFeeQueryOptions(fee.id))}
       className={cn(card, "grid gap-4 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

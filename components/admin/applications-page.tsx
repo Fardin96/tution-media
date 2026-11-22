@@ -12,6 +12,8 @@ import {
   StatusPill,
 } from "@/components/admin/admin-ui";
 import { formatAmount, formatDateTime } from "@/lib/admin";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import { applicationQueryOptions, STATUS_META } from "@/lib/applications";
 import {
   useAdminApplications,
   type AdminApplication,
@@ -20,7 +22,6 @@ import {
   type AdminApplicationStatus,
 } from "@/lib/admin-applications";
 import { FEE_STATUS_META } from "@/lib/admin-fees";
-import { STATUS_META } from "@/lib/applications";
 import {
   levelLabel,
   useEducationLookup,
@@ -158,6 +159,7 @@ function ApplicationRow({
   levelText: string | null;
 }) {
   const { kind, status, fee, target } = application;
+  const intent = useIntentPrefetch();
   const isPackage = kind === "PACKAGE";
   const targetText = isPackage
     ? (target.title ?? "Package")
@@ -166,6 +168,7 @@ function ApplicationRow({
   return (
     <Link
       href={`/dashboard/applications/${encodeURIComponent(application.id)}?from=admin`}
+      {...intent(applicationQueryOptions(application.id))}
       className={cn(card, "grid gap-3 p-5", focusRing)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

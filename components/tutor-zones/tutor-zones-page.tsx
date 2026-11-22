@@ -13,6 +13,7 @@ import {
 } from "@/components/profile/styles";
 import { BackLink } from "@/components/ui/back-link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { ZoneLimitRequestDialog } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { ZoneMap, hasMapsKey } from "@/components/tutor-zones/zone-map";
 import { ZoneEditor } from "@/components/tutor-zones/zone-editor";
@@ -284,9 +285,13 @@ export function TutorZonesPage() {
               <button
                 type="button"
                 onClick={() => void zonesQuery.refetch()}
+                disabled={zonesQuery.isFetching}
+                aria-busy={zonesQuery.isFetching || undefined}
                 className={cn(secondaryButton, "min-h-10 px-4")}
               >
-                Try again
+                <PendingLabel pending={zonesQuery.isFetching}>
+                  Try again
+                </PendingLabel>
               </button>
             </div>
           ) : (
@@ -433,8 +438,12 @@ export function TutorZonesPage() {
           {
             label: "Delete zone",
             variant: "primary",
+            // The dialog stays open until the delete lands; a failure keeps it open with the toast.
+            pending: deleteZone.isPending,
             onSelect: () => {
-              if (pendingDelete) deleteZone.mutate(pendingDelete.id);
+              if (pendingDelete && !deleteZone.isPending) {
+                deleteZone.mutate(pendingDelete.id);
+              }
             },
           },
         ]}

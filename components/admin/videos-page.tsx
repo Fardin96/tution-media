@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -179,7 +180,7 @@ function VideoReviewDialog({ review }: { review: VideoReviewState }) {
             aria-busy={review.saving || undefined}
             className={cn(primaryButton, "min-h-11 sm:min-w-28")}
           >
-            {review.saving ? "Saving..." : "Approve"}
+            <PendingLabel pending={review.saving}>Approve</PendingLabel>
           </button>
         </DialogActions>
       ) : (
@@ -257,7 +258,10 @@ export function AdminVideosPage() {
             <li key={video.id} className={cn(card, "grid gap-4 p-5")}>
               <VideoCard
                 video={video}
-                savingOrder={update.isPending}
+                orderBusy={update.isPending}
+                savingOrder={
+                  update.isPending && update.variables?.id === video.id
+                }
                 onApprove={() => review.start(video, "APPROVE")}
                 onReject={() => review.start(video, "REJECT")}
                 onTakeDown={() => review.start(video, "TAKE_DOWN")}
@@ -286,6 +290,7 @@ export function AdminVideosPage() {
 
 function VideoCard({
   video,
+  orderBusy,
   savingOrder,
   onApprove,
   onReject,
@@ -294,6 +299,9 @@ function VideoCard({
   onSaveOrder,
 }: {
   video: AdminVideo;
+  /** A sort order is saving on some card. The shared mutation locks every card's Save. */
+  orderBusy: boolean;
+  /** This card's sort order is the one saving. */
   savingOrder: boolean;
   onApprove: () => void;
   onReject: () => void;
@@ -386,6 +394,7 @@ function VideoCard({
           <SortOrderForm
             key={video.sortOrder}
             sortOrder={video.sortOrder}
+            busy={orderBusy}
             saving={savingOrder}
             onSave={onSaveOrder}
           />
@@ -435,10 +444,14 @@ function VideoCard({
 /** Display order for an approved video. Keyed on the saved value so it resets after a refetch. */
 function SortOrderForm({
   sortOrder,
+  busy,
   saving,
   onSave,
 }: {
   sortOrder: number;
+  /** Any card's order is saving. */
+  busy: boolean;
+  /** This card's order is saving. */
   saving: boolean;
   onSave: (sortOrder: number) => void;
 }) {
@@ -450,6 +463,7 @@ function SortOrderForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     setSubmitted(true);
     if (error) return;
     onSave(Number(value.trim()));
@@ -486,11 +500,11 @@ function SortOrderForm({
       </div>
       <button
         type="submit"
-        disabled={saving || unchanged}
+        disabled={busy || unchanged}
         aria-busy={saving || undefined}
         className={cn(secondaryButton, "min-h-11 sm:min-w-28")}
       >
-        {saving ? "Saving..." : "Save"}
+        <PendingLabel pending={saving}>Save</PendingLabel>
       </button>
     </form>
   );

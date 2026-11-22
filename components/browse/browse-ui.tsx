@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 export const SEGMENT_TRACK =
   "inline-flex max-w-full flex-wrap gap-1 rounded-full bg-[var(--color-surface-subtle)] p-1";
@@ -107,9 +108,12 @@ export function SkeletonCards({
 export function ErrorBlock({
   message,
   onRetry,
+  retrying = false,
 }: {
   message: string;
   onRetry: () => void;
+  /** True while the retry request runs (pass the query's isFetching). */
+  retrying?: boolean;
 }) {
   return (
     <div
@@ -123,9 +127,11 @@ export function ErrorBlock({
       <button
         type="button"
         onClick={onRetry}
+        disabled={retrying}
+        aria-busy={retrying || undefined}
         className={cn(secondaryButton, "min-h-10 px-4")}
       >
-        Try again
+        <PendingLabel pending={retrying}>Try again</PendingLabel>
       </button>
     </div>
   );

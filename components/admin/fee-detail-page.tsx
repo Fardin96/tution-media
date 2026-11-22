@@ -25,6 +25,7 @@ import { RefundLinkRow } from "@/components/admin/refunds-page";
 import { formatAmount, formatDateTime } from "@/lib/admin";
 import {
   ATTEMPT_STATUS_META,
+  adminPaymentAttemptQueryOptions,
   type AdminFeeAttempt,
 } from "@/lib/admin-payments";
 import {
@@ -50,6 +51,8 @@ import {
   type UpdateFeeBody,
 } from "@/lib/admin-fees";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 type Dialog =
   | { kind: "record" }
@@ -78,6 +81,10 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
 
   const fee = query.data;
   const busy = update.isPending || record.isPending || reverse.isPending;
+  // The fee update serves both the edit form and the waive/void dialogs; each shows its own spinner.
+  const statusSaving =
+    update.isPending && update.variables?.status !== undefined;
+  const editSaving = update.isPending && update.variables?.status === undefined;
   const canRecord =
     fee !== undefined && (fee.status === "DUE" || fee.status === "PARTIAL");
   const canVoid =
@@ -252,7 +259,8 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
             <EditSection
               key={`${fee.id}-${fee.updatedAt}`}
               fee={fee}
-              saving={update.isPending}
+              busy={update.isPending}
+              saving={editSaving}
               onSave={saveEdit}
             />
           </>
@@ -309,7 +317,7 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
           >
             <ConfirmActions
               label="Waive fee"
-              pending={update.isPending}
+              pending={statusSaving}
               onCancel={closeDialog}
               onConfirm={() => setStatus("WAIVED")}
             />
@@ -327,7 +335,7 @@ export function AdminFeeDetailPage({ id }: { id: string }) {
             <ConfirmActions
               label="Void fee"
               destructive
-              pending={update.isPending}
+              pending={statusSaving}
               onCancel={closeDialog}
               onConfirm={() => setStatus("VOID")}
             />
@@ -465,10 +473,12 @@ function PaymentRow({
 
 function AttemptRow({ attempt }: { attempt: AdminFeeAttempt }) {
   const meta = ATTEMPT_STATUS_META[attempt.status];
+  const intent = useIntentPrefetch();
   return (
     <li>
       <Link
         href={`/dashboard/admin/payments/${encodeURIComponent(attempt.tranId)}`}
+        {...intent(adminPaymentAttemptQueryOptions(attempt.tranId))}
         className={cn(
           "grid gap-2 rounded-[16px] bg-[var(--color-neutral-off-white)] p-4 transition-[box-shadow] duration-150 ease-out hover:shadow-[0_0_0_1px_rgb(0_0_0/0.1)] motion-reduce:transition-none",
           focusRing,
@@ -496,10 +506,14 @@ function AttemptRow({ attempt }: { attempt: AdminFeeAttempt }) {
 
 function EditSection({
   fee,
+  busy,
   saving,
   onSave,
 }: {
   fee: AdminFeeDetail;
+  /** Any fee write is running: the Save button waits. */
+  busy: boolean;
+  /** This form's save is the running write: Save shows the spinner. */
   saving: boolean;
   onSave: (body: UpdateFeeBody) => void;
 }) {
@@ -515,6 +529,7 @@ function EditSection({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     setSubmitted(true);
     if (dueMissing || !dirty) return;
     // Only changed fields go out. An empty note clears it.
@@ -560,11 +575,11 @@ function EditSection({
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={saving || !dirty}
+            disabled={busy || !dirty}
             aria-busy={saving || undefined}
             className={cn(primaryButton, "min-h-11 sm:min-w-28")}
           >
-            {saving ? "Saving..." : "Save"}
+            <PendingLabel pending={saving}>Save</PendingLabel>
           </button>
         </div>
       </form>
@@ -597,6 +612,7 @@ function RecordPaymentForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (amountError || receivedError || receivedIso === undefined) return;
     const txnReference = reference.trim();
@@ -669,7 +685,7 @@ function RecordPaymentForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Saving..." : "Record payment"}
+          <PendingLabel pending={saving}>Record payment</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -700,6 +716,7 @@ function ReversePaymentForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (amountError || reasonError) return;
     onSubmit({ amount: parseAmount(amount), reason: reason.trim() });
@@ -761,7 +778,7 @@ function ReversePaymentForm({
             "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-36",
           )}
         >
-          {saving ? "Saving..." : "Reverse payment"}
+          <PendingLabel pending={saving}>Reverse payment</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -803,7 +820,7 @@ function ConfirmActions({
           "min-h-11 sm:min-w-28",
         )}
       >
-        {pending ? "Saving..." : label}
+        <PendingLabel pending={pending}>{label}</PendingLabel>
       </button>
     </DialogActions>
   );

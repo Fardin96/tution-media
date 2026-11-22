@@ -4,12 +4,13 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { card, focusRing, primaryButton } from "@/components/profile/styles";
+import { card, focusRing } from "@/components/profile/styles";
 import {
   AdminPage,
   Field,
   FilterChips,
   LoadMore,
+  PendingButton,
   QueryState,
   StatusPill,
   inputClass,
@@ -109,6 +110,7 @@ export function AccountsPage() {
         <SearchForm
           key={q}
           initialQuery={q}
+          searching={accounts.isFetching && !accounts.isFetchingNextPage}
           onSearch={(value) => update({ q: value })}
         />
         <FilterChips
@@ -149,15 +151,19 @@ export function AccountsPage() {
 
 function SearchForm({
   initialQuery,
+  searching,
   onSearch,
 }: {
   initialQuery: string;
+  /** The list is refetching for the saved query; the button waits for it. */
+  searching: boolean;
   onSearch: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(initialQuery);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (searching) return;
     onSearch(draft.trim());
   }
 
@@ -184,9 +190,7 @@ function SearchForm({
           )}
         </Field>
       </div>
-      <button type="submit" className={cn(primaryButton, "min-h-11")}>
-        Search
-      </button>
+      <PendingButton pending={searching}>Search</PendingButton>
     </form>
   );
 }

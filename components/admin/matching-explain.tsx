@@ -24,6 +24,7 @@ import {
   type ExplainSet,
 } from "@/lib/admin-matching";
 import { ApiError } from "@/lib/profile";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 type Ids = { requirementId: string; tutorId: string };
 
@@ -38,6 +39,7 @@ export function ExplainTab() {
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (explain.isFetching) return;
     const next: Partial<Ids> = {
       requirementId: isUuid(values.requirementId)
         ? undefined
@@ -115,7 +117,7 @@ export function ExplainTab() {
               aria-busy={explain.isFetching || undefined}
               className={cn(primaryButton, "min-h-11 w-full sm:w-auto")}
             >
-              {explain.isFetching ? "Checking..." : "Check"}
+              <PendingLabel pending={explain.isFetching}>Check</PendingLabel>
             </button>
           </div>
         </form>
@@ -172,9 +174,11 @@ function ExplainResult({
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-11")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );

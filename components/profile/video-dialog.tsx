@@ -9,6 +9,7 @@ import {
   inputClass,
 } from "@/components/admin/admin-ui";
 import { FilePicker } from "@/components/files/file-picker";
+import { PendingLabel } from "@/components/ui/pending-label";
 import type { FileAsset } from "@/lib/files";
 import { toastError } from "@/lib/toast";
 import { profileApi, type Video } from "@/lib/profile";
@@ -122,9 +123,10 @@ function VideoForm({
         <button
           type="submit"
           disabled={!file || uploading || submitting}
+          aria-busy={submitting || undefined}
           className={primaryButton}
         >
-          {submitting ? "Sending…" : "Send for review"}
+          <PendingLabel pending={submitting}>Send for review</PendingLabel>
         </button>
       </DialogActions>
     </form>

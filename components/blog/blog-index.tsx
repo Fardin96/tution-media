@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  blogPostQueryOptions,
   formatPostDate,
   useBlogPosts,
   type BlogPostPage,
   type BlogPostSummary,
 } from "@/lib/blog";
 import { useRefreshExpiredMedia } from "@/lib/files";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
 
 export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
   const query = useBlogPosts(initialPage);
@@ -43,9 +45,13 @@ export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
               <button
                 type="button"
                 onClick={() => void query.refetch()}
+                disabled={query.isFetching}
+                aria-busy={query.isFetching || undefined}
                 className={secondaryButton}
               >
-                Try again
+                <PendingLabel pending={query.isFetching}>
+                  Try again
+                </PendingLabel>
               </button>
             </div>
           ) : posts.length === 0 ? (
@@ -75,14 +81,9 @@ export function BlogIndex({ initialPage }: { initialPage?: BlogPostPage }) {
                     aria-busy={query.isFetchingNextPage || undefined}
                     className={secondaryButton}
                   >
-                    {query.isFetchingNextPage ? (
-                      <>
-                        <SpinnerEllipsis />
-                        Loading…
-                      </>
-                    ) : (
-                      "Load more"
-                    )}
+                    <PendingLabel pending={query.isFetchingNextPage}>
+                      Load more
+                    </PendingLabel>
                   </button>
                 </div>
               )}
@@ -125,9 +126,11 @@ function IndexSkeleton() {
 
 function PostCard({ post }: { post: BlogPostSummary }) {
   const refreshExpired = useRefreshExpiredMedia();
+  const intent = useIntentPrefetch();
   return (
     <Link
       href={`/blog/${encodeURIComponent(post.slug)}`}
+      {...intent(blogPostQueryOptions(post.slug))}
       className={cn(
         card,
         "group flex h-full flex-col overflow-hidden p-2 transition-[box-shadow] duration-150 ease-out motion-reduce:transition-none",

@@ -124,7 +124,15 @@ describe("LogoutButton", () => {
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent("Logging out…"),
     );
-    expect(screen.getByRole("button", { name: "Logging out…" })).toBeDisabled();
+    const pendingDialog = screen.getByRole("alertdialog");
+    const confirm = within(pendingDialog).getByRole("button", {
+      name: "Log out",
+    });
+    expect(confirm).toBeDisabled();
+    expect(confirm).toHaveAttribute("aria-busy", "true");
+    expect(
+      within(pendingDialog).getByRole("button", { name: "Cancel" }),
+    ).toBeDisabled();
     expect(signOut).not.toHaveBeenCalled();
 
     await act(async () => finishRevoke({}));

@@ -19,7 +19,8 @@ import {
 } from "@/components/browse/browse-ui";
 import { BackLink } from "@/components/ui/back-link";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   TuitionCard,
   type TuitionApplyState,
@@ -264,6 +265,8 @@ export function FindTuitionsPage() {
     return {
       kind: "open",
       applying: apply.isPending && apply.variables === row.id,
+      // The apply mutation is shared by every row, so the other rows wait while one runs.
+      busy: apply.isPending,
       blockedReason,
       onApply: () => onApply(row.id),
     };
@@ -275,7 +278,9 @@ export function FindTuitionsPage() {
   return (
     <PageFrame
       headerAction={
-        <HeaderLink href="/dashboard/applications">My applications</HeaderLink>
+        <HeaderLink href="/dashboard/applications">
+          <LinkPendingLabel>My applications</LinkPendingLabel>
+        </HeaderLink>
       }
     >
       <BackLink href="/dashboard">Dashboard</BackLink>
@@ -449,6 +454,7 @@ export function FindTuitionsPage() {
             <ErrorBlock
               message="Couldn't load tuitions."
               onRetry={() => void browse.refetch()}
+              retrying={browse.isFetching}
             />
           </div>
         )}
@@ -459,6 +465,7 @@ export function FindTuitionsPage() {
           <ErrorBlock
             message="Couldn't load your sets."
             onRetry={() => void sets.refetch()}
+            retrying={sets.isFetching}
           />
         ) : isSetMode && activeSets.length === 0 ? (
           <EmptyCard title="You have no requirement sets yet.">
@@ -466,7 +473,7 @@ export function FindTuitionsPage() {
               href="/dashboard/tutor/requirements/new"
               className={secondaryButton}
             >
-              Create a set
+              <LinkPendingLabel>Create a set</LinkPendingLabel>
             </Link>
           </EmptyCard>
         ) : isSetMode && selectedSetId === undefined ? (
@@ -504,8 +511,9 @@ export function FindTuitionsPage() {
                   aria-busy={browse.isFetchingNextPage || undefined}
                   className={secondaryButton}
                 >
-                  Load more
-                  {browse.isFetchingNextPage && <SpinnerEllipsis />}
+                  <PendingLabel pending={browse.isFetchingNextPage}>
+                    Load more
+                  </PendingLabel>
                 </button>
               </div>
             )}
@@ -514,7 +522,7 @@ export function FindTuitionsPage() {
           noServiceArea ? (
           <EmptyCard title="Add a teaching zone or area so we can show tuitions near you.">
             <Link href="/dashboard/tutor/zones" className={secondaryButton}>
-              Add a teaching zone
+              <LinkPendingLabel>Add a teaching zone</LinkPendingLabel>
             </Link>
           </EmptyCard>
         ) : hasFilters ? (
@@ -541,7 +549,7 @@ export function FindTuitionsPage() {
                     href={`/dashboard/tutor/requirements/${selectedSetId}/edit`}
                     className={secondaryButton}
                   >
-                    Edit this set
+                    <LinkPendingLabel>Edit this set</LinkPendingLabel>
                   </Link>
                 </div>
               </div>

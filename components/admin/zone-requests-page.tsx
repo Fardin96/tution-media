@@ -16,7 +16,7 @@ import {
 import { AdminPage } from "@/components/admin/admin-ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { formatRequestDate } from "@/components/tutor-zones/zone-limit-request-dialog";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { queryKeys, type ZoneRequestStatus } from "@/lib/query-keys";
@@ -183,9 +183,13 @@ export function ZoneRequestsPage() {
               <button
                 type="button"
                 onClick={() => void queue.refetch()}
+                disabled={queue.isFetching}
+                aria-busy={queue.isFetching || undefined}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Try again
+                <PendingLabel pending={queue.isFetching}>
+                  Try again
+                </PendingLabel>
               </button>
             </div>
           ) : requests.length === 0 ? (
@@ -221,8 +225,9 @@ export function ZoneRequestsPage() {
                     aria-busy={queue.isFetchingNextPage || undefined}
                     className={cn(secondaryButton, "min-h-11")}
                   >
-                    Load more
-                    {queue.isFetchingNextPage && <SpinnerEllipsis />}
+                    <PendingLabel pending={queue.isFetchingNextPage}>
+                      Load more
+                    </PendingLabel>
                   </button>
                 </div>
               )}
@@ -407,6 +412,7 @@ function DecisionForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (approve) {
       if (limitError) return;
@@ -522,8 +528,9 @@ function DecisionForm({
             "min-h-11 sm:min-w-36",
           )}
         >
-          {approve ? "Approve request" : "Deny request"}
-          {saving && <SpinnerEllipsis />}
+          <PendingLabel pending={saving}>
+            {approve ? "Approve request" : "Deny request"}
+          </PendingLabel>
         </button>
       </div>
     </form>

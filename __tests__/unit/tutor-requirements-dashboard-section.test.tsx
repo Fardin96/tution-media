@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { useEducationLookup } from "@/lib/education";
 import {
@@ -41,6 +42,15 @@ vi.mock("@/lib/tutor-requirements", async (importOriginal) => ({
   useTutorRequirements: vi.fn(),
   useProfileSubjects: vi.fn(),
 }));
+
+// The section prefetches set detail on hover, so it needs a query client.
+function renderSection() {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TutorRequirementsSection />
+    </QueryClientProvider>,
+  );
+}
 
 function set(id: string, name: string, isDefault = false): TutorRequirement {
   return {
@@ -94,7 +104,7 @@ describe("TutorRequirementsSection", () => {
       set("4", "Set four"),
       set("5", "Set five"),
     ]);
-    render(<TutorRequirementsSection />);
+    renderSection();
 
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(
@@ -111,7 +121,7 @@ describe("TutorRequirementsSection", () => {
 
   it("shows the all link straight away when there is one set", () => {
     mockSets([set("1", "Only set", true)]);
-    render(<TutorRequirementsSection />);
+    renderSection();
 
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(
@@ -123,7 +133,7 @@ describe("TutorRequirementsSection", () => {
 
   it("shows the default badge, the classes description and the minimum salary", () => {
     mockSets([{ ...set("1", "Only set", true), minSalary: 6500 }]);
-    render(<TutorRequirementsSection />);
+    renderSection();
 
     expect(
       screen.getByText("The classes, subjects and times you take."),
@@ -137,7 +147,7 @@ describe("TutorRequirementsSection", () => {
 
   it("shows the empty state when there are no sets", () => {
     mockSets([]);
-    render(<TutorRequirementsSection />);
+    renderSection();
 
     expect(screen.queryByRole("link", { name: "New set" })).toBeNull();
 

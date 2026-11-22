@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Chip, control, FieldError } from "@/components/profile/profile-fields";
 import { secondaryButton } from "@/components/profile/styles";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   levelOptionsFor,
   reconcileCoverage,
@@ -57,9 +58,11 @@ export function EducationRangePicker({
             <button
               type="button"
               onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching || undefined}
               className={secondaryButton}
             >
-              Try again
+              <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
             </button>
           </div>
         </div>

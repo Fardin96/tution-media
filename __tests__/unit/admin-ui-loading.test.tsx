@@ -88,8 +88,9 @@ describe("LoadMore", () => {
         }}
       />,
     );
-    const button = screen.getByRole("button", { name: "Loading..." });
+    const button = screen.getByRole("button", { name: "Load more" });
     expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
     expect(button.querySelectorAll(".spinner-ellipsis-dot")).toHaveLength(3);
     expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
   });

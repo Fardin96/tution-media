@@ -16,16 +16,24 @@ import {
   ratingText,
 } from "@/components/applications/format";
 import {
+  applicationQueryOptions,
   useRequirementApplicants,
   useStudentRequirement,
   type Application,
 } from "@/lib/applications";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
-import { isPastRequirement, postAgainHref } from "@/lib/requirements";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import {
+  isPastRequirement,
+  postAgainHref,
+  requirementQueryOptions,
+} from "@/lib/requirements";
 
 function ApplicantCard({ application }: { application: Application }) {
   const { tutor } = application;
+  const intent = useIntentPrefetch();
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -61,9 +69,10 @@ function ApplicantCard({ application }: { application: Application }) {
         </p>
         <Link
           href={`/dashboard/applications/${application.id}?from=applicants`}
+          {...intent(applicationQueryOptions(application.id))}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          View tutor
+          <LinkPendingLabel>View tutor</LinkPendingLabel>
         </Link>
       </div>
       <ApplicationActions
@@ -113,6 +122,7 @@ export function RequirementApplicantsPage({
 }) {
   const query = useRequirementApplicants(requirementId);
   const { data: requirement } = useStudentRequirement(requirementId);
+  const intent = useIntentPrefetch();
   const past = !!requirement && isPastRequirement(requirement.status);
 
   const applicants = useMemo(
@@ -138,9 +148,11 @@ export function RequirementApplicantsPage({
         <button
           type="button"
           onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching || undefined}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          Try again
+          <PendingLabel pending={query.isFetching}>Try again</PendingLabel>
         </button>
       </div>
     );
@@ -180,10 +192,13 @@ export function RequirementApplicantsPage({
             {past && (
               <Link
                 href={postAgainHref(requirementId)}
+                {...intent(requirementQueryOptions(requirementId))}
                 className={cn(secondaryButton, "min-h-10 px-4")}
               >
-                <Repeat2 aria-hidden="true" className="size-4" />
-                Post again
+                <LinkPendingLabel>
+                  <Repeat2 aria-hidden="true" className="size-4" />
+                  Post again
+                </LinkPendingLabel>
               </Link>
             )}
           </div>
@@ -205,8 +220,9 @@ export function RequirementApplicantsPage({
               aria-busy={query.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              Load more
-              {query.isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={query.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

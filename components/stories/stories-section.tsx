@@ -63,12 +63,12 @@ export function StoriesSection({ role }: { role: StoryRole }) {
   const data = stories.data;
   const copy = COPY[role];
 
+  // The dialog stays open while the delete runs, and closes once the list has refreshed.
   const confirmRemove = async () => {
-    if (!removing) return;
-    const id = removing.id;
-    setRemoving(null);
+    if (!removing || remove.isPending) return;
     try {
-      await remove.mutateAsync(id);
+      await remove.mutateAsync(removing.id);
+      setRemoving(null);
       toast.success("Story deleted");
     } catch (err) {
       toastError("Couldn't delete the story.", err);
@@ -85,6 +85,7 @@ export function StoriesSection({ role }: { role: StoryRole }) {
       label: "Delete story",
       variant: "primary",
       onSelect: () => void confirmRemove(),
+      pending: remove.isPending,
     },
   ];
 

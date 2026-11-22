@@ -10,7 +10,7 @@ import {
 import { BackLink } from "@/components/ui/back-link";
 import { PageFrame } from "@/components/ui/page-frame";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { TonePill } from "@/components/applications/status-pill";
 import { formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
@@ -129,6 +129,7 @@ function Group<T>({
   query: {
     isPending: boolean;
     isError: boolean;
+    isFetching: boolean;
     refetch: () => unknown;
     hasNextPage: boolean;
     isFetchingNextPage: boolean;
@@ -146,7 +147,11 @@ function Group<T>({
     body = <SkeletonRows />;
   } else if (query.isError) {
     body = (
-      <ErrorBlock message={errorMessage} onRetry={() => void query.refetch()} />
+      <ErrorBlock
+        message={errorMessage}
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
     );
   } else if (items.length === 0) {
     body = <EmptyCard title={emptyTitle} body={emptyBody} />;
@@ -172,8 +177,9 @@ function Group<T>({
             aria-busy={query.isFetchingNextPage || undefined}
             className={cn(secondaryButton, "min-h-10 px-5")}
           >
-            Show more
-            {query.isFetchingNextPage && <SpinnerEllipsis />}
+            <PendingLabel pending={query.isFetchingNextPage}>
+              Show more
+            </PendingLabel>
           </button>
         </div>
       )}

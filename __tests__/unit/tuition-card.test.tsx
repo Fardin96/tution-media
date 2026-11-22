@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   TuitionCard,
   type TuitionApplyState,
@@ -45,15 +46,19 @@ function renderCard(
   tuition: BrowseRequirement,
   apply: TuitionApplyState = OPEN,
 ) {
+  // The card reads the query client for intent prefetch, as it does inside the app providers.
+  const client = new QueryClient();
   return render(
-    <TuitionCard
-      tuition={tuition}
-      subjectNames={["Physics"]}
-      curriculumLabel="Bangla medium"
-      levelLabel="Class 9"
-      areaName="Dhanmondi"
-      apply={apply}
-    />,
+    <QueryClientProvider client={client}>
+      <TuitionCard
+        tuition={tuition}
+        subjectNames={["Physics"]}
+        curriculumLabel="Bangla medium"
+        levelLabel="Class 9"
+        areaName="Dhanmondi"
+        apply={apply}
+      />
+    </QueryClientProvider>,
   );
 }
 

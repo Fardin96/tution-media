@@ -120,14 +120,12 @@ export const ACTION_META: Record<
   ApplicationAction,
   {
     label: string;
-    pending: string;
     done: string;
     confirm: null | ActionConfirm;
   }
 > = {
   confirm: {
     label: "Accept",
-    pending: "Accepting…",
     done: "Application accepted.",
     confirm: {
       title: "Accept this application?",
@@ -138,7 +136,6 @@ export const ACTION_META: Record<
   },
   reject: {
     label: "Decline",
-    pending: "Declining…",
     done: "Application declined.",
     confirm: {
       title: "Decline this application?",
@@ -149,7 +146,6 @@ export const ACTION_META: Record<
   },
   withdraw: {
     label: "Withdraw",
-    pending: "Withdrawing…",
     done: "Application withdrawn.",
     confirm: {
       title: "Withdraw your application?",
@@ -160,13 +156,11 @@ export const ACTION_META: Record<
   },
   reopen: {
     label: "Apply again",
-    pending: "Applying again…",
     done: "Application sent again.",
     confirm: null,
   },
   cancel: {
     label: "Cancel tuition",
-    pending: "Cancelling…",
     done: "Tuition cancelled.",
     confirm: {
       title: "Cancel this tuition?",
@@ -177,7 +171,6 @@ export const ACTION_META: Record<
   },
   complete: {
     label: "Mark as finished",
-    pending: "Saving…",
     done: "Marked as finished.",
     confirm: {
       title: "Mark this tuition as finished?",

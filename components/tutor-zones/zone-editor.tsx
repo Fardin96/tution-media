@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mapServerIssuesToFields } from "@/lib/api-errors";
 import { ApiError } from "@/lib/profile";
@@ -24,6 +23,7 @@ import {
 import { primaryButton, secondaryButton } from "@/components/profile/styles";
 import { control, FieldError } from "@/components/profile/profile-fields";
 import { cn } from "@/lib/utils";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { ZonePlaceSearch, type ZonePlace } from "./zone-place-search";
 
 interface ZoneEditorProps {
@@ -79,6 +79,7 @@ export function ZoneEditor({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (save.isPending) return;
     const next = validateZoneForm(form);
     setErrors(next);
     if (Object.keys(next).length > 0) {
@@ -226,13 +227,7 @@ export function ZoneEditor({
           aria-busy={save.isPending || undefined}
           className={cn(primaryButton, "w-full sm:w-auto")}
         >
-          {save.isPending && (
-            <Loader2
-              aria-hidden="true"
-              className="size-4 animate-spin motion-reduce:animate-none"
-            />
-          )}
-          {save.isPending ? "Saving" : "Save zone"}
+          <PendingLabel pending={save.isPending}>Save zone</PendingLabel>
         </button>
       </div>
     </form>

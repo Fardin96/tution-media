@@ -13,7 +13,7 @@ import {
   secondaryButton,
 } from "@/components/profile/styles";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { isRateLimit } from "@/lib/api-errors";
 import { queryKeys, type ZoneRequestStatus } from "@/lib/query-keys";
@@ -167,6 +167,7 @@ export function ZoneLimitRequestDialog({
             requests={requests}
             isPending={history.isPending}
             isError={history.isError}
+            isFetching={history.isFetching}
             hasNextPage={history.hasNextPage}
             isFetchingNextPage={history.isFetchingNextPage}
             onRetry={() => void history.refetch()}
@@ -243,6 +244,7 @@ function RequestForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation.isPending) return;
     setSubmitted(true);
     if (Object.keys(errors).length > 0) return;
     mutation.mutate({
@@ -327,8 +329,7 @@ function RequestForm({
           aria-busy={mutation.isPending || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          Send request
-          {mutation.isPending && <SpinnerEllipsis />}
+          <PendingLabel pending={mutation.isPending}>Send request</PendingLabel>
         </button>
       </div>
     </form>
@@ -339,6 +340,7 @@ function RequestHistory({
   requests,
   isPending,
   isError,
+  isFetching,
   hasNextPage,
   isFetchingNextPage,
   onRetry,
@@ -347,6 +349,7 @@ function RequestHistory({
   requests: ZoneLimitRequest[];
   isPending: boolean;
   isError: boolean;
+  isFetching: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   onRetry: () => void;
@@ -387,9 +390,11 @@ function RequestHistory({
           <button
             type="button"
             onClick={onRetry}
+            disabled={isFetching}
+            aria-busy={isFetching || undefined}
             className={cn(ghostButton, "min-h-11 px-3")}
           >
-            Try again
+            <PendingLabel pending={isFetching}>Try again</PendingLabel>
           </button>
         </div>
       ) : requests.length === 0 ? (
@@ -438,8 +443,9 @@ function RequestHistory({
               aria-busy={isFetchingNextPage || undefined}
               className={cn(ghostButton, "mt-3 min-h-11 px-3")}
             >
-              Show more
-              {isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={isFetchingNextPage}>
+                Show more
+              </PendingLabel>
             </button>
           )}
         </>

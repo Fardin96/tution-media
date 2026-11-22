@@ -6,15 +6,16 @@ import { cn } from "@/lib/utils";
 import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { BackLink } from "@/components/ui/back-link";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PageFrame } from "@/components/ui/page-frame";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { areaName, formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
 import { Skeleton } from "@/components/ui/skeleton";
-import SpinnerEllipsis from "@/components/shadcn-space/spinner/spinner-05";
 import { useAreas } from "@/lib/areas";
 import { useEducationLookup } from "@/lib/education";
-import type { Application } from "@/lib/applications";
+import { applicationQueryOptions, type Application } from "@/lib/applications";
 import {
   packageLevelText,
   packageState,
@@ -22,6 +23,7 @@ import {
   useMyPackage,
   usePackageRequests,
 } from "@/lib/packages";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { ApiError } from "@/lib/profile";
 
 function isNotFound(err: unknown): boolean {
@@ -37,6 +39,7 @@ function RequestCard({
 }) {
   const { student } = application;
   const { areas } = useAreas();
+  const intent = useIntentPrefetch();
   return (
     <article className={cn(card, "flex flex-col gap-2 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -56,9 +59,10 @@ function RequestCard({
         </p>
         <Link
           href={`/dashboard/applications/${application.id}?from=package-requests&package=${packageId}`}
+          {...intent(applicationQueryOptions(application.id))}
           className={cn(secondaryButton, "min-h-10 px-4")}
         >
-          View request
+          <LinkPendingLabel>View request</LinkPendingLabel>
         </Link>
       </div>
       <ApplicationActions
@@ -190,8 +194,9 @@ export function PackageRequestsPage({ packageId }: { packageId: string }) {
               aria-busy={requestsQuery.isFetchingNextPage || undefined}
               className={cn(secondaryButton, "min-h-10 px-5")}
             >
-              Load more
-              {requestsQuery.isFetchingNextPage && <SpinnerEllipsis />}
+              <PendingLabel pending={requestsQuery.isFetchingNextPage}>
+                Load more
+              </PendingLabel>
             </button>
           </div>
         )}

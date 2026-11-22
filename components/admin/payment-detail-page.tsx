@@ -28,6 +28,7 @@ import { RefundLinkRow } from "@/components/admin/refunds-page";
 import { toastRefundSent } from "@/components/admin/refund-detail-page";
 import {
   FEE_STATUS_META,
+  adminFeeQueryOptions,
   parseAmount,
   validateAmount,
   type FeeTone,
@@ -51,6 +52,9 @@ import {
 import { formatAmount, formatDateTime, useAdminMe } from "@/lib/admin";
 import { errorCodeMessage } from "@/lib/api-errors";
 import { ApiError } from "@/lib/profile";
+import { useIntentPrefetch } from "@/lib/prefetch";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 
 /** The server's message for a 409, the catalogue copy for a known code, a short server message, or the fallback. */
 function failureText(err: unknown, fallback: string): string {
@@ -81,6 +85,7 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
   const admin = useAdminMe();
   const [dialog, setDialog] = useState<ReviewDecision | null>(null);
   const [refundOpen, setRefundOpen] = useState(false);
+  const intent = useIntentPrefetch();
 
   const detail = query.data;
   const isSuperAdmin = admin.isSuperAdmin;
@@ -155,7 +160,9 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
                   "min-h-11",
                 )}
               >
-                {check.isPending ? "Checking…" : "Check with gateway"}
+                <PendingLabel pending={check.isPending}>
+                  Check with gateway
+                </PendingLabel>
               </button>
             )}
             {isSuperAdmin && Number(detail.refundable) > 0 && (
@@ -231,9 +238,10 @@ export function AdminPaymentDetailPage({ tranId }: { tranId: string }) {
               actions={
                 <Link
                   href={`/dashboard/admin/fees/${encodeURIComponent(detail.fee.id)}`}
+                  {...intent(adminFeeQueryOptions(detail.fee.id))}
                   className={cn(ghostButton, "min-h-10")}
                 >
-                  Open fee
+                  <LinkPendingLabel>Open fee</LinkPendingLabel>
                 </Link>
               }
             >
@@ -445,6 +453,7 @@ function ReviewForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (noteError) return;
     onSubmit(note.trim());
@@ -490,7 +499,9 @@ function ReviewForm({
             "min-h-11 sm:min-w-36",
           )}
         >
-          {saving ? "Saving…" : approve ? "Approve payment" : "Reject payment"}
+          <PendingLabel pending={saving}>
+            {approve ? "Approve payment" : "Reject payment"}
+          </PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -524,6 +535,7 @@ function RefundForm({
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSubmitted(true);
     if (amountError || reasonError) return;
     const parsed = parseAmount(amount);
@@ -590,7 +602,7 @@ function RefundForm({
           aria-busy={saving || undefined}
           className={cn(primaryButton, "min-h-11 sm:min-w-36")}
         >
-          {saving ? "Starting…" : "Start refund"}
+          <PendingLabel pending={saving}>Start refund</PendingLabel>
         </button>
       </DialogActions>
     </form>

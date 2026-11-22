@@ -53,6 +53,7 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { toastError } from "@/lib/toast";
+import { useIntentPrefetch } from "@/lib/prefetch";
 import { usePhoneVerificationStatus } from "@/lib/phone-verification";
 import { openFile, useRefreshExpiredMedia } from "@/lib/files";
 import {
@@ -96,13 +97,17 @@ import {
   isPastRequirement,
   postAgainHref,
   requirementApi,
+  requirementQueryOptions,
   statusMeta,
   type Requirement,
 } from "@/lib/requirements";
+import { studentRequirementQueryOptions } from "@/lib/applications";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -178,6 +183,9 @@ const VIDEO_STATUS: Record<Video["status"], { tone: Tone; label: string }> = {
   APPROVED: { tone: "success", label: "Live" },
   REJECTED: { tone: "error", label: "Rejected" },
 };
+
+/** The blocked-subject dialog's action that archives the one set in the way. */
+const ARCHIVE_LABEL = "Archive set";
 
 const monthYear = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" }).format(
@@ -278,6 +286,7 @@ export function ProfileDashboard({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<{
@@ -312,12 +321,16 @@ export function ProfileDashboard({
         setStudentData(result.studentData);
         setMe(result.me);
         setForm(result.form);
+        setLoadError(null);
+        setRetrying(false);
       })
       .catch((err) => {
-        if (live)
+        if (live) {
           setLoadError(
             err instanceof Error ? err.message : "Couldn't load your profile.",
           );
+          setRetrying(false);
+        }
       });
     return () => {
       live = false;
@@ -356,7 +369,9 @@ export function ProfileDashboard({
       });
     });
 
+  const [archiving, setArchiving] = useState(false);
   const archiveBlockedSet = async (id: string) => {
+    setArchiving(true);
     try {
       await tutorRequirementApi.archive(id);
       await invalidateTutorRequirements(queryClient);
@@ -364,6 +379,8 @@ export function ProfileDashboard({
       closeDialog(false);
     } catch (err) {
       toastError("Couldn't archive that set.", err);
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -381,7 +398,7 @@ export function ProfileDashboard({
     if (blocked.sets.length === 1 && !blocked.sets[0].isDefault) {
       const id = blocked.sets[0].id;
       actions.push({
-        label: "Archive set",
+        label: ARCHIVE_LABEL,
         variant: "secondary",
         onSelect: () => void archiveBlockedSet(id),
       });
@@ -582,14 +599,18 @@ export function ProfileDashboard({
             </p>
             <button
               type="button"
+              disabled={retrying}
+              aria-busy={retrying || undefined}
               onClick={() => {
-                setLoadError(null);
+                setRetrying(true);
                 setAttempt((a) => a + 1);
               }}
               className={cn(primaryButton, "mt-6")}
             >
-              <RotateCw aria-hidden="true" className="size-4" />
-              Try again
+              <PendingLabel pending={retrying}>
+                <RotateCw aria-hidden="true" className="size-4" />
+                Try again
+              </PendingLabel>
             </button>
           </div>
         </main>
@@ -764,7 +785,9 @@ export function ProfileDashboard({
       <ConfirmDialog
         open={dialogOpen}
         title={dialog?.title ?? ""}
-        actions={dialog?.actions ?? []}
+        actions={(dialog?.actions ?? []).map((a) =>
+          a.label === ARCHIVE_LABEL ? { ...a, pending: archiving } : a,
+        )}
         onOpenChange={(open) => {
           if (!open) closeDialog(false);
         }}
@@ -993,7 +1016,7 @@ function Hero({
                   href={`/tutors/${profile.id}`}
                   className={cn(ghostButton, "min-h-10 px-3")}
                 >
-                  View public profile
+                  <LinkPendingLabel>View public profile</LinkPendingLabel>
                 </Link>
               )}
             </div>
@@ -1240,6 +1263,7 @@ function RemovableRow({
           <button
             type="button"
             disabled={busy}
+            aria-busy={busy || undefined}
             onClick={async () => {
               setBusy(true);
               try {
@@ -1257,7 +1281,7 @@ function RemovableRow({
               "min-h-10 bg-[var(--color-semantic-error-surface)] px-4 text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
             )}
           >
-            {busy ? "Removing…" : "Yes, remove"}
+            <PendingLabel pending={busy}>Yes, remove</PendingLabel>
           </button>
         </span>
       ) : (
@@ -1278,18 +1302,24 @@ function RemovableRow({
 }
 
 function ViewFileButton({ fileId, label }: { fileId: string; label: string }) {
+  const [opening, setOpening] = useState(false);
   return (
     <button
       type="button"
+      disabled={opening}
+      aria-busy={opening || undefined}
       onClick={() => {
-        openFile(fileId).catch((err) =>
-          toastError("Couldn't open the file.", err),
-        );
+        setOpening(true);
+        openFile(fileId)
+          .catch((err) => toastError("Couldn't open the file.", err))
+          .finally(() => setOpening(false));
       }}
       className={cn(ghostButton, "min-h-10 px-3")}
     >
-      <Eye aria-hidden="true" className="size-4" />
-      View<span className="sr-only"> {label}</span>
+      <PendingLabel pending={opening}>
+        <Eye aria-hidden="true" className="size-4" />
+        View<span className="sr-only"> {label}</span>
+      </PendingLabel>
     </button>
   );
 }
@@ -1541,7 +1571,7 @@ function TeachingZonesCard() {
           </p>
         </div>
         <Link href="/dashboard/tutor/zones" className={secondaryButton}>
-          Manage zones
+          <LinkPendingLabel>Manage zones</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1572,10 +1602,10 @@ function FindWorkCard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/find-tuitions" className={primaryButton}>
-            Find tuitions
+            <LinkPendingLabel>Find tuitions</LinkPendingLabel>
           </Link>
           <Link href="/dashboard/applications" className={secondaryButton}>
-            My applications
+            <LinkPendingLabel>My applications</LinkPendingLabel>
           </Link>
         </div>
       </div>
@@ -1606,7 +1636,7 @@ function PlacementFeesCard() {
           </p>
         </div>
         <Link href="/dashboard/fees" className={secondaryButton}>
-          View fees
+          <LinkPendingLabel>View fees</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1636,7 +1666,7 @@ function ReportsCard() {
           </p>
         </div>
         <Link href="/dashboard/reports" className={secondaryButton}>
-          View reports
+          <LinkPendingLabel>View reports</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1666,7 +1696,7 @@ function ApplicationsCard() {
           </p>
         </div>
         <Link href="/dashboard/applications" className={secondaryButton}>
-          View applications
+          <LinkPendingLabel>View applications</LinkPendingLabel>
         </Link>
       </div>
     </section>
@@ -1729,8 +1759,10 @@ export function RequirementsSection({
         action={
           requirements && requirements.length > 0 ? (
             <Link href="/dashboard/requirements/new" className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              Post a requirement
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                Post a requirement
+              </LinkPendingLabel>
             </Link>
           ) : undefined
         }
@@ -1747,8 +1779,10 @@ export function RequirementsSection({
           />
           <div className="mt-4 flex justify-center">
             <Link href="/dashboard/requirements/new" className={primaryButton}>
-              <Plus aria-hidden="true" className="size-4" />
-              Post your first requirement
+              <LinkPendingLabel>
+                <Plus aria-hidden="true" className="size-4" />
+                Post your first requirement
+              </LinkPendingLabel>
             </Link>
           </div>
         </div>
@@ -1818,6 +1852,7 @@ function RequirementItem({
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
+  const intent = useIntentPrefetch();
 
   const { subjects } = useSubjects();
   const { areas } = useAreas();
@@ -1977,13 +2012,14 @@ function RequirementItem({
               <button
                 type="button"
                 disabled={busy}
+                aria-busy={busy || undefined}
                 onClick={handleClose}
                 className={cn(
                   secondaryButton,
                   "min-h-10 bg-[var(--color-semantic-error-surface)] px-4 text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
                 )}
               >
-                {busy ? "Closing…" : "Yes, close"}
+                <PendingLabel pending={busy}>Yes, close</PendingLabel>
               </button>
             </div>
           </div>
@@ -1991,9 +2027,12 @@ function RequirementItem({
           <Link
             href={postAgainHref(r.id)}
             className={cn(secondaryButton, "min-h-10 px-4")}
+            {...intent(requirementQueryOptions(r.id))}
           >
-            <Repeat2 aria-hidden="true" className="size-4" />
-            Post again<span className="sr-only"> {title}</span>
+            <LinkPendingLabel>
+              <Repeat2 aria-hidden="true" className="size-4" />
+              Post again<span className="sr-only"> {title}</span>
+            </LinkPendingLabel>
           </Link>
         ) : (
           <>
@@ -2001,10 +2040,11 @@ function RequirementItem({
               <button
                 type="button"
                 disabled={busy}
+                aria-busy={busy || undefined}
                 onClick={handlePublish}
                 className={cn(secondaryButton, "min-h-10 px-4")}
               >
-                {busy ? "Posting…" : "Post now"}
+                <PendingLabel pending={busy}>Post now</PendingLabel>
               </button>
             )}
 
@@ -2012,17 +2052,22 @@ function RequirementItem({
               href={`/dashboard/requirements/${r.id}/edit`}
               className={cn(ghostButton, "min-h-10 px-3")}
             >
-              <Pencil aria-hidden="true" className="size-4" />
-              Edit<span className="sr-only"> {title}</span>
+              <LinkPendingLabel>
+                <Pencil aria-hidden="true" className="size-4" />
+                Edit<span className="sr-only"> {title}</span>
+              </LinkPendingLabel>
             </Link>
 
             {r.status !== "DRAFT" && (
               <Link
                 href={`/dashboard/requirements/${r.id}/applicants`}
                 className={cn(ghostButton, "min-h-10 px-3")}
+                {...intent(studentRequirementQueryOptions(r.id))}
               >
-                <Users aria-hidden="true" className="size-4" />
-                Applicants<span className="sr-only"> {title}</span>
+                <LinkPendingLabel>
+                  <Users aria-hidden="true" className="size-4" />
+                  Applicants<span className="sr-only"> {title}</span>
+                </LinkPendingLabel>
               </Link>
             )}
 
@@ -2069,8 +2114,10 @@ function RecommendedTutors() {
             href="/dashboard/find-tutors"
             className={cn(ghostButton, "min-h-10")}
           >
-            Find tutors
-            <ArrowUpRight aria-hidden="true" className="size-4" />
+            <LinkPendingLabel>
+              Find tutors
+              <ArrowUpRight aria-hidden="true" className="size-4" />
+            </LinkPendingLabel>
           </Link>
         }
       />

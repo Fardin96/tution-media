@@ -13,6 +13,7 @@ import {
   useFallbackBack,
 } from "@/components/tutor-profile/profile-back";
 import { card, secondaryButton } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/profile";
 import { useRefreshExpiredMedia } from "@/lib/files";
@@ -84,7 +85,7 @@ function TutorNotFound() {
         href={back.href}
         className={cn(secondaryButton, "min-h-10 justify-self-start px-4")}
       >
-        {back.label}
+        <LinkPendingLabel>{back.label}</LinkPendingLabel>
       </Link>
     </section>
   );

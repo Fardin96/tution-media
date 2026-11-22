@@ -4,9 +4,11 @@ import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { ApiError } from "@/lib/profile";
 import { ERROR_CODES, mapServerIssuesToFields } from "@/lib/api-errors";
 import { queryKeys } from "@/lib/query-keys";
@@ -187,7 +189,7 @@ export function PackageForm(props: PackageFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (blocked) return;
+    if (blocked || saving) return;
 
     const found = validatePackageForm(form);
     if (Object.keys(found).length > 0) {
@@ -612,34 +614,25 @@ export function PackageForm(props: PackageFormProps) {
             )}
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <Link href={LIST_HREF} className={secondaryButton}>
-                Cancel
+                <LinkPendingLabel>Cancel</LinkPendingLabel>
               </Link>
 
               <button
                 type="submit"
                 aria-disabled={blocked || undefined}
                 aria-describedby={blocked ? blockedId : undefined}
+                aria-busy={saving || undefined}
                 disabled={saving || profileQuery.isPending}
                 className={cn(primaryButton, "sm:min-w-44", blockedClass)}
               >
-                {saving ? (
-                  <>
-                    <Loader2
-                      aria-hidden="true"
-                      className="size-4 animate-spin motion-reduce:animate-none"
-                    />
-                    Saving…
-                  </>
-                ) : (
-                  <>
-                    {isEdit ? "Save changes" : "Publish package"}
-                    <Check
-                      aria-hidden="true"
-                      className="size-4"
-                      strokeWidth={2.5}
-                    />
-                  </>
-                )}
+                <PendingLabel pending={saving}>
+                  {isEdit ? "Save changes" : "Publish package"}
+                  <Check
+                    aria-hidden="true"
+                    className="size-4"
+                    strokeWidth={2.5}
+                  />
+                </PendingLabel>
               </button>
             </div>
           </div>

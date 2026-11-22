@@ -20,6 +20,7 @@ import {
   textareaClass,
 } from "@/components/admin/admin-ui";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PendingLabel } from "@/components/ui/pending-label";
 import { FilePicker } from "@/components/files/file-picker";
 import { BlogMarkdown } from "@/components/blog/blog-markdown";
 import {
@@ -124,12 +125,20 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
     Partial<Record<BlogField, string>>
   >({});
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Which button started the running request, so only that one shows the spinner.
+  const [createStatus, setCreateStatus] = useState<"DRAFT" | "PUBLISHED">(
+    "DRAFT",
+  );
+  const [editAction, setEditAction] = useState<Action>("save");
 
   const create = useCreateBlogPost();
   const update = useUpdateBlogPost(saved?.id ?? "");
   const remove = useDeleteBlogPost(saved?.id ?? "");
   const pending = create.isPending || update.isPending || remove.isPending;
   const busy = pending || coverBusy;
+  const savingDraft = create.isPending && createStatus === "DRAFT";
+  const publishingNew = create.isPending && createStatus === "PUBLISHED";
+  const editing = (action: Action) => update.isPending && editAction === action;
 
   const clientErrors = validateBlogForm(form);
   const errors: Partial<Record<BlogField, string>> = submitted
@@ -191,8 +200,10 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
   }
 
   function submitNew(status: "DRAFT" | "PUBLISHED") {
+    if (pending) return;
     setSubmitted(true);
     if (hasClientErrors) return;
+    setCreateStatus(status);
     create.mutate(toCreateBlogPost(form, status), {
       onSuccess: (created) => {
         toast.success(status === "DRAFT" ? "Draft saved" : "Post published");
@@ -211,8 +222,10 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
   }
 
   function submitEdit(action: Action) {
+    if (pending) return;
     setSubmitted(true);
     if (hasClientErrors || !saved) return;
+    setEditAction(action);
     const status = STATUS_FOR_ACTION[action];
     const body: UpdateBlogPostBody = {
       ...patch,
@@ -238,6 +251,7 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
 
   function onFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     if (isNew) submitNew("DRAFT");
     else if (dirty) submitEdit("save");
   }
@@ -433,19 +447,19 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
               type="button"
               onClick={() => submitNew("DRAFT")}
               disabled={busy}
-              aria-busy={create.isPending || undefined}
+              aria-busy={savingDraft || undefined}
               className={cn(secondaryButton, "min-h-11")}
             >
-              {create.isPending ? "Saving..." : "Save draft"}
+              <PendingLabel pending={savingDraft}>Save draft</PendingLabel>
             </button>
             <button
               type="button"
               onClick={() => submitNew("PUBLISHED")}
               disabled={busy}
-              aria-busy={create.isPending || undefined}
+              aria-busy={publishingNew || undefined}
               className={cn(primaryButton, "min-h-11")}
             >
-              Publish
+              <PendingLabel pending={publishingNew}>Publish</PendingLabel>
             </button>
           </>
         ) : (
@@ -455,9 +469,12 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
                 type="button"
                 onClick={() => submitEdit("archive")}
                 disabled={busy}
+                aria-busy={editing("archive") || undefined}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Archive
+                <PendingLabel pending={editing("archive")}>
+                  Archive
+                </PendingLabel>
               </button>
             )}
             {saved?.status === "PUBLISHED" ? (
@@ -465,27 +482,33 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
                 type="button"
                 onClick={() => submitEdit("unpublish")}
                 disabled={busy}
+                aria-busy={editing("unpublish") || undefined}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Unpublish
+                <PendingLabel pending={editing("unpublish")}>
+                  Unpublish
+                </PendingLabel>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => submitEdit("publish")}
                 disabled={busy}
+                aria-busy={editing("publish") || undefined}
                 className={cn(secondaryButton, "min-h-11")}
               >
-                Publish
+                <PendingLabel pending={editing("publish")}>
+                  Publish
+                </PendingLabel>
               </button>
             )}
             <button
               type="submit"
               disabled={busy || !dirty}
-              aria-busy={update.isPending || undefined}
+              aria-busy={editing("save") || undefined}
               className={cn(primaryButton, "min-h-11")}
             >
-              {update.isPending ? "Saving..." : "Save"}
+              <PendingLabel pending={editing("save")}>Save</PendingLabel>
             </button>
           </>
         )}
@@ -505,8 +528,9 @@ function BlogEditor({ post }: { post?: AdminBlogPost }) {
               onSelect: () => setDeleteOpen(false),
             },
             {
-              label: remove.isPending ? "Deleting..." : "Delete draft",
+              label: "Delete draft",
               variant: "primary",
+              pending: remove.isPending,
               onSelect: () =>
                 remove.mutate(undefined, {
                   onSuccess: () => {

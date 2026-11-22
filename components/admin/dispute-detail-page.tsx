@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ghostButton } from "@/components/profile/styles";
+import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
   AdminPage,
   DetailList,
@@ -90,7 +91,7 @@ export function AdminDisputeDetailPage({ id }: { id: string }) {
                   href={`/dashboard/applications/${encodeURIComponent(detail.application.id)}?from=admin`}
                   className={cn(ghostButton, "min-h-10")}
                 >
-                  Open application
+                  <LinkPendingLabel>Open application</LinkPendingLabel>
                 </Link>
               }
             >
