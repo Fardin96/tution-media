@@ -87,6 +87,12 @@
   --color-surface-inverse: #1e242c;
   /* Quiet fill for small chips/badges on white (FAQ numbers). */
   --color-surface-subtle: #f4f5f7;
+  /* Skeleton fill: about 1.22:1 on white and 1.17:1 on off-white, visible but quiet. */
+  --color-skeleton: color-mix(
+    in oklab,
+    var(--color-neutral-charcoal) 10%,
+    var(--color-neutral-white)
+  );
   /* Decorative step numerals (How it works). Tint of the charcoal text hue so it
      stays in-family; order is carried by the <ol>, so the numerals are aria-hidden. */
   --color-step-number: color-mix(
@@ -240,5 +246,12 @@
   .spinner-ellipsis-dot {
     animation-name: spinner-ellipsis-fade;
     animation-duration: 1.6s;
+  }
+}
+
+/* Skeleton shimmer: components/ui/skeleton.tsx. Transform only, so it stays on the compositor. */
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }

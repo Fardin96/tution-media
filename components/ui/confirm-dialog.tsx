@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
+import { PendingLabel } from "@/components/ui/pending-label";
 import {
   ghostButton,
   primaryButton,
@@ -15,6 +16,8 @@ export interface ConfirmAction {
   onSelect: () => void;
   variant?: "primary" | "secondary" | "ghost";
   href?: string;
+  /** Shows Spinner 05 in place of the label and disables every action while true. */
+  pending?: boolean;
 }
 
 const variantClass = {
@@ -42,7 +45,14 @@ export function ConfirmDialog({
   };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root
+      open={open}
+      // A running action keeps the dialog open: Escape and outside clicks wait for it.
+      onOpenChange={(next) => {
+        if (!next && actions.some((a) => a.pending)) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
@@ -77,6 +87,7 @@ export function ConfirmDialog({
           </DialogPrimitive.Description>
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             {actions.map((action, i) => {
+              const busy = actions.some((a) => a.pending);
               const className = variantClass[action.variant ?? "secondary"];
               const ref = i === 0 ? setFirst : undefined;
               return action.href ? (
@@ -95,9 +106,13 @@ export function ConfirmDialog({
                   ref={ref}
                   type="button"
                   onClick={action.onSelect}
+                  disabled={busy}
+                  aria-busy={action.pending || undefined}
                   className={className}
                 >
-                  {action.label}
+                  <PendingLabel pending={Boolean(action.pending)}>
+                    {action.label}
+                  </PendingLabel>
                 </button>
               );
             })}

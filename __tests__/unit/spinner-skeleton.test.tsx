@@ -44,14 +44,14 @@ describe("Skeleton", () => {
     const el = container.firstElementChild as HTMLElement;
     expect(el).toHaveAttribute("aria-hidden", "true");
     expect(el).toHaveAttribute("data-slot", "skeleton");
-    expect(el).toHaveClass("animate-pulse", "rounded-md", "bg-accent");
+    expect(el).toHaveClass("rounded-md", "bg-[var(--color-skeleton)]");
   });
 
   it("merges className and lets it override conflicting classes", () => {
     const { container } = render(<Skeleton className="h-4 w-24 bg-red-500" />);
     const el = container.firstElementChild as HTMLElement;
-    expect(el).toHaveClass("h-4", "w-24", "bg-red-500", "animate-pulse");
-    expect(el).not.toHaveClass("bg-accent");
+    expect(el).toHaveClass("h-4", "w-24", "bg-red-500", "overflow-hidden");
+    expect(el).not.toHaveClass("bg-[var(--color-skeleton)]");
   });
 
   it("passes other props through to the element", () => {
