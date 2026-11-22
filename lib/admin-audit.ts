@@ -39,6 +39,8 @@ const ACTION_LABELS: Record<string, string> = {
   "payment.reverse": "Reversed a payment",
   "account.block": "Blocked an account",
   "account.unblock": "Unblocked an account",
+  "account.deactivate": "Deactivated an account",
+  "account.delete": "Permanently deleted an account",
   "admin.approve": "Approved an admin",
   "admin.remove": "Removed an admin",
   "package.moderate": "Reviewed a package",

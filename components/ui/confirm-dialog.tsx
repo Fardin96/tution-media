@@ -14,6 +14,7 @@ import {
 import { PendingLabel } from "@/components/ui/pending-label";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import {
+  dangerButton,
   ghostButton,
   primaryButton,
   secondaryButton,
@@ -33,10 +34,7 @@ const variantClass = {
   primary: primaryButton,
   secondary: secondaryButton,
   ghost: ghostButton,
-  danger: cn(
-    secondaryButton,
-    "bg-[var(--color-semantic-error-surface)] text-[var(--color-semantic-error-text)] shadow-none hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]",
-  ),
+  danger: dangerButton,
 } as const;
 
 export function ConfirmDialog({

@@ -10849,7 +10849,7 @@ export interface paths {
     put?: never;
     /**
      * Block an account
-     * @description Super admins only. Revokes the account's open sessions. A super admin, a deleted account or an already blocked account cannot be blocked, and nobody can block themselves.
+     * @description Any active admin; an admin account only a super admin (403 otherwise). Revokes the account's open sessions. A super admin, a deleted account or an already blocked account cannot be blocked, and nobody can block themselves.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -10961,7 +10961,7 @@ export interface paths {
     put?: never;
     /**
      * Unblock an account
-     * @description Super admins only. Closes the open block. 409 when the account is not blocked.
+     * @description Any active admin; an admin account only a super admin (403 otherwise). Closes the open block. 409 when the account is not blocked.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -10986,6 +10986,228 @@ export interface paths {
           content: {
             "application/json": components["schemas"]["AdminAccountDetail"];
           };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/accounts/{id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Deactivate an account
+     * @description Any active admin; an admin account only a super admin (403 otherwise). The soft delete (as DELETE /me): frees the phone and WhatsApp numbers, closes open requirements and packages, withdraws pending applications, revokes sessions and takes landing cards down. The owner can reactivate by signing up again. A super admin, the caller, a blocked account (unblock first) and an already deactivated account answer 409.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["AccountActionReasonInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminAccountDetail"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/accounts/{id}/hard-delete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Permanently delete an account
+     * @description Any active admin; an admin account only a super admin (403 otherwise). The same delete as DELETE /me/hard-delete; it cannot be undone. The reason goes to the audit log. A super admin or the caller answers 409, and so does an account with payment records or (for an admin) audit history, which are kept: block or deactivate it instead.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 30/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["AccountActionReasonInput"];
+        };
+      };
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
         };
         /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
         400: {
@@ -18580,6 +18802,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AccountActionReasonInput: {
+      reason: string;
+    };
     AdminAccountBlock: {
       /** Format: uuid */
       id: string;

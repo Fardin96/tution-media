@@ -7,6 +7,9 @@ export const primaryButton = `${button} bg-[var(--color-primary-core)] text-[var
 
 export const secondaryButton = `${button} bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] shadow-[0_0_0_1px_rgb(0_0_0/0.1),0_1px_2px_rgb(0_0_0/0.06)] hover:bg-[var(--color-neutral-off-white)]`;
 
+/** For actions that can't be undone, such as deleting an account. */
+export const dangerButton = `${button} bg-[var(--color-semantic-error-surface)] text-[var(--color-semantic-error-text)] hover:bg-[color-mix(in_oklab,var(--color-semantic-error-surface),var(--color-semantic-error-text)_8%)]`;
+
 export const ghostButton = `${button} px-4 text-[var(--color-primary-core)] hover:bg-[var(--color-secondary-sky)] hover:text-[var(--color-primary-deep)]`;
 
 /** 24px radius surface; children with 8px inset use 16px radii. */

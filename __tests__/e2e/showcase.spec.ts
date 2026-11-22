@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 const playing = (page: Page) =>
   page.evaluate(() =>
@@ -23,6 +23,26 @@ const stripSettled = async (page: Page) => {
     .toBe(true);
 };
 
+/** Taps the middle of the part of `target` visible inside the strip and the viewport, without scrolling. */
+const tapVisiblePart = async (page: Page, target: Locator) => {
+  const box = await target.boundingBox();
+  const strip = await page.locator("#tutors ul").boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !strip || !viewport) throw new Error("card not laid out");
+  const left = Math.max(box.x, strip.x, 0);
+  const right = Math.min(
+    box.x + box.width,
+    strip.x + strip.width,
+    viewport.width,
+  );
+  const top = Math.max(box.y, 0);
+  const bottom = Math.min(box.y + box.height, viewport.height);
+  expect(right - left, "part of the card shows in the strip").toBeGreaterThan(
+    8,
+  );
+  await page.touchscreen.tap((left + right) / 2, (top + bottom) / 2);
+};
+
 test.describe("Tutor showcase", () => {
   test("first video plays in view, hover/tap switch it, leaving view pauses all", async ({
     page,
@@ -38,7 +58,9 @@ test.describe("Tutor showcase", () => {
 
     const second = page.locator("#tutors ul > li").nth(1).locator("button");
     if (hasTouch) {
-      await second.tap();
+      // Tap the part of the second card that already shows. A plain tap() scrolls it into the strip
+      // first; once that scroll settles the strip hands playback to it, and the tap then pauses it.
+      await tapVisiblePart(page, second);
     } else {
       await second.hover();
     }
@@ -46,7 +68,7 @@ test.describe("Tutor showcase", () => {
     await stripSettled(page);
 
     // Tap/click the playing card to pause it.
-    if (hasTouch) await second.tap();
+    if (hasTouch) await tapVisiblePart(page, second);
     else await second.click();
     await expect.poll(() => playing(page)).toBe("00000000");
 

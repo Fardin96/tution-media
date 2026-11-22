@@ -44,7 +44,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "ALL", label: "Any status" },
   { value: "ACTIVE", label: "Active" },
   { value: "BLOCKED", label: "Blocked" },
-  { value: "DELETED", label: "Deleted" },
+  { value: "DELETED", label: "Deactivated" },
 ];
 
 const ROLE_LABEL: Record<AccountRole, string> = {
@@ -56,7 +56,7 @@ const ROLE_LABEL: Record<AccountRole, string> = {
 const STATUS_PILL: Record<AccountStatus, { tone: PillTone; label: string }> = {
   ACTIVE: { tone: "success", label: "Active" },
   BLOCKED: { tone: "error", label: "Blocked" },
-  DELETED: { tone: "neutral", label: "Deleted" },
+  DELETED: { tone: "neutral", label: "Deactivated" },
 };
 
 function parseRole(value: string | null): RoleFilter {
