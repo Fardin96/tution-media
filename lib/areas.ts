@@ -7,27 +7,36 @@ import { queryKeys } from "./query-keys";
 const STALE_MS = 30 * 60_000;
 const GC_MS = 60 * 60_000;
 
-const NO_AREAS: Option[] = [];
+/** An area option with its district's name, so a picker can tell "Sadar" in one district from another. */
+export interface AreaOption extends Option {
+  district: string;
+}
 
-/** Public GET /areas: active areas, flattened in division, district, name order, as {id, name} options. */
+const NO_AREAS: AreaOption[] = [];
+
+/** Public GET /areas: active areas, flattened in division, district, name order. */
 export const areaApi = {
-  list: async (): Promise<Option[]> => {
+  list: async (): Promise<AreaOption[]> => {
     const data = await unwrap(client.GET("/api/v1/areas"));
     return data.divisions.flatMap((division) =>
       division.districts.flatMap((district) =>
-        district.areas.map(({ id, name }) => ({ id, name })),
+        district.areas.map(({ id, name }) => ({
+          id,
+          name,
+          district: district.name,
+        })),
       ),
     );
   },
 };
 
-let cached: Promise<Option[]> | null = null;
+let cached: Promise<AreaOption[]> | null = null;
 
 /**
  * One request per page load, shared by searchAreas and useAreas. A failed request is
  * dropped from the cache so the next call tries again.
  */
-export function loadAreas(): Promise<Option[]> {
+export function loadAreas(): Promise<AreaOption[]> {
   if (!cached) {
     const request = areaApi.list();
     cached = request;

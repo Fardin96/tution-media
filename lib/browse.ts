@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useQuery,
   queryOptions,
@@ -6,6 +7,7 @@ import {
 import { client, unwrap, type Schemas } from "./api-client";
 import type { paths } from "./api-types";
 import { queryKeys } from "./query-keys";
+import { SEARCH_TEXT_MAX } from "./tutor-search";
 
 // Filter values come from the generated query types, so they match what the API accepts.
 type RequirementQuery = NonNullable<
@@ -52,6 +54,33 @@ export interface TutorSearchFilters {
   subject?: number;
   gender?: TutorGender;
   name?: string;
+}
+
+export type TutorSearchPage = Schemas["TutorSearchList"];
+
+/** Page size for the public tutors list. */
+export const PUBLIC_TUTOR_PAGE = 12;
+const DISTRICT_MAX = 80;
+
+/** The public tutors list as the URL holds it. q and location are free text; the list resolves them to ids before querying. */
+export interface PublicTutorFilters {
+  subject?: number;
+  area?: number;
+  district?: string;
+  gender?: TutorGender;
+  /** sort=emerging: joined in the last 90 days, otherwise best rated. */
+  emerging?: boolean;
+  q?: string;
+  location?: string;
+}
+
+/** The part of PublicTutorFilters that GET /api/v1/tutors takes. */
+export interface PublicTutorApiFilters {
+  subject?: number;
+  area?: number;
+  district?: string;
+  gender?: TutorGender;
+  recent?: "true";
 }
 
 export const BROWSE_CURRICULA = [
@@ -121,6 +150,15 @@ export const browseApi = {
     unwrap(client.GET("/api/v1/packages/{id}", { params: { path: { id } } })),
   tutors: (filters: TutorSearchFilters) =>
     unwrap(client.GET("/api/v1/tutors", { params: { query: filters } })),
+  publicTutors: (
+    filters: PublicTutorApiFilters,
+    cursor?: string,
+  ): Promise<TutorSearchPage> =>
+    unwrap(
+      client.GET("/api/v1/tutors", {
+        params: { query: { ...filters, limit: PUBLIC_TUTOR_PAGE, cursor } },
+      }),
+    ),
   nearbyTutors: (radiusMeters: number) =>
     unwrap(
       client.GET("/api/v1/tutors/nearby", {
@@ -170,6 +208,33 @@ export function useTutorSearch(filters: TutorSearchFilters) {
   });
 }
 
+/** Only the API-facing fields form the query key, so typing in q or location never refetches. */
+export function publicTutorApiFilters(
+  filters: PublicTutorFilters,
+): PublicTutorApiFilters {
+  return {
+    subject: filters.subject,
+    area: filters.area,
+    district: filters.district,
+    gender: filters.gender,
+    recent: filters.emerging ? "true" : undefined,
+  };
+}
+
+export function usePublicTutors(filters: PublicTutorFilters, enabled: boolean) {
+  const apiFilters = publicTutorApiFilters(filters);
+  return useInfiniteQuery({
+    queryKey: queryKeys.browse.publicTutors(apiFilters),
+    queryFn: ({ pageParam }) => browseApi.publicTutors(apiFilters, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 30_000,
+    // Keeps the previous filter's rows on screen while the next set loads.
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
 export function useNearbyTutors(radiusMeters: number, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.browse.nearbyTutors(radiusMeters),
@@ -210,11 +275,19 @@ export interface ParamReader {
   get(name: string): string | null;
 }
 
-function readInt(raw: string | null, min?: number): number | undefined {
+/** The largest value a Postgres INT4 column holds. Bigger ids would fail the query with a 500. */
+const INT4_MAX = 2147483647;
+
+function readInt(
+  raw: string | null,
+  min?: number,
+  max?: number,
+): number | undefined {
   if (raw === null || raw.trim() === "") return undefined;
   const n = Number(raw);
   if (!Number.isInteger(n)) return undefined;
   if (min !== undefined && n < min) return undefined;
+  if (max !== undefined && n > max) return undefined;
   return n;
 }
 
@@ -279,8 +352,8 @@ export function requirementFiltersFromSearchParams(
     scope,
     curriculum: readCurriculum(params.get("curriculum")),
     levelCode: readInt(params.get("levelCode")),
-    subjectId: readInt(params.get("subjectId"), 1),
-    areaId: readInt(params.get("areaId"), 1),
+    subjectId: readInt(params.get("subjectId"), 1, INT4_MAX),
+    areaId: readInt(params.get("areaId"), 1, INT4_MAX),
   };
 }
 
@@ -311,7 +384,7 @@ export function packageFiltersFromSearchParams(
     scope: readScope(params.get("scope")),
     curriculum: readCurriculum(params.get("curriculum")),
     levelCode: readInt(params.get("levelCode")),
-    subjectId: readInt(params.get("subjectId"), 1),
+    subjectId: readInt(params.get("subjectId"), 1, INT4_MAX),
   };
 }
 
@@ -331,8 +404,8 @@ export function tutorFiltersFromSearchParams(
 ): TutorSearchFilters {
   const name = params.get("name")?.trim();
   return {
-    area: readInt(params.get("area"), 1),
-    subject: readInt(params.get("subject"), 1),
+    area: readInt(params.get("area"), 1, INT4_MAX),
+    subject: readInt(params.get("subject"), 1, INT4_MAX),
     gender: readGender(params.get("gender")),
     name: name ? name : undefined,
   };
@@ -346,5 +419,39 @@ export function tutorFiltersToSearchParams(
     subject: filters.subject,
     gender: filters.gender,
     name: filters.name?.trim() || undefined,
+  });
+}
+
+/** Trimmed text cut to `max` characters; undefined when nothing is left. */
+function readText(raw: string | null, max: number): string | undefined {
+  const text = raw?.slice(0, max).trim();
+  return text ? text : undefined;
+}
+
+export function publicTutorFiltersFromSearchParams(
+  params: ParamReader,
+): PublicTutorFilters {
+  return {
+    subject: readInt(params.get("subject"), 1, INT4_MAX),
+    area: readInt(params.get("area"), 1, INT4_MAX),
+    district: readText(params.get("district"), DISTRICT_MAX),
+    gender: readGender(params.get("gender")),
+    emerging: params.get("sort") === "emerging",
+    q: readText(params.get("q"), SEARCH_TEXT_MAX),
+    location: readText(params.get("location"), SEARCH_TEXT_MAX),
+  };
+}
+
+export function publicTutorFiltersToSearchParams(
+  filters: PublicTutorFilters,
+): URLSearchParams {
+  return toParams({
+    subject: filters.subject,
+    area: filters.area,
+    district: filters.district,
+    gender: filters.gender,
+    sort: filters.emerging ? "emerging" : undefined,
+    q: filters.q,
+    location: filters.location,
   });
 }

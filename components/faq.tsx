@@ -4,7 +4,6 @@ import { Accordion } from "radix-ui";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { SectionHeader } from "@/components/section-header";
-import { ArrowLinkButton } from "@/components/arrow-link-button";
 import type { FaqBlock } from "@/lib/site-content";
 
 export function Faq({ content }: { content: FaqBlock }) {
@@ -44,14 +43,6 @@ export function Faq({ content }: { content: FaqBlock }) {
             </div>
           ))}
         </Accordion.Root>
-
-        <ArrowLinkButton
-          href={content.cta.href}
-          variant="solid"
-          className="mt-10 self-center"
-        >
-          {content.cta.label}
-        </ArrowLinkButton>
       </div>
     </section>
   );

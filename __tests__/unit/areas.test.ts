@@ -52,14 +52,14 @@ beforeEach(() => {
 });
 
 describe("areaApi.list", () => {
-  it("flattens divisions and districts into {id, name} options in order", async () => {
+  it("flattens divisions and districts into {id, name, district} options in order", async () => {
     vi.mocked(apiFetch).mockResolvedValue(json(200, LIST));
 
     await expect(areaApi.list()).resolves.toEqual([
-      { id: 1, name: "Dhanmondi" },
-      { id: 2, name: "Gulshan" },
-      { id: 3, name: "Tongi" },
-      { id: 4, name: "Cox's Bazar Sadar" },
+      { id: 1, name: "Dhanmondi", district: "Dhaka" },
+      { id: 2, name: "Gulshan", district: "Dhaka" },
+      { id: 3, name: "Tongi", district: "Gazipur" },
+      { id: 4, name: "Cox's Bazar Sadar", district: "Cox's Bazar" },
     ]);
     const [url] = vi.mocked(apiFetch).mock.calls[0];
     expect(new URL(String(url), "http://localhost").pathname).toBe(

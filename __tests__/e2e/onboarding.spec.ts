@@ -92,6 +92,33 @@ test.describe("Onboarding", () => {
     });
   });
 
+  test("finishing onboarding goes to the next path it was given", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([sessionCookie("STUDENT")]);
+    await mockApi(context, "STUDENT", { onboarded: false });
+    await page.goto("/onboarding?next=%2Fdashboard%2Ffind-tutors");
+
+    await page.getByLabel("Student ID number").fill("NDC-1");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("Phone number").fill("01811111111");
+    await page.getByLabel("WhatsApp number").fill("01712 345678");
+    await page.getByLabel("Emergency contact number").fill("01911111111");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Verify later" }).click();
+
+    await page.getByRole("searchbox", { name: "Search areas" }).fill("dhan");
+    await page
+      .getByRole("list", { name: "Suggested areas" })
+      .getByRole("button", { name: "Dhanmondi" })
+      .click();
+    await page.getByLabel("Address").fill("House 1, Road 2");
+    await page.getByRole("button", { name: "Finish setup" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard\/find-tutors$/);
+  });
+
   test("required phone verification blocks the step until the code is verified", async ({
     page,
     context,

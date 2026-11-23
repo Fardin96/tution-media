@@ -41,6 +41,8 @@ interface GoogleSignInButtonProps {
   role?: AuthRole;
   disabled?: boolean;
   onError?: (message: string) => void;
+  /** Where to go after a successful sign-in (a safeNext path). Onboarding still wins. */
+  next?: string;
 }
 
 export const NO_ACCOUNT =
@@ -62,6 +64,7 @@ export function GoogleSignInButton({
   role,
   disabled = false,
   onError,
+  next,
 }: GoogleSignInButtonProps) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -119,12 +122,17 @@ export function GoogleSignInButton({
             }),
           });
 
-          // First sign-in (no profile yet) goes to onboarding; the dashboard guards too.
+          // First sign-in (no profile yet) goes to onboarding, which carries `next` on and
+          // finishes there. Otherwise the user returns to `next`, or the dashboard.
           const me = await profileApi.me().catch(() => null);
+          const needsOnboarding =
+            me !== null && me.role !== "ADMIN" && !profileOf(me);
           router.push(
-            me && me.role !== "ADMIN" && !profileOf(me)
-              ? "/onboarding"
-              : "/dashboard",
+            needsOnboarding
+              ? next
+                ? `/onboarding?next=${encodeURIComponent(next)}`
+                : "/onboarding"
+              : (next ?? "/dashboard"),
           );
         } catch (err) {
           // Success leaves the overlay up: the router navigates away and this unmounts.
@@ -148,7 +156,7 @@ export function GoogleSignInButton({
         width: Math.min(overlayRef.current.offsetWidth || 400, 400),
       });
     }
-  }, [ready, clientId, role, mode, router, onError]);
+  }, [ready, clientId, role, mode, router, onError, next]);
 
   return (
     <div className="relative">

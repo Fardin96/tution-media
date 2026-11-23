@@ -87,21 +87,25 @@ function countLabel(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-/** Placeholder rows shaped like a TutorResultCard. */
-function TutorCardsSkeleton({ label }: { label: string }) {
+/**
+ * Placeholder rows shaped like a TutorResultCard. Without a label it is decoration only, for use
+ * inside a region that already announces loading.
+ */
+export function TutorCardsSkeleton({ label }: { label?: string }) {
   return (
     <div
-      role="status"
+      role={label ? "status" : undefined}
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <span className="sr-only">{label}</span>
+      {label && <span className="sr-only">{label}</span>}
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}
           aria-hidden="true"
           className={cn(card, "flex flex-col gap-4 p-5")}
         >
-          <div className="grid gap-2">
+          {/* grid-cols-1 (minmax(0,1fr)) lets the fixed-width bars shrink at 320px instead of widening the page. */}
+          <div className="grid grid-cols-1 gap-2">
             <div className="flex items-center gap-3">
               <Skeleton className="size-11 shrink-0 rounded-full" />
               <div className="flex min-w-0 flex-1 items-center justify-between gap-3">

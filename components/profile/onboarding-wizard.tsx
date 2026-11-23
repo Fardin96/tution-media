@@ -77,9 +77,12 @@ function showErrorsInSequence([first, ...rest]: [string, string][]) {
 export function OnboardingWizard({
   role,
   defaultName,
+  next,
 }: {
   role: ProfileRole;
   defaultName: string;
+  /** A safeNext path to go to once setup finishes. The dashboard when absent. */
+  next?: string;
 }) {
   const router = useRouter();
   const steps = STEPS[role];
@@ -124,12 +127,12 @@ export function OnboardingWizard({
   const verifyIndex = steps.findIndex((s) => s.id === VERIFY_ID);
   const contactIndex = steps.findIndex((s) => s.id === "contact");
 
-  // Returning users who already have a profile skip straight to the dashboard.
+  // Returning users who already have a profile skip setup and go where they were headed.
   useEffect(() => {
     profileApi
       .me()
       .then((me) => {
-        if (profileOf(me)) router.replace("/dashboard");
+        if (profileOf(me)) router.replace(next ?? "/dashboard");
         else setChecking(false);
       })
       .catch(async (err) => {
@@ -138,7 +141,7 @@ export function OnboardingWizard({
           router.replace("/sign-in");
         } else setChecking(false);
       });
-  }, [router]);
+  }, [router, next]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -153,9 +156,9 @@ export function OnboardingWizard({
     if ("phoneNumber" in patch) setVerified(null);
     setForm((f) => ({ ...f, ...patch }));
     setErrors((e) => {
-      const next = { ...e };
-      for (const k of Object.keys(patch)) delete next[k as keyof ProfileForm];
-      return next;
+      const rest = { ...e };
+      for (const k of Object.keys(patch)) delete rest[k as keyof ProfileForm];
+      return rest;
     });
   };
 
@@ -175,7 +178,7 @@ export function OnboardingWizard({
     try {
       await profileApi.save(role, toPayload(role, form, keys));
       if (role === "TUTOR") await saveTutorLists(form, keys);
-      router.replace("/dashboard");
+      router.replace(next ?? "/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Leaving for sign-in: the overlay stays up until that navigation happens.

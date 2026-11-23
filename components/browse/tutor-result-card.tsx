@@ -26,13 +26,17 @@ export interface TutorResult {
  */
 export function TutorResultCard({
   tutor,
+  locked = false,
   className,
   style,
 }: {
   tutor: TutorResult;
+  /** Signed-out viewers: the link goes through sign-in and comes back to the profile. */
+  locked?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
+  const profilePath = `/tutors/${tutor.id}`;
   const institute = tutor.instituteName?.trim();
   const areaNames = (tutor.areas ?? []).map((a) => a.name).join(", ");
   const distance =
@@ -52,13 +56,22 @@ export function TutorResultCard({
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
             <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
               <Link
-                href={`/tutors/${tutor.id}`}
+                href={
+                  locked
+                    ? `/sign-in?next=${encodeURIComponent(profilePath)}`
+                    : profilePath
+                }
                 className={cn(
                   "rounded-sm after:absolute after:inset-0 after:rounded-[24px] hover:underline",
                   focusRing,
                 )}
               >
                 {tutor.name}
+                {locked && (
+                  <span className="sr-only">
+                    , sign in to see the full profile
+                  </span>
+                )}
               </Link>
             </h3>
             <div className="shrink-0">
