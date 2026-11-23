@@ -100,25 +100,28 @@ export function DonutWidget({
         </div>
       </div>
 
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Slice</th>
-            <th scope="col">Value</th>
-            <th scope="col">Share</th>
-          </tr>
-        </thead>
-        <tbody>
-          {slices.map((s) => (
-            <tr key={s.key}>
-              <th scope="row">{s.label}</th>
-              <td>{formatMetric(s.value, format)}</td>
-              <td>{formatMetric(s.value / total, "percent")}</td>
+      {/* sr-only on the wrapper: Firefox draws a table's caption outside the table box, so it escaped the clip. */}
+      <div className="sr-only">
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Slice</th>
+              <th scope="col">Value</th>
+              <th scope="col">Share</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {slices.map((s) => (
+              <tr key={s.key}>
+                <th scope="row">{s.label}</th>
+                <td>{formatMetric(s.value, format)}</td>
+                <td>{formatMetric(s.value / total, "percent")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

@@ -111,11 +111,16 @@ export function formatBucket(date: string, bucket: "day" | "month" = "day") {
       timeZone: "UTC",
     }).format(parsed);
   }
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(parsed);
+  return (
+    new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    })
+      .format(parsed)
+      // en-GB writes "Sept"; every other month is three letters.
+      .replace("Sept", "Sep")
+  );
 }
 
 /** "month" when the points are roughly a month apart, else "day". */
