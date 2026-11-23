@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterAll, afterEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -48,6 +48,11 @@ function sentState(secondsLeft: number) {
 afterEach(() => {
   vi.useRealTimers();
 });
+
+// input-otp re-reads the selection 0, 10 and 50 ms after every value change and never clears
+// those timers. Let them fire before vitest tears jsdom down, or their setState runs without a
+// window ("ReferenceError: window is not defined").
+afterAll(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
 describe("PhoneVerifier", () => {
   it("idle: shows the number and sends a code", async () => {

@@ -1753,13 +1753,16 @@ export function RequirementsSection({
     const draft = searchParams.get("draft");
 
     if (posted || saved || draft) {
-      const message = posted
-        ? "Requirement posted"
-        : draft
-          ? "Saved as draft"
-          : "Changes saved";
+      const kind = posted ? "posted" : draft ? "draft" : "saved";
+      const message = {
+        posted: "Requirement posted",
+        draft: "Saved as draft",
+        saved: "Changes saved",
+      }[kind];
 
-      toast.success(message, { id: "requirement-status" });
+      // One id per message: it stops a double effect from showing the toast twice, and a new
+      // message never merges into an earlier one that is fading out (sonner removes both).
+      toast.success(message, { id: `requirement-${kind}` });
       router.replace("/dashboard#requirements");
     }
   }, [searchParams, router]);

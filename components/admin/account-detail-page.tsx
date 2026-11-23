@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { primaryButton, secondaryButton } from "@/components/profile/styles";
+import {
+  dangerButton,
+  primaryButton,
+  secondaryButton,
+} from "@/components/profile/styles";
 import {
   AdminDialog,
   AdminPage,
@@ -22,6 +27,8 @@ import { toastError, toastSuccess } from "@/lib/toast";
 import {
   useAdminAccount,
   useBlockAccount,
+  useDeactivateAccount,
+  useHardDeleteAccount,
   useUnblockAccount,
   validateBlockReason,
   type AccountRole,
@@ -43,7 +50,7 @@ const ROLE_LABEL: Record<AccountRole, string> = {
 const STATUS_PILL: Record<AccountStatus, { tone: PillTone; label: string }> = {
   ACTIVE: { tone: "success", label: "Active" },
   BLOCKED: { tone: "error", label: "Blocked" },
-  DELETED: { tone: "neutral", label: "Deleted" },
+  DELETED: { tone: "neutral", label: "Deactivated" },
 };
 
 const VERIFICATION_LABEL: Record<Verification, string> = {
@@ -77,22 +84,31 @@ export function AccountDetailPage({ id }: { id: string }) {
   const me = useAdminMe();
   const query = useAdminAccount(id);
   const account = query.data;
-  const [dialog, setDialog] = useState<"block" | "unblock" | null>(null);
+  const router = useRouter();
+  const [dialog, setDialog] = useState<
+    "block" | "unblock" | "deactivate" | "delete" | null
+  >(null);
 
   const block = useBlockAccount(id);
   const unblock = useUnblockAccount(id);
+  const deactivate = useDeactivateAccount(id);
+  const hardDelete = useHardDeleteAccount(id);
 
   const isViewer = me.adminUser?.accountId === id;
-  const canBlock =
-    me.isSuperAdmin &&
+  // Any active admin may act on students and tutors; admin accounts are for super admins only.
+  // Nobody acts on their own account or on a super admin's.
+  const canAct =
+    me.isActive &&
     account !== undefined &&
-    account.status === "ACTIVE" &&
     account.adminRole !== "SUPER_ADMIN" &&
     !isViewer &&
-    !account.activeBlock;
+    (account.role !== "ADMIN" || me.isSuperAdmin);
+  const canBlock =
+    canAct && account.status === "ACTIVE" && !account.activeBlock;
+  const canRemove = canAct;
 
   const actions =
-    me.isSuperAdmin && account ? (
+    canAct && account ? (
       <>
         {canBlock && (
           <button
@@ -199,6 +215,44 @@ export function AccountDetailPage({ id }: { id: string }) {
                 accountName={displayName(account)}
               />
             )}
+
+            {canRemove && (
+              <Section title="Close this account">
+                <div className="grid gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
+                      {account.status === "DELETED"
+                        ? "Deactivated. They can come back by signing up again."
+                        : account.status === "BLOCKED"
+                          ? "Unblock this account to deactivate it."
+                          : "Deactivate signs them out, closes their open requirements and packages and withdraws pending applications. They can come back by signing up again."}
+                    </p>
+                    {account.status === "ACTIVE" && (
+                      <button
+                        type="button"
+                        onClick={() => setDialog("deactivate")}
+                        className={cn(secondaryButton, "min-h-11 shrink-0")}
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
+                      Delete permanently removes the account and everything in
+                      it. You can&apos;t undo this.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setDialog("delete")}
+                      className={cn(dangerButton, "min-h-11 shrink-0")}
+                    >
+                      Delete permanently
+                    </button>
+                  </div>
+                </div>
+              </Section>
+            )}
           </>
         )}
       </QueryState>
@@ -212,8 +266,9 @@ export function AccountDetailPage({ id }: { id: string }) {
             description="They are signed out everywhere and can't sign in until unblocked."
             busy={block.isPending}
           >
-            <BlockForm
+            <ReasonForm
               busy={block.isPending}
+              submitLabel="Block"
               onCancel={() => setDialog(null)}
               onSubmit={(reason) =>
                 block.mutate(reason, {
@@ -265,18 +320,72 @@ export function AccountDetailPage({ id }: { id: string }) {
               </button>
             </DialogActions>
           </AdminDialog>
+
+          <AdminDialog
+            open={dialog === "deactivate"}
+            onOpenChange={(open) => setDialog(open ? "deactivate" : null)}
+            title={`Deactivate ${displayName(account)}?`}
+            description="They are signed out everywhere. Their open requirements and packages close, pending applications are withdrawn and their stories leave the home page. They can come back by signing up again."
+            busy={deactivate.isPending}
+          >
+            <ReasonForm
+              busy={deactivate.isPending}
+              submitLabel="Deactivate"
+              onCancel={() => setDialog(null)}
+              onSubmit={(reason) =>
+                deactivate.mutate(reason, {
+                  onSuccess: () => {
+                    toastSuccess("Account deactivated");
+                    setDialog(null);
+                  },
+                  onError: (err) =>
+                    toastError("Couldn't deactivate this account.", err),
+                })
+              }
+            />
+          </AdminDialog>
+
+          <AdminDialog
+            open={dialog === "delete"}
+            onOpenChange={(open) => setDialog(open ? "delete" : null)}
+            title={`Delete ${displayName(account)} permanently?`}
+            description="This removes the account and everything in it: profile, posts, applications, reviews, reports and uploaded files. You can't undo this. Accounts with payment records can't be deleted: block or deactivate them instead."
+            busy={hardDelete.isPending}
+          >
+            <ReasonForm
+              busy={hardDelete.isPending}
+              submitLabel="Delete permanently"
+              danger
+              onCancel={() => setDialog(null)}
+              onSubmit={(reason) =>
+                hardDelete.mutate(reason, {
+                  onSuccess: () => {
+                    toastSuccess("Account deleted");
+                    router.replace("/dashboard/admin/accounts");
+                  },
+                  onError: (err) =>
+                    toastError("Couldn't delete this account.", err),
+                })
+              }
+            />
+          </AdminDialog>
         </>
       )}
     </AdminPage>
   );
 }
 
-function BlockForm({
+/** A required reason for the audit log, then Cancel and the action (block, deactivate, delete). */
+function ReasonForm({
   busy,
+  submitLabel,
+  danger = false,
   onCancel,
   onSubmit,
 }: {
   busy: boolean;
+  submitLabel: string;
+  danger?: boolean;
   onCancel: () => void;
   onSubmit: (reason: string) => void;
 }) {
@@ -325,11 +434,11 @@ function BlockForm({
           disabled={busy}
           aria-busy={busy || undefined}
           className={cn(
-            secondaryButton,
+            danger ? dangerButton : secondaryButton,
             "min-h-11 text-[var(--color-semantic-error-text)] sm:min-w-28",
           )}
         >
-          <PendingLabel pending={busy}>Block</PendingLabel>
+          <PendingLabel pending={busy}>{submitLabel}</PendingLabel>
         </button>
       </DialogActions>
     </form>
@@ -355,7 +464,7 @@ function accountItems(account: AdminAccountDetail) {
     },
     { label: "Created", value: formatDateTime(account.createdAt) },
     { label: "Last sign-in", value: formatDateTime(account.lastLoginAt) },
-    { label: "Deleted at", value: formatDateTime(account.deletedAt) },
+    { label: "Deactivated at", value: formatDateTime(account.deletedAt) },
     { label: "Consent", value: consent },
   ];
 }
