@@ -70,3 +70,41 @@ export async function fetchPlaceDetails(
     throw new Error(body.message || `Place details failed (${res.status})`);
   return body;
 }
+
+export interface ReverseGeocode {
+  formattedAddress: string;
+  placeId: string;
+  district: string | null;
+}
+
+/** A failed lookup, carrying the HTTP status so the UI can tell which messages are safe to show. */
+export class PlaceLookupError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "PlaceLookupError";
+  }
+}
+
+export async function fetchReverseGeocode(
+  lat: number,
+  lng: number,
+  placeId?: string,
+): Promise<ReverseGeocode> {
+  const res = await fetch("/api/places/reverse", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lat, lng, placeId }),
+  });
+  const body = (await res.json().catch(() => ({}))) as ReverseGeocode & {
+    message?: string;
+  };
+  if (!res.ok)
+    throw new PlaceLookupError(
+      body.message || "Couldn't find an address there.",
+      res.status,
+    );
+  return body;
+}

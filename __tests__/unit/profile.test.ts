@@ -130,6 +130,75 @@ describe("validate", () => {
   });
 });
 
+describe("validate address pin", () => {
+  const addressFields = SECTIONS.STUDENT[2].fields;
+  const pin = {
+    ...emptyForm(),
+    address: "House 12, Road 4",
+    placeId: "",
+    latitude: 23.7465,
+    longitude: 90.376,
+    source: "pin" as const,
+  };
+
+  it("accepts a pin-only location once it has a district", () => {
+    expect(
+      validate(addressFields, { ...pin, district: "dhaka" }).address,
+    ).toBeUndefined();
+  });
+
+  it("refuses a pin whose district is unknown", () => {
+    expect(validate(addressFields, { ...pin, district: null }).address).toBe(
+      "Enter your district or move the pin.",
+    );
+  });
+});
+
+describe("toPayload location source", () => {
+  const pin = {
+    ...emptyForm("Rahim"),
+    address: "House 12, Road 4",
+    placeId: "",
+    latitude: 23.7465,
+    longitude: 90.376,
+    district: "dhaka",
+    source: "pin" as const,
+  };
+
+  it("sends a pin as a location without a place id", () => {
+    expect(toPayload("STUDENT", pin, ["address"]).location).toEqual({
+      lat: 23.7465,
+      lng: 90.376,
+      addressText: "House 12, Road 4",
+      district: "dhaka",
+    });
+  });
+
+  it("sends a clicked landmark as a place with its place id", () => {
+    expect(
+      toPayload("STUDENT", { ...pin, placeId: "ChIJ-poi", source: "place" }, [
+        "address",
+      ]).location,
+    ).toMatchObject({ placeId: "ChIJ-poi" });
+  });
+
+  it("omits the reverse place id of a pin", () => {
+    const body = toPayload("STUDENT", { ...pin, placeId: "ChIJ-reverse" }, [
+      "address",
+    ]);
+    expect(body.location).toBeDefined();
+    expect(body.location).not.toHaveProperty("placeId");
+  });
+
+  it("sends a place's location with its place id", () => {
+    expect(
+      toPayload("STUDENT", { ...pin, placeId: "ChIJ-place", source: "place" }, [
+        "address",
+      ]).location,
+    ).toMatchObject({ placeId: "ChIJ-place" });
+  });
+});
+
 describe("toPayload", () => {
   const form = {
     ...emptyForm("Rahim"),

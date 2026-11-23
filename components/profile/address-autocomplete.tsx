@@ -1,19 +1,52 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Loader2, MapPin, TriangleAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Expand } from "@/components/motion/expand";
+import { secondaryButton } from "./styles";
+import { roundCoord } from "@/lib/tutor-zones";
 import {
   fetchPlaceDetails,
   fetchPlacePredictions,
+  fetchReverseGeocode,
   makeSessionToken,
+  PlaceLookupError,
   pickedPlaceLabel,
   type PlacePrediction,
 } from "@/lib/places";
 
 // Typing waits this long before a suggestion request goes out.
 const DEBOUNCE_MS = 250;
+
+// Loaded only when a Maps key is set, so the Maps SDK stays out of the initial bundle.
+// One loader for both the component and the warm-up, so the chunk is requested once.
+const loadAddressMap = () => import("./address-map");
+// Starts the map's download when the toggle is hovered or focused, before the press.
+const warmMap = () => void loadAddressMap();
+
+const AddressMap = dynamic(() => loadAddressMap().then((m) => m.AddressMap), {
+  ssr: false,
+  loading: () => (
+    <div
+      aria-hidden="true"
+      className="h-56 w-full rounded-[12px] border border-[var(--color-border-control)] bg-[var(--color-surface-subtle)] sm:h-64"
+    />
+  ),
+});
+
+const LOOKUP_FAILED =
+  "Couldn't find an address there. Try again or type your address.";
+
+// Only 400 and 422 carry a message the server wrote for the user; anything else gets the generic line.
+function lookupFailure(err: unknown): string {
+  return err instanceof PlaceLookupError &&
+    (err.status === 400 || err.status === 422)
+    ? err.message
+    : LOOKUP_FAILED;
+}
 
 const control =
   "w-full rounded-[12px] border border-[var(--color-border-control)] bg-[var(--color-neutral-white)] px-4 text-base text-[var(--color-neutral-charcoal)] transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-[var(--color-neutral-gray)] hover:border-[var(--color-neutral-charcoal)] focus-visible:border-[var(--color-primary-core)] focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-primary-core)_16%,transparent)] focus-visible:outline-none aria-invalid:border-[var(--color-semantic-error-text)]";
@@ -26,6 +59,8 @@ export interface AddressValue {
   district: string | null;
   /** The name of the saved district code, shown instead of the code. */
   districtName?: string | null;
+  /** "pin": a map pin, saved without a place id. Defaults to a Places suggestion. */
+  source?: "place" | "pin";
 }
 
 const isDhaka = (district: string) =>
@@ -48,6 +83,8 @@ interface AddressAutocompleteProps {
   describedBy?: string;
   autoComplete?: string;
   onChange: (value: AddressValue) => void;
+  /** Called whenever a lookup starts or ends, so the form can hold its submit button. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 export function AddressAutocomplete({
@@ -62,6 +99,7 @@ export function AddressAutocomplete({
   describedBy,
   autoComplete = "street-address",
   onChange,
+  onBusyChange,
 }: AddressAutocompleteProps) {
   const generatedId = useId();
   const id = externalId ?? generatedId;
@@ -73,13 +111,24 @@ export function AddressAutocomplete({
   const districtLineId = `${id}-district-line`;
   const warningId = `${id}-warning`;
   const pickHintId = `${id}-pick-hint`;
+  const pinErrorId = `${id}-pin-error`;
+  const mapHintId = `${id}-map-hint`;
+  const mapWrapperId = `${id}-map`;
+  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+  // The typing search; `lookup` is a details or reverse lookup in flight.
   const [loading, setLoading] = useState(false);
+  const [lookup, setLookup] = useState(false);
+  const busy = loading || lookup;
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [announcement, setAnnouncement] = useState("");
   const [districtPrompt, setDistrictPrompt] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  // The map stays hidden until pressed, so the Maps SDK loads on first open. Closed on every mount.
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapOpened, setMapOpened] = useState(false);
   const sessionTokenRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Bumped by every new search and by a selection or clear: an answer for an older id is dropped.
@@ -87,12 +136,21 @@ export function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const district = value.district?.trim() ?? "";
+  // A suggestion's place or a map pin: either one locates the value, even when the pin has no placeId.
+  const located =
+    !!value.placeId || (value.source === "pin" && value.latitude !== null);
   const showDistrict =
-    !!value.placeId && (districtPrompt || value.district === null);
-  const showDistrictLine = !!value.placeId && !!district;
-  const showWarning = !!value.placeId && !!district && !isDhaka(district);
+    located && !lookup && (districtPrompt || value.district === null);
+  const showDistrictLine = located && !!district;
+  const showWarning = located && !!district && !isDhaka(district);
   // Stays up while the list is open: hiding it made the listbox jump up under the input.
-  const showPickHint = !!value.address.trim() && !value.placeId;
+  // Hidden while a details or reverse lookup runs (the text is about to change); a typing search keeps it.
+  const showPickHint = !!value.address.trim() && !located && !lookup;
+  const pickHint = mapsKey
+    ? "Pick a suggestion or pin it on the map."
+    : "Pick a suggestion to set the location.";
+  // The field's own error comes first; a pin error would only repeat the problem.
+  const shownPinError = error ? null : pinError;
   const inputDescribedBy =
     [
       hint && hintId,
@@ -102,6 +160,7 @@ export function AddressAutocomplete({
       showDistrict && districtHintId,
       showWarning && warningId,
       showPickHint && pickHintId,
+      shownPinError && pinErrorId,
     ]
       .filter(Boolean)
       .join(" ") || undefined;
@@ -111,6 +170,19 @@ export function AddressAutocomplete({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  // The latest callback, read by the effects below, so a new callback identity doesn't re-report.
+  const busyRef = useRef(onBusyChange);
+  useEffect(() => {
+    busyRef.current = onBusyChange;
+  });
+
+  useEffect(() => {
+    busyRef.current?.(lookup);
+  }, [lookup]);
+
+  // An unmount mid-lookup must not leave the form waiting on it.
+  useEffect(() => () => busyRef.current?.(false), []);
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -145,16 +217,21 @@ export function AddressAutocomplete({
     requestRef.current++;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setLoading(false);
+    setLookup(false);
   }, []);
 
   const selectPrediction = useCallback(
     async (prediction: PlacePrediction) => {
       cancelSearch();
-      setLoading(true);
+      setLookup(true);
+      const request = requestRef.current;
+      setPinError(null);
       closeList();
       const token = ensureSessionToken();
       try {
         const details = await fetchPlaceDetails(prediction.placeId, token);
+        // A newer search or a pin picked meanwhile owns the field now.
+        if (request !== requestRef.current) return;
         const label = pickedPlaceLabel(prediction, details.formattedAddress);
         onChange({
           address: label,
@@ -162,10 +239,12 @@ export function AddressAutocomplete({
           latitude: details.location.latitude,
           longitude: details.location.longitude,
           district: details.district,
+          source: "place",
         });
         setDistrictPrompt(details.district === null);
         setAnnouncement(`${label} selected.`);
       } catch (err) {
+        if (request !== requestRef.current) return;
         const message =
           err instanceof Error
             ? err.message
@@ -173,22 +252,92 @@ export function AddressAutocomplete({
         toast.error(message);
         setAnnouncement(message);
       } finally {
-        setLoading(false);
+        if (request === requestRef.current) setLookup(false);
         clearSessionToken();
       }
     },
     [ensureSessionToken, onChange, closeList, clearSessionToken, cancelSearch],
   );
 
-  const handleInputChange = (next: string) => {
-    onChange({
-      address: next,
-      placeId: "",
-      latitude: null,
-      longitude: null,
-      district: null,
-    });
+  // A pin set on the map: the coordinates count at once, the address follows from a reverse lookup.
+  const pickPin = async (lat: number, lng: number, placeId?: string) => {
+    const latitude = roundCoord(lat);
+    const longitude = roundCoord(lng);
+    const previousSource = value.source;
+    // A POI click has Google's place: its coordinates are the POI's, so the pick counts as a place.
+    const source = placeId ? "place" : "pin";
+    cancelSearch();
+    const request = requestRef.current;
+    setLookup(true);
+    setPinError(null);
     setDistrictPrompt(false);
+    closeList();
+    // No placeId until the lookup answers: the old one would point at the previous spot.
+    onChange({
+      ...value,
+      placeId: "",
+      latitude,
+      longitude,
+      district: null,
+      districtName: null,
+      source,
+    });
+    setAnnouncement("Finding the address for that spot.");
+
+    try {
+      const found = await fetchReverseGeocode(latitude, longitude, placeId);
+      if (request !== requestRef.current) return;
+      const label = found.formattedAddress.trim().slice(0, 500);
+      onChange({
+        address: label,
+        placeId: found.placeId,
+        latitude,
+        longitude,
+        district: found.district,
+        districtName: null,
+        source,
+      });
+      setDistrictPrompt(found.district === null);
+      setAnnouncement(`Address set to ${label}.`);
+    } catch (err) {
+      if (request !== requestRef.current) return;
+      // The pin is set but has no district: ask for it.
+      setDistrictPrompt(true);
+      // No Google place behind it, so it's the user's pin; a suggestion's text belongs to another spot.
+      onChange({
+        address: previousSource === "place" ? "" : value.address,
+        placeId: "",
+        latitude,
+        longitude,
+        district: null,
+        districtName: null,
+        source: "pin",
+      });
+      const message = lookupFailure(err);
+      setPinError(message);
+      setAnnouncement(message);
+    } finally {
+      if (request === requestRef.current) setLookup(false);
+    }
+  };
+
+  const handleInputChange = (next: string) => {
+    // A map pin keeps its place while the house number is typed; a suggestion's pin is dropped.
+    const keepPin =
+      value.source === "pin" &&
+      value.latitude !== null &&
+      value.longitude !== null;
+    if (keepPin) onChange({ ...value, address: next });
+    else
+      onChange({
+        address: next,
+        placeId: "",
+        latitude: null,
+        longitude: null,
+        district: null,
+      });
+    setDistrictPrompt(false);
+    setPinError(null);
     setActiveIndex(-1);
 
     // Each change starts a new search; an earlier one that answers late is ignored.
@@ -237,6 +386,7 @@ export function AddressAutocomplete({
       district: null,
     });
     setDistrictPrompt(false);
+    setPinError(null);
     closeList();
     clearSessionToken();
   }, [onChange, closeList, clearSessionToken, cancelSearch]);
@@ -319,12 +469,12 @@ export function AddressAutocomplete({
           )}
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {loading ? (
+          {busy ? (
             <Loader2
               aria-hidden="true"
               className="size-4 animate-spin text-[var(--color-text-secondary)] motion-reduce:animate-none"
             />
-          ) : value.placeId || value.address ? (
+          ) : value.placeId || value.address || value.latitude !== null ? (
             <button
               type="button"
               onClick={clear}
@@ -348,6 +498,14 @@ export function AddressAutocomplete({
           className="text-sm font-medium text-[var(--color-semantic-error-text)]"
         >
           {error}
+        </p>
+      )}
+      {shownPinError && (
+        <p
+          id={pinErrorId}
+          className="text-sm font-medium text-[var(--color-semantic-error-text)]"
+        >
+          {shownPinError}
         </p>
       )}
       {showDistrictLine && (
@@ -397,8 +555,58 @@ export function AddressAutocomplete({
           id={pickHintId}
           className="text-sm text-[var(--color-text-secondary)]"
         >
-          Pick a suggestion to set the location.
+          {pickHint}
         </p>
+      )}
+
+      {mapsKey && (
+        <div className="grid gap-2">
+          <button
+            type="button"
+            aria-expanded={mapOpen}
+            aria-controls={mapOpened ? mapWrapperId : undefined}
+            onPointerEnter={warmMap}
+            onFocus={warmMap}
+            onClick={() => {
+              setMapOpened(true);
+              setMapOpen((open) => !open);
+            }}
+            className={cn(secondaryButton, "justify-self-start")}
+          >
+            {mapOpen
+              ? "Hide map"
+              : value.latitude !== null
+                ? "Adjust pin on map"
+                : "Pin on map"}
+          </button>
+          <Expand
+            keepMounted
+            id={mapWrapperId}
+            open={mapOpen}
+            className="grid gap-2"
+          >
+            <AddressMap
+              apiKey={mapsKey}
+              describedById={mapHintId}
+              latitude={value.latitude}
+              longitude={value.longitude}
+              onPick={(lat, lng, placeId) => {
+                void pickPin(lat, lng, placeId);
+              }}
+              onOutside={() => {
+                setPinError("Pick a spot in Bangladesh.");
+                setAnnouncement("Pick a spot in Bangladesh.");
+              }}
+              busy={busy}
+            />
+            <p
+              id={mapHintId}
+              className="text-sm text-[var(--color-text-secondary)]"
+            >
+              Tap or click the map, or drag the pin, to set your exact spot.
+            </p>
+          </Expand>
+        </div>
       )}
 
       {showDistrict && (

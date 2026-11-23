@@ -40,6 +40,7 @@ export const queryKeys = {
     zoneRequests: (filters: { status: ZoneRequestStatus }) =>
       ["admin", "zone-requests", filters] as const,
     team: ["admin", "team"] as const,
+    adminInvites: ["admin", "invites"] as const,
     accountsAll: ["admin", "accounts"] as const,
     accounts: <F extends object>(filters: F) =>
       ["admin", "accounts", "list", filters] as const,

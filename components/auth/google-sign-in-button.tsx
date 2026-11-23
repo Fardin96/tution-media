@@ -44,7 +44,7 @@ interface GoogleSignInButtonProps {
 }
 
 export const NO_ACCOUNT =
-  "There's no Masters Hub account for this Google account yet.";
+  "There's no Masters Hub account for this Google account. Check you picked the right one, or sign up.";
 
 function decodeJwtPayload(jwt: string): { name?: string; picture?: string } {
   try {

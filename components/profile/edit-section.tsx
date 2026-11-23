@@ -50,6 +50,8 @@ export function EditSection({
   const [draft, setDraft] = useState(values);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  // The address lookup holds Save until it settles, so a pin's district can't be saved late.
+  const [addressBusy, setAddressBusy] = useState(false);
   const swap = swapMotion(useReducedMotion());
   const editRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -80,7 +82,7 @@ export function EditSection({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (saving) return;
+    if (saving || addressBusy) return;
     const found = validate(section.fields, draft);
     if (Object.keys(found).length) {
       setErrors(found);
@@ -153,6 +155,7 @@ export function EditSection({
                 fields={section.fields}
                 form={draft}
                 errors={errors}
+                onBusyChange={setAddressBusy}
                 locked={
                   lockPhone
                     ? {
@@ -200,7 +203,7 @@ export function EditSection({
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || addressBusy}
                   aria-busy={saving || undefined}
                   className={primaryButton}
                 >

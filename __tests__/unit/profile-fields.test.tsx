@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfileFields } from "@/components/profile/profile-fields";
@@ -10,6 +10,15 @@ vi.mock("@/lib/places", async (importOriginal) => ({
   fetchPlacePredictions: vi.fn(),
   fetchPlaceDetails: vi.fn(),
 }));
+
+beforeEach(() => {
+  // .env.local sets the browser key; these tests run without the map.
+  vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const addressField: FieldDef = {
   key: "address",

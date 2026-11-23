@@ -29,8 +29,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ## Location & address
 
 - Addresses are picked with Google Places autocomplete, restricted to Bangladesh (`includedRegionCodes: ["bd"]`). `app/api/places/details` returns `422 "Pick a location in Bangladesh."` for any other country; the picker shows that message as a toast.
+- `POST /api/places/reverse` turns a map pin into an address (`formattedAddress`, `placeId`, `district`). It needs a signed-in session (401 otherwise), returns 400 for a bad or out-of-box point, 422 when there is no address or the point is outside Bangladesh, and 502 when Google fails. The Geocoding API must be enabled on `GOOGLE_MAPS_API_KEY`.
 - The district comes from the `administrative_area_level_2` component of the place. When Google has none, the picker asks for it manually ("District"). When a district is known, the picker shows it read-only under the address ("District: …").
-- Profile saves send `address` plus an optional `location: { lat, lng, addressText, district, placeId }`. `location` is only sent when a Places address, its district and coordinates are all present.
+- Profile saves send `address` plus an optional `location: { lat, lng, addressText, district, placeId }`. `location` is sent when a district and coordinates are present, plus a placeId for a picked suggestion. A map pin is sent without `placeId` (the API keeps it as a PIN location, which never expires); a pin without a district can't be saved.
 - The backend returns `location: { lat, lng, addressText, districtCode, placeId, needsReaddress } | null` on `GET /api/v1/me`, and the form reads it back from there.
 - We only operate in Dhaka right now. Any other district shows a non-blocking warning; the profile can still be saved.
 
