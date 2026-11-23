@@ -13058,6 +13058,316 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/dashboard/layout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get your dashboard layout
+     * @description The widget catalog and the calling admin's widgets in order. Admins who never saved a layout get the defaults (isDefault true). Widgets no longer in the catalog are dropped.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 120/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDashboardLayout"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    /**
+     * Save your dashboard layout
+     * @description Replaces the calling admin's widgets with this ordered list (1 to 24 known ids, no repeats).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SaveAdminDashboardLayoutInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDashboardLayout"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    /**
+     * Reset your dashboard layout
+     * @description Deletes the calling admin's saved layout, so the defaults show again.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDashboardLayout"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/dashboard/widgets/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get one dashboard widget
+     * @description The data for one widget over a range (7d, 30d, 90d, 12m or all; default 30d), in Asia/Dhaka days or months. all runs from the earliest account (at least 12 months) and has no previous period. Cached for 60 seconds and shared by all admins. Unknown id: 404.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          range?: "7d" | "30d" | "90d" | "12m" | "all";
+        };
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminDashboardWidget"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/admin/promo-codes": {
     parameters: {
       query?: never;
@@ -19252,6 +19562,190 @@ export interface components {
     AdminCityList: {
       cities: components["schemas"]["AdminCity"][];
     };
+    AdminDashboardLayout: {
+      catalog: {
+        /** @enum {string} */
+        id:
+          | "bottleneck"
+          | "queues"
+          | "mau"
+          | "signups"
+          | "collected"
+          | "placements"
+          | "signups-trend"
+          | "revenue-trend"
+          | "fill-rate"
+          | "time-to-hire"
+          | "collection-rate"
+          | "overdue-fees"
+          | "payment-health"
+          | "trust-cases"
+          | "activity-trend";
+        title: string;
+        description: string;
+        definition: string;
+        /** @enum {string} */
+        group: "pipeline" | "people" | "money" | "operations" | "trust";
+        /** @enum {string} */
+        kind: "kpi" | "series" | "funnel" | "queue" | "donut";
+        span: 3 | 6 | 12;
+        keywords: string[];
+        href: string | null;
+        defaultOn: boolean;
+      }[];
+      widgets: (
+        | "bottleneck"
+        | "queues"
+        | "mau"
+        | "signups"
+        | "collected"
+        | "placements"
+        | "signups-trend"
+        | "revenue-trend"
+        | "fill-rate"
+        | "time-to-hire"
+        | "collection-rate"
+        | "overdue-fees"
+        | "payment-health"
+        | "trust-cases"
+        | "activity-trend"
+      )[];
+      isDefault: boolean;
+      updatedAt: string | null;
+    };
+    AdminDashboardWidget: {
+      /** @enum {string} */
+      id:
+        | "bottleneck"
+        | "queues"
+        | "mau"
+        | "signups"
+        | "collected"
+        | "placements"
+        | "signups-trend"
+        | "revenue-trend"
+        | "fill-rate"
+        | "time-to-hire"
+        | "collection-rate"
+        | "overdue-fees"
+        | "payment-health"
+        | "trust-cases"
+        | "activity-trend";
+      /** @enum {string} */
+      range: "7d" | "30d" | "90d" | "12m" | "all";
+      /** Format: date-time */
+      generatedAt: string;
+      data:
+        | {
+            /** @constant */
+            kind: "kpi";
+            /** @enum {string} */
+            format: "count" | "money" | "percent" | "days";
+            value: number | null;
+            previous: number | null;
+            higherIsBetter: boolean;
+            spark: {
+              date: string;
+              values: {
+                [key: string]: number;
+              };
+            }[];
+            breakdown: {
+              label: string;
+              value: number;
+            }[];
+            note: string | null;
+          }
+        | {
+            /** @constant */
+            kind: "series";
+            /** @enum {string} */
+            chart: "area" | "stacked-area" | "bar";
+            /** @enum {string} */
+            format: "count" | "money" | "percent" | "days";
+            series: {
+              key: string;
+              label: string;
+              /** @enum {string} */
+              color:
+                | "chart-1"
+                | "chart-2"
+                | "chart-3"
+                | "chart-4"
+                | "good"
+                | "warn"
+                | "bad";
+            }[];
+            points: {
+              date: string;
+              values: {
+                [key: string]: number;
+              };
+            }[];
+            totals: {
+              [key: string]: number;
+            };
+            note: string | null;
+          }
+        | {
+            /** @constant */
+            kind: "funnel";
+            funnels: {
+              /** @enum {string} */
+              key: "placement" | "tutors" | "students";
+              label: string;
+              stages: {
+                key: string;
+                label: string;
+                count: number;
+                conversion: number | null;
+                medianDays: number | null;
+                flagged: boolean;
+                flagReason: string | null;
+              }[];
+            }[];
+          }
+        | {
+            /** @constant */
+            kind: "queue";
+            rows: {
+              key: string;
+              label: string;
+              count: number;
+              oldestHours: number | null;
+              /** @enum {string} */
+              status: "ok" | "watch" | "late";
+              href: string;
+            }[];
+          }
+        | {
+            /** @constant */
+            kind: "donut";
+            /** @enum {string} */
+            format: "count" | "money" | "percent" | "days";
+            slices: {
+              key: string;
+              label: string;
+              value: number;
+              /** @enum {string} */
+              color:
+                | "chart-1"
+                | "chart-2"
+                | "chart-3"
+                | "chart-4"
+                | "good"
+                | "warn"
+                | "bad";
+            }[];
+            center: {
+              label: string;
+              value: number | null;
+              /** @enum {string} */
+              format: "count" | "money" | "percent" | "days";
+            };
+            note: string | null;
+          };
+    };
     AdminDispute: {
       id: string;
       applicationId: string;
@@ -22198,6 +22692,25 @@ export interface components {
       mode: "REQUIRED" | "RANK" | "OFF";
       pass: boolean;
       part: number;
+    };
+    SaveAdminDashboardLayoutInput: {
+      widgets: (
+        | "bottleneck"
+        | "queues"
+        | "mau"
+        | "signups"
+        | "collected"
+        | "placements"
+        | "signups-trend"
+        | "revenue-trend"
+        | "fill-rate"
+        | "time-to-hire"
+        | "collection-rate"
+        | "overdue-fees"
+        | "payment-health"
+        | "trust-cases"
+        | "activity-trend"
+      )[];
     };
     SendPhoneOtpInput: {
       phoneNumber: string;

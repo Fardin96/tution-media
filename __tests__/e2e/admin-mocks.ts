@@ -28,6 +28,34 @@ const NOW = "2026-11-18T09:00:00.000Z";
 const EARLIER = "2026-11-17T10:00:00.000Z";
 const TUTOR = { id: "t_1", name: "Nusrat Jahan" };
 const OTHER_TUTOR = { id: "t_2", name: "Tanvir Hasan" };
+const ACCOUNTS: Schemas["AdminAccountSummary"][] = [
+  {
+    id: "t_1",
+    email: "nusrat@example.test",
+    role: "TUTOR",
+    status: "ACTIVE",
+    name: "Nusrat Jahan",
+    phoneNumber: null,
+    phoneVerifiedAt: null,
+    avatarUrl: null,
+    createdAt: EARLIER,
+    lastLoginAt: null,
+    deletedAt: null,
+  },
+  {
+    id: "s_1",
+    email: "rafi@example.test",
+    role: "STUDENT",
+    status: "ACTIVE",
+    name: "Rafiul Islam",
+    phoneNumber: null,
+    phoneVerifiedAt: null,
+    avatarUrl: null,
+    createdAt: EARLIER,
+    lastLoginAt: null,
+    deletedAt: null,
+  },
+];
 
 /** The session cookie only says ADMIN for both admin roles. Super-admin rights come from GET /me. */
 export const adminSessionCookie = {
@@ -308,6 +336,428 @@ const SETTINGS = [
   },
 ] satisfies Setting[];
 
+type Layout = Schemas["AdminDashboardLayout"];
+type Catalog = Layout["catalog"];
+type WidgetId = Catalog[number]["id"];
+type WidgetKind = Catalog[number]["kind"];
+type WidgetBody = Schemas["AdminDashboardWidget"];
+
+/** The saved list a new session starts with: the defaultOn items, in registry order. */
+const DASHBOARD_DEFAULTS: WidgetId[] = [
+  "bottleneck",
+  "queues",
+  "mau",
+  "signups",
+  "collected",
+  "placements",
+  "signups-trend",
+  "revenue-trend",
+];
+
+/** All 15 widgets, copied from tuition-api/src/modules/admin/dashboard-registry.ts. */
+const DASHBOARD_CATALOG = [
+  {
+    id: "bottleneck",
+    title: "Where it's stuck",
+    description:
+      "Each step from sign-up to a paid placement, and where people drop off.",
+    definition:
+      "Cohorts that entered in the selected range. Conversion is the share of the step before. Wait is the median days from the step before. A step is flagged when, over the last 30 days against the 30 before, conversion fell 5 points or more or the wait grew 25% or more, with at least 30 people in both periods. Only people old enough to have had a chance count toward a flag. A step counts people who reached the steps it depends on. Tutors can apply and students can hire through a package without the step before. Waived fees count as settled; void fees are left out.",
+    group: "pipeline",
+    kind: "funnel",
+    span: 12,
+    keywords: [
+      "bottleneck",
+      "funnel",
+      "stuck",
+      "drop-off",
+      "conversion",
+      "pipeline",
+      "placement",
+    ],
+    href: null,
+    defaultOn: true,
+  },
+  {
+    id: "queues",
+    title: "Needs attention",
+    description: "Work waiting on an admin, oldest first.",
+    definition:
+      "Items waiting for an admin right now. Late means the oldest item has waited past its target time; watch means it is past half of it.",
+    group: "operations",
+    kind: "queue",
+    span: 12,
+    keywords: [
+      "queue",
+      "backlog",
+      "pending",
+      "review",
+      "attention",
+      "sla",
+      "todo",
+    ],
+    href: null,
+    defaultOn: true,
+  },
+  {
+    id: "mau",
+    title: "Monthly active users",
+    description: "Students and tutors who used the app in the last 30 days.",
+    definition:
+      "Accounts (not admins) that signed in or kept a session alive on any day in the last 30 days, whatever range is selected. History starts with the oldest session still stored. Blocked and deactivated accounts are left out.",
+    group: "people",
+    kind: "kpi",
+    span: 3,
+    keywords: ["mau", "active", "users", "engagement", "monthly"],
+    href: "/dashboard/admin/accounts",
+    defaultOn: true,
+  },
+  {
+    id: "signups",
+    title: "Sign-ups",
+    description: "New student and tutor accounts.",
+    definition:
+      "Student and tutor accounts created in the range, deactivated ones included.",
+    group: "people",
+    kind: "kpi",
+    span: 3,
+    keywords: ["signups", "registrations", "new users", "growth", "accounts"],
+    href: "/dashboard/admin/accounts",
+    defaultOn: true,
+  },
+  {
+    id: "collected",
+    title: "Fees collected",
+    description: "Placement fees received, after refunds.",
+    definition:
+      "Fee payments received in the range (online and cash) minus reversals in the range. A completed refund is recorded as a reversal. The SSLCommerz processing charge is not included.",
+    group: "money",
+    kind: "kpi",
+    span: 3,
+    keywords: [
+      "revenue",
+      "payments",
+      "collected",
+      "money",
+      "fees",
+      "income",
+      "monthly payments",
+    ],
+    href: "/dashboard/admin/fees",
+    defaultOn: true,
+  },
+  {
+    id: "placements",
+    title: "Placements",
+    description: "Tutors hired, from requirements and packages.",
+    definition:
+      "Applications confirmed in the range, from requirements and from package requests.",
+    group: "pipeline",
+    kind: "kpi",
+    span: 3,
+    keywords: ["placements", "hires", "matches", "confirmed"],
+    href: "/dashboard/admin/applications",
+    defaultOn: true,
+  },
+  {
+    id: "signups-trend",
+    title: "Sign-ups over time",
+    description: "New students and tutors per day or month.",
+    definition:
+      "Student and tutor accounts created per Dhaka day (per month for 12 months and all time).",
+    group: "people",
+    kind: "series",
+    span: 6,
+    keywords: ["signups", "growth", "trend", "registrations", "chart"],
+    href: "/dashboard/admin/accounts",
+    defaultOn: true,
+  },
+  {
+    id: "revenue-trend",
+    title: "Fees over time",
+    description: "Fees collected and refunded per day or month.",
+    definition:
+      "Fee payments received and reversals (refunds included) per Dhaka day (per month for 12 months and all time). Processing charges are not included.",
+    group: "money",
+    kind: "series",
+    span: 6,
+    keywords: [
+      "revenue",
+      "payments",
+      "refunds",
+      "money",
+      "trend",
+      "chart",
+      "monthly payments",
+    ],
+    href: "/dashboard/admin/payments",
+    defaultOn: true,
+  },
+  {
+    id: "fill-rate",
+    title: "Fill rate",
+    description: "Share of requirements that hired a tutor.",
+    definition:
+      "Requirements posted in the range (drafts excluded) that have a confirmed application so far. Recent requirements may still fill.",
+    group: "pipeline",
+    kind: "kpi",
+    span: 3,
+    keywords: ["fill rate", "hired", "requirements", "conversion", "liquidity"],
+    href: "/dashboard/admin/matching",
+    defaultOn: false,
+  },
+  {
+    id: "time-to-hire",
+    title: "Time to hire",
+    description: "Days from posting a requirement to hiring a tutor.",
+    definition:
+      "Median days from posting to the confirmed application, for hires confirmed in the range.",
+    group: "pipeline",
+    kind: "kpi",
+    span: 3,
+    keywords: ["time to hire", "speed", "days", "wait", "latency"],
+    href: "/dashboard/admin/matching",
+    defaultOn: false,
+  },
+  {
+    id: "collection-rate",
+    title: "Collection rate",
+    description: "Share of fees raised in the range that are paid.",
+    definition:
+      "Amount paid over amount due, for fees created in the range. Waived and void fees are left out.",
+    group: "money",
+    kind: "kpi",
+    span: 3,
+    keywords: ["collection", "paid", "take rate", "fees", "money"],
+    href: "/dashboard/admin/fees",
+    defaultOn: false,
+  },
+  {
+    id: "overdue-fees",
+    title: "Overdue fees",
+    description: "Unpaid fees past their due date, by age.",
+    definition:
+      "Amount still owed on fees that are due or part paid and past their due date now, grouped by days overdue. The range does not apply.",
+    group: "money",
+    kind: "donut",
+    span: 6,
+    keywords: ["overdue", "unpaid", "debt", "fees", "late", "ageing"],
+    href: "/dashboard/admin/fees",
+    defaultOn: false,
+  },
+  {
+    id: "payment-health",
+    title: "Online payment results",
+    description: "How SSLCommerz payment attempts ended.",
+    definition:
+      "Online payment attempts started in the range, by result. Success rate is succeeded over all attempts that finished.",
+    group: "money",
+    kind: "donut",
+    span: 6,
+    keywords: [
+      "payments",
+      "gateway",
+      "sslcommerz",
+      "failed",
+      "success rate",
+      "checkout",
+    ],
+    href: "/dashboard/admin/payments",
+    defaultOn: false,
+  },
+  {
+    id: "trust-cases",
+    title: "Reports and disputes",
+    description: "Cases opened and closed per day or month.",
+    definition:
+      "Reports and disputes opened, and closed (resolved or dismissed), per Dhaka day (per month for 12 months and all time).",
+    group: "trust",
+    kind: "series",
+    span: 6,
+    keywords: ["reports", "disputes", "trust", "safety", "cases", "complaints"],
+    href: "/dashboard/admin/reports",
+    defaultOn: false,
+  },
+  {
+    id: "activity-trend",
+    title: "Daily active users",
+    description: "Students and tutors active each day.",
+    definition:
+      "Accounts (not admins) that signed in or kept a session alive each Dhaka day (monthly actives for 12 months). Blocked and deactivated accounts are left out.",
+    group: "people",
+    kind: "series",
+    span: 6,
+    keywords: ["dau", "active", "daily", "engagement", "usage", "trend"],
+    href: "/dashboard/admin/accounts",
+    defaultOn: false,
+  },
+] satisfies Catalog;
+
+/*
+ * One payload per widget kind. The handler copies the requested widget's id and range onto it.
+ */
+const KPI_WIDGET = {
+  id: "mau",
+  range: "30d",
+  generatedAt: NOW,
+  data: {
+    kind: "kpi",
+    format: "count",
+    value: 1284,
+    previous: 1190,
+    higherIsBetter: true,
+    spark: [
+      { date: "2026-11-16", values: { value: 1190 } },
+      { date: "2026-11-17", values: { value: 1210 } },
+      { date: "2026-11-18", values: { value: 1248 } },
+      { date: "2026-11-19", values: { value: 1284 } },
+    ],
+    breakdown: [
+      { label: "Students", value: 960 },
+      { label: "Tutors", value: 324 },
+    ],
+    note: null,
+  },
+} satisfies WidgetBody;
+
+const SERIES_WIDGET = {
+  id: "signups-trend",
+  range: "30d",
+  generatedAt: NOW,
+  data: {
+    kind: "series",
+    chart: "area",
+    format: "count",
+    series: [
+      { key: "students", label: "Students", color: "chart-1" },
+      { key: "tutors", label: "Tutors", color: "chart-2" },
+    ],
+    points: [
+      { date: "2026-11-16", values: { students: 12, tutors: 4 } },
+      { date: "2026-11-17", values: { students: 9, tutors: 3 } },
+      { date: "2026-11-18", values: { students: 15, tutors: 6 } },
+      { date: "2026-11-19", values: { students: 12, tutors: 4 } },
+    ],
+    totals: { students: 48, tutors: 17 },
+    note: null,
+  },
+} satisfies WidgetBody;
+
+/** "Where it's stuck": one flagged stage, shown in the strip above the tabs. */
+const FUNNEL_WIDGET = {
+  id: "bottleneck",
+  range: "30d",
+  generatedAt: NOW,
+  data: {
+    kind: "funnel",
+    funnels: [
+      {
+        key: "placement",
+        label: "Placement",
+        stages: [
+          {
+            key: "signup",
+            label: "Signed up",
+            count: 420,
+            conversion: null,
+            medianDays: null,
+            flagged: false,
+            flagReason: null,
+          },
+          {
+            key: "applied",
+            label: "Applied",
+            count: 260,
+            conversion: 0.62,
+            medianDays: 1.2,
+            flagged: false,
+            flagReason: null,
+          },
+          {
+            key: "hired",
+            label: "Hired",
+            count: 98,
+            conversion: 0.38,
+            medianDays: 6.5,
+            flagged: true,
+            flagReason: "38%, down 7 pts on the previous 30 days",
+          },
+          {
+            key: "paid",
+            label: "Paid",
+            count: 90,
+            conversion: 0.92,
+            medianDays: 2,
+            flagged: false,
+            flagReason: null,
+          },
+        ],
+      },
+    ],
+  },
+} satisfies WidgetBody;
+
+/** "Needs attention": one late row, one watch row and one empty queue. */
+const QUEUE_WIDGET = {
+  id: "queues",
+  range: "30d",
+  generatedAt: NOW,
+  data: {
+    kind: "queue",
+    rows: [
+      {
+        key: "payments",
+        label: "Payments to review",
+        count: 3,
+        oldestHours: 50,
+        status: "late",
+        href: "/dashboard/admin/payments",
+      },
+      {
+        key: "refunds",
+        label: "Refund requests",
+        count: 2,
+        oldestHours: 5,
+        status: "watch",
+        href: "/dashboard/admin/refunds",
+      },
+      {
+        key: "verifications",
+        label: "ID checks",
+        count: 0,
+        oldestHours: null,
+        status: "ok",
+        href: "/dashboard/admin/verifications",
+      },
+    ],
+  },
+} satisfies WidgetBody;
+
+const DONUT_WIDGET = {
+  id: "payment-health",
+  range: "30d",
+  generatedAt: NOW,
+  data: {
+    kind: "donut",
+    format: "count",
+    slices: [
+      { key: "succeeded", label: "Succeeded", value: 42, color: "good" },
+      { key: "failed", label: "Failed", value: 6, color: "bad" },
+      { key: "pending", label: "Pending", value: 3, color: "warn" },
+    ],
+    center: { label: "Success rate", value: 0.84, format: "percent" },
+    note: null,
+  },
+} satisfies WidgetBody;
+
+const PAYLOAD_BY_KIND: Record<WidgetKind, WidgetBody> = {
+  kpi: KPI_WIDGET,
+  series: SERIES_WIDGET,
+  funnel: FUNNEL_WIDGET,
+  queue: QUEUE_WIDGET,
+  donut: DONUT_WIDGET,
+};
+
 /** Refund status flags, as the API reports them for any admin. The UI decides who may press them. */
 function refundFlags(status: Refund["status"]) {
   return {
@@ -364,6 +814,19 @@ export async function mockAdminApi(
   const settings: Setting[] = structuredClone(SETTINGS);
   let nextPromo = 3;
   let nextRefund = 3;
+  /** The saved dashboard list for this session. PUT stores it, DELETE resets it. */
+  let dashboardWidgets: WidgetId[] = [...DASHBOARD_DEFAULTS];
+  const dashboardLayout = () =>
+    ({
+      catalog: DASHBOARD_CATALOG,
+      widgets: dashboardWidgets,
+      isDefault:
+        JSON.stringify(dashboardWidgets) === JSON.stringify(DASHBOARD_DEFAULTS),
+      updatedAt:
+        JSON.stringify(dashboardWidgets) === JSON.stringify(DASHBOARD_DEFAULTS)
+          ? null
+          : NOW,
+    }) satisfies Layout;
 
   const writes: Recorded[] = [];
   const reads: Recorded[] = [];
@@ -404,6 +867,18 @@ export async function mockAdminApi(
     body: unknown,
   ): Reply {
     if (method === "GET" && path === "/me") return ok(me);
+
+    // Accounts list, for the command palette's people search (q matches name or email).
+    if (method === "GET" && path === "/admin/accounts") {
+      const q = (params.get("q") ?? "").toLowerCase();
+      const accounts = ACCOUNTS.filter((a) =>
+        `${a.name ?? ""} ${a.email}`.toLowerCase().includes(q),
+      ).slice(0, Number(params.get("limit") ?? 25));
+      return ok({
+        accounts,
+        nextCursor: null,
+      } satisfies Schemas["AdminAccountPage"]);
+    }
 
     // Payment attempts
     if (method === "GET" && path === "/admin/payment-attempts/summary") {
@@ -601,6 +1076,31 @@ export async function mockAdminApi(
         });
         return ok(refund);
       }
+    }
+
+    // Business dashboard
+    if (method === "GET" && path === "/admin/dashboard/layout") {
+      return ok(dashboardLayout());
+    }
+    if (method === "PUT" && path === "/admin/dashboard/layout") {
+      const input = body as Schemas["SaveAdminDashboardLayoutInput"];
+      dashboardWidgets = [...input.widgets];
+      return ok(dashboardLayout());
+    }
+    if (method === "DELETE" && path === "/admin/dashboard/layout") {
+      dashboardWidgets = [...DASHBOARD_DEFAULTS];
+      return ok(dashboardLayout());
+    }
+    const widgetMatch = /^\/admin\/dashboard\/widgets\/([^/]+)$/.exec(path);
+    if (widgetMatch && method === "GET") {
+      const id = decodeURIComponent(widgetMatch[1]);
+      const item = DASHBOARD_CATALOG.find((c) => c.id === id);
+      if (!item) return notFound("Widget");
+      return ok({
+        ...PAYLOAD_BY_KIND[item.kind],
+        id: item.id,
+        range: (params.get("range") ?? "30d") as WidgetBody["range"],
+      });
     }
 
     // Settings

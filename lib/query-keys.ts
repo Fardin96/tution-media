@@ -29,6 +29,13 @@ export const queryKeys = {
   },
   admin: {
     all: ["admin"] as const,
+    // Widget keys are not under "layout", so a layout save never refetches widget data.
+    dashboard: {
+      layout: ["admin", "dashboard", "layout"] as const,
+      widgetsAll: ["admin", "dashboard", "widget"] as const,
+      widget: (id: string, range: string) =>
+        ["admin", "dashboard", "widget", id, range] as const,
+    },
     zoneRequestsAll: ["admin", "zone-requests"] as const,
     zoneRequests: (filters: { status: ZoneRequestStatus }) =>
       ["admin", "zone-requests", filters] as const,

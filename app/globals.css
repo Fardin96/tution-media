@@ -22,7 +22,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
@@ -124,6 +123,10 @@
   --color-semantic-success-surface: #ecfdf3;
   --color-semantic-warning-text: #b54708;
   --color-semantic-warning-surface: #fffaeb;
+  /* Dashboard status text (good, warn, bad) for charts and pills. */
+  --status-good: var(--color-semantic-success-text);
+  --status-warn: var(--color-semantic-warning-text);
+  --status-bad: var(--color-semantic-error-text);
   /* Form control outline: 3.35:1 on white (--color-neutral-border is 1.17:1, too faint for inputs). */
   --color-border-control: var(--color-neutral-gray);
 
@@ -157,11 +160,10 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: var(--color-primary-core);
+  --chart-2: var(--color-primary-deep);
+  --chart-3: var(--color-mesh-deep);
+  --chart-4: var(--color-neutral-gray);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -196,7 +198,6 @@
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -336,5 +337,44 @@
   }
   details::details-content {
     transition: none;
+  }
+}
+
+/* Admin search: the jumped-to widget blinks twice. Only opacity animates; the border and the glow share one colour. */
+li[data-blink] {
+  z-index: 10;
+}
+li[data-blink]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  pointer-events: none;
+  border: 2px solid var(--color-primary-core);
+  box-shadow:
+    0 0 0 2px var(--color-primary-core),
+    0 0 24px 4px color-mix(in oklab, var(--color-primary-core) 45%, transparent);
+  opacity: 0;
+  animation: widget-blink 700ms ease-in-out 2;
+}
+@keyframes widget-blink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  35%,
+  65% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  li[data-blink]::after {
+    animation-duration: 900ms;
+  }
+}
+@media (forced-colors: active) {
+  li[data-blink]::after {
+    border-color: Highlight;
+    box-shadow: 0 0 0 2px Highlight;
   }
 }

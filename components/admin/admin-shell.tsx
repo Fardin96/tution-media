@@ -24,6 +24,7 @@ import {
   MessageSquareWarning,
   Package,
   ScrollText,
+  Search,
   Star,
   Settings,
   ShieldCheck,
@@ -41,6 +42,7 @@ import {
   logoutTriggerClass,
 } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
+import { AdminSearch, useShortcutLabel } from "@/components/admin/admin-search";
 import {
   Sheet,
   SheetClose,
@@ -53,9 +55,9 @@ import {
 export const ADMIN_NAV = [
   {
     href: "/dashboard/admin",
-    label: "Overview",
+    label: "Dashboard",
     icon: LayoutGrid,
-    description: "Everything that needs an admin, in one place.",
+    description: "Where the business is stuck, and the numbers that matter.",
   },
   {
     href: "/dashboard/admin/packages",
@@ -211,6 +213,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPath, setMenuPath] = useState(pathname);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const shortcut = useShortcutLabel();
   const menuButton = useRef<HTMLButtonElement>(null);
 
   // Adjusting state during render (not in an effect) closes the drawer on every navigation.
@@ -250,6 +254,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-[var(--color-neutral-off-white)] lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <AdminSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        pages={ADMIN_NAV}
+      />
       <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:gap-6 lg:border-e lg:border-[var(--color-neutral-border)] lg:bg-[var(--color-neutral-white)] lg:px-4 lg:py-6">
         <Link
           href="/dashboard/admin"
@@ -266,6 +275,27 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="h-10 w-auto"
           />
         </Link>
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className={cn(
+            "flex min-h-11 w-full items-center gap-2 rounded-full bg-[var(--color-neutral-white)] ps-3.5 pe-2 text-sm text-[var(--color-text-secondary)] shadow-[0_0_0_1px_var(--color-border-control)] transition-[color,box-shadow] duration-150 ease-out hover:text-[var(--color-neutral-charcoal)] hover:shadow-[0_0_0_1px_var(--color-neutral-charcoal)] motion-reduce:transition-none",
+            focusRing,
+          )}
+        >
+          <Search aria-hidden className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-start">
+            Search admin
+          </span>
+          {shortcut && (
+            <kbd
+              aria-hidden
+              className="shrink-0 rounded-md border border-[var(--color-border-control)] px-1.5 py-0.5 font-sans text-xs"
+            >
+              {shortcut}
+            </kbd>
+          )}
+        </button>
         <nav aria-label="Admin" className="-mx-1 flex-1 overflow-y-auto px-1">
           <ul className="grid gap-1">
             {ADMIN_NAV.map((item) => (
@@ -371,6 +401,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
             {currentLabel}
           </p>
+          <button
+            type="button"
+            aria-label="Search admin"
+            onClick={() => setSearchOpen(true)}
+            className={cn(
+              "grid size-11 shrink-0 place-items-center rounded-full text-[var(--color-neutral-charcoal)] transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
+              focusRing,
+            )}
+          >
+            <Search aria-hidden className="size-5" />
+          </button>
         </header>
         {/* Renders only the dialog and overlay; the drawer's button opens it. */}
         <LogoutButton
@@ -379,7 +420,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           onOpenChange={onLogoutOpenChange}
         />
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-10">
+        <main
+          className={cn(
+            "mx-auto w-full flex-1",
+            pathname === "/dashboard/admin" ? "max-w-7xl" : "max-w-5xl",
+            "px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-10",
+          )}
+        >
           {me.isPending ? (
             <div
               aria-hidden="true"
