@@ -396,7 +396,13 @@ function StepIconField({
               backgroundColor: `color-mix(in oklab, ${meta.hue} 10%, white)`,
             }}
           >
-            <Image src={meta.icon} alt="" width={24} height={24} />
+            <Image
+              src={meta.icon}
+              alt=""
+              width={24}
+              height={24}
+              className="size-6 object-contain"
+            />
           </span>
         </div>
       )}

@@ -14,6 +14,8 @@ test.describe("Dashboard", () => {
       "Rahim Uddin",
     );
     await expect(page.getByText("+880 1712-345678").first()).toBeVisible();
+    const hired = page.locator("li").filter({ hasText: "Tutors hired" });
+    await expect(hired.getByText("1", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Edit contact" }).click();
     await expect(page.getByLabel("Phone number")).toBeFocused();
@@ -48,7 +50,58 @@ test.describe("Dashboard", () => {
     const teaching = page.getByRole("region", { name: "Teaching" });
     await expect(teaching.getByText("Physics")).toBeVisible();
     await expect(teaching.getByText("Dhanmondi")).toBeVisible();
+    const sent = page.locator("li").filter({ hasText: "Applications sent" });
+    await expect(sent.getByText("4", { exact: true })).toBeVisible();
     await expect(page.getByText("No credentials yet")).toBeVisible();
+  });
+
+  test("the Applications sent tile opens the applications it counts", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([sessionCookie("TUTOR")]);
+    await mockApi(context, "TUTOR", { onboarded: true });
+    await page.goto("/dashboard");
+
+    await page.getByRole("link", { name: /Applications sent/ }).click();
+
+    await expect(page).toHaveURL(
+      /\/dashboard\/applications\?initiatedBy=TUTOR$/,
+    );
+    await expect(page.getByText("Applications you sent")).toBeVisible();
+  });
+
+  test("the Applications received tile opens the tutor applications it counts", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([sessionCookie("STUDENT")]);
+    await mockApi(context, "STUDENT", { onboarded: true });
+    await page.goto("/dashboard");
+
+    await page.getByRole("link", { name: /Applications received/ }).click();
+
+    await expect(page).toHaveURL(
+      /\/dashboard\/applications\?initiatedBy=TUTOR$/,
+    );
+    await expect(page.getByText("Applications from tutors")).toBeVisible();
+  });
+
+  test("the Rating tile jumps to the reviews section and focuses it", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([sessionCookie("STUDENT")]);
+    await mockApi(context, "STUDENT", { onboarded: true });
+    await page.goto("/dashboard");
+
+    await page.getByRole("link", { name: /Rating/ }).click();
+
+    await expect(page).toHaveURL(/#reviews$/);
+    await expect(
+      page.getByRole("heading", { name: "Reviews about you" }),
+    ).toBeInViewport();
+    await expect(page.locator("#reviews")).toBeFocused();
   });
 
   test("has no horizontal scroll", async ({ page, context }) => {

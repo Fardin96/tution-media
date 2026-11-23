@@ -78,6 +78,7 @@ function pkg(overrides: Partial<TuitionPackage> = {}): TuitionPackage {
     tutor: {
       id: "tutor-1",
       name: "Nusrat Jahan",
+      avatarUrl: null,
       gender: "FEMALE",
       ratingAvg: 4.5,
       ratingCount: 12,

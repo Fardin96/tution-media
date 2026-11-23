@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
 import {
   TutorResultCard,
   type TutorResult,
@@ -8,6 +10,7 @@ import {
 const tutor: TutorResult = {
   id: "t-1",
   name: "Nusrat Jahan",
+  avatarUrl: null,
   instituteName: "University of Dhaka",
   ratingAvg: 4.5,
   ratingCount: 12,
@@ -38,6 +41,16 @@ function follows(first: Node, second: Node) {
   return !!(
     first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
   );
+}
+
+/** Avatars refresh expired photo links through the query client, so each render gets one. */
+function render(ui: ReactElement) {
+  const client = new QueryClient();
+  return rtlRender(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  });
 }
 
 describe("TutorResultCard", () => {
@@ -120,6 +133,7 @@ describe("TutorResultCard", () => {
     renderCard({
       id: "t-2",
       name: "Rafi Ahmed",
+      avatarUrl: null,
       instituteName: null,
       ratingAvg: 0,
       ratingCount: 0,

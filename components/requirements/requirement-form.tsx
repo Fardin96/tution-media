@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { TUITION_TYPES } from "@/lib/profile";
 import type { EducationFields } from "@/lib/education";
@@ -31,7 +31,7 @@ import {
   type RequirementTemplateNotes,
   type TutorGenderPref,
 } from "@/lib/requirements";
-import { queryKeys } from "@/lib/query-keys";
+import { invalidateRequirements, queryKeys } from "@/lib/query-keys";
 import {
   AreaPicker,
   Chip,
@@ -92,6 +92,7 @@ export function RequirementForm({
     document.getElementById("requirement-form-title")?.focus();
   }, []);
 
+  const queryClient = useQueryClient();
   // Prefill class and curriculum from the newest requirement, create only. A copied
   // requirement already has its own class, so it skips this.
   const mineQuery = useQuery({
@@ -185,11 +186,13 @@ export function RequirementForm({
 
       if (isEdit) {
         await requirementApi.update(initialData.id, payload);
+        await invalidateRequirements(queryClient);
         const queryParam = targetStatus === "OPEN" ? "posted=1" : "saved=1";
         router.push(`/dashboard?${queryParam}#requirements`);
       } else {
         // Validated above; a DRAFT or OPEN payload is a create body.
         await requirementApi.create(payload as CreateRequirementBody);
+        await invalidateRequirements(queryClient);
         const queryParam = targetStatus === "DRAFT" ? "draft=1" : "posted=1";
         router.push(`/dashboard?${queryParam}#requirements`);
       }
@@ -630,7 +633,10 @@ export function RequirementForm({
       </div>
 
       {/* Action buttons */}
-      <div className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div
+        data-sticky-actions
+        className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+      >
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Link href="/dashboard" className={cn(ghostButton, "sm:min-w-28")}>
             <LinkPendingLabel>Cancel</LinkPendingLabel>

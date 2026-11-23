@@ -189,7 +189,7 @@ describe("ApplicationsPage", () => {
       "aria-pressed",
       "true",
     );
-    expect(useMyApplications).toHaveBeenLastCalledWith("COMPLETED");
+    expect(useMyApplications).toHaveBeenLastCalledWith("COMPLETED", undefined);
   });
 
   it("falls back to All for an unknown status value", () => {
@@ -200,7 +200,7 @@ describe("ApplicationsPage", () => {
       "aria-pressed",
       "true",
     );
-    expect(useMyApplications).toHaveBeenLastCalledWith(undefined);
+    expect(useMyApplications).toHaveBeenLastCalledWith(undefined, undefined);
   });
 
   it("explains an empty filtered list and offers to show all", async () => {
@@ -240,6 +240,164 @@ describe("ApplicationsPage", () => {
     mockList([], { isPending: true });
     renderPage("TUTOR");
     expect(screen.getByText("Loading applications…")).toBeInTheDocument();
+  });
+
+  it.each([
+    // [viewer, initiatedBy, chip]
+    ["TUTOR", "TUTOR", "Applications you sent"],
+    ["TUTOR", "STUDENT", "Requests from students"],
+    ["STUDENT", "TUTOR", "Applications from tutors"],
+    ["STUDENT", "STUDENT", "Your requests"],
+  ] as const)(
+    "shows the chip for a %s viewer filtering initiatedBy=%s",
+    (role, initiatedBy, label) => {
+      nav.search = `initiatedBy=${initiatedBy}`;
+      mockList([application({ id: "a1" })]);
+      renderPage(role);
+
+      expect(useMyApplications).toHaveBeenLastCalledWith(
+        undefined,
+        initiatedBy,
+      );
+      expect(screen.getByText(label)).toBeVisible();
+    },
+  );
+
+  it("ignores an initiatedBy value other than TUTOR or STUDENT", () => {
+    nav.search = "initiatedBy=bogus";
+    renderPage("TUTOR");
+
+    expect(useMyApplications).toHaveBeenLastCalledWith(undefined, undefined);
+    expect(
+      screen.queryByRole("button", { name: "Clear filter" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps initiatedBy when the status changes", async () => {
+    const user = userEvent.setup();
+    nav.search = "initiatedBy=TUTOR";
+    renderPage("TUTOR");
+
+    await user.click(screen.getByRole("button", { name: "Confirmed" }));
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      "/dashboard/applications?initiatedBy=TUTOR&status=CONFIRMED",
+      { scroll: false },
+    );
+
+    nav.search = "status=CONFIRMED&initiatedBy=TUTOR";
+    await user.click(screen.getByRole("button", { name: "All" }));
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      "/dashboard/applications?initiatedBy=TUTOR",
+      { scroll: false },
+    );
+  });
+
+  it("clears only initiatedBy from the chip", async () => {
+    const user = userEvent.setup();
+    nav.search = "status=PENDING&initiatedBy=STUDENT";
+    mockList([application({ id: "a1" })]);
+    renderPage("TUTOR");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Clear filter: Requests from students",
+      }),
+    );
+
+    expect(nav.replace).toHaveBeenCalledWith(
+      "/dashboard/applications?status=PENDING",
+      { scroll: false },
+    );
+  });
+
+  it("moves focus to the pressed status after the chip is cleared", async () => {
+    const user = userEvent.setup();
+    nav.search = "status=PENDING&initiatedBy=STUDENT";
+    mockList([application({ id: "a1" })]);
+    renderPage("TUTOR");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Clear filter: Requests from students",
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Pending" })).toHaveFocus();
+  });
+
+  it.each([
+    // [viewer, initiatedBy, text, link, cta, href]
+    [
+      "TUTOR",
+      "TUTOR",
+      "You haven't applied to any tuitions yet.",
+      "Find tuitions",
+      "/dashboard/find-tuitions",
+    ],
+    [
+      "TUTOR",
+      "STUDENT",
+      "No students have requested your packages yet.",
+      "See your packages",
+      "/dashboard/tutor/packages",
+    ],
+    [
+      "STUDENT",
+      "TUTOR",
+      "No tutors have applied to your requirements yet.",
+      "Find tutors",
+      "/dashboard/find-tutors",
+    ],
+    [
+      "STUDENT",
+      "STUDENT",
+      "You haven't requested any packages yet.",
+      "Browse packages",
+      "/dashboard/find-tutors?tab=packages",
+    ],
+  ] as const)(
+    "gives a %s viewer with initiatedBy=%s a next step when empty",
+    async (role, initiatedBy, text, cta, href) => {
+      const user = userEvent.setup();
+      nav.search = `initiatedBy=${initiatedBy}`;
+      mockList([]);
+      renderPage(role);
+
+      const empty = screen.getByText(text).parentElement as HTMLElement;
+      expect(
+        screen.queryByText("Nothing matches this filter."),
+      ).not.toBeInTheDocument();
+      expect(within(empty).getByRole("link", { name: cta })).toHaveAttribute(
+        "href",
+        href,
+      );
+
+      await user.click(
+        within(empty).getByRole("button", { name: "Show all applications" }),
+      );
+      expect(nav.replace).toHaveBeenCalledWith("/dashboard/applications", {
+        scroll: false,
+      });
+    },
+  );
+
+  it("names both filters when a status and initiator match nothing", async () => {
+    const user = userEvent.setup();
+    nav.search = "status=PENDING&initiatedBy=TUTOR";
+    mockList([]);
+    renderPage("TUTOR");
+
+    const empty = screen.getByText(
+      "No pending results in “Applications you sent”.",
+    ).parentElement as HTMLElement;
+    expect(within(empty).queryByRole("link")).not.toBeInTheDocument();
+    await user.click(
+      within(empty).getByRole("button", { name: "Show all applications" }),
+    );
+
+    expect(nav.replace).toHaveBeenCalledWith("/dashboard/applications", {
+      scroll: false,
+    });
   });
 
   it.each(["TUTOR", "STUDENT"] as const)(

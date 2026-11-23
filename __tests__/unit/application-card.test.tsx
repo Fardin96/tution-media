@@ -128,12 +128,13 @@ function application(
     tutor: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
     },
-    student: { id: "s1", name: "Nadia Islam", areaId: 1 },
+    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
     target,
     allowedActions: [],
     ...overrides,
@@ -221,5 +222,46 @@ describe("ApplicationCard for a requirement", () => {
     const article = screen.getByRole("article");
     expect(article).toHaveTextContent("৳5,000 a month");
     expect(article).not.toHaveTextContent("total");
+  });
+});
+
+const TUTOR_PHOTO = "https://pub-test.r2.dev/avatars/rafiq.webp";
+const STUDENT_PHOTO = "https://pub-test.r2.dev/avatars/nadia.webp";
+
+function withPhotos(tutorPhoto: string | null, studentPhoto: string | null) {
+  const base = application(PACKAGE_TARGET);
+  return {
+    ...base,
+    tutor: { ...base.tutor, avatarUrl: tutorPhoto },
+    student: { ...base.student, avatarUrl: studentPhoto },
+  };
+}
+
+describe("ApplicationCard photos", () => {
+  it("shows the tutor's photo to a student", () => {
+    const { container } = renderCard(
+      withPhotos(TUTOR_PHOTO, STUDENT_PHOTO),
+      "STUDENT",
+    );
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute("src", TUTOR_PHOTO);
+  });
+
+  it("shows the student's photo to a tutor", () => {
+    const { container } = renderCard(
+      withPhotos(TUTOR_PHOTO, STUDENT_PHOTO),
+      "TUTOR",
+    );
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      STUDENT_PHOTO,
+    );
+  });
+
+  it("shows the counterpart's initial when they have no photo", () => {
+    const { container } = renderCard(withPhotos(null, null), "STUDENT");
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("R")).toBeInTheDocument();
   });
 });

@@ -1,11 +1,14 @@
-import { QueryClient } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/api";
 import {
   notificationApi,
   notificationHref,
   notificationText,
   relativeTime,
+  useUnreadCount,
   type AppNotification,
   type NotificationKind,
 } from "@/lib/notifications";
@@ -194,7 +197,7 @@ describe("notificationText", () => {
 
   it.each([
     [true, false, "An admin paused your video uploads."],
-    [false, true, "An admin paused your ID and certificate uploads."],
+    [false, true, "An admin paused your ID, certificate and photo uploads."],
     [true, true, "An admin paused your uploads."],
   ] as const)(
     "UPLOADS_BLOCKED videos=%s documents=%s",
@@ -339,5 +342,47 @@ describe("invalidateNotifications", () => {
     expect(queryKeys.notifications.unreadCount.slice(0, 1)).toEqual(
       queryKeys.notifications.all,
     );
+  });
+});
+
+describe("useUnreadCount", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** A client that already holds `previous` as the last unread count the bell saw. */
+  function seeded(previous: number) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    client.setQueryData(queryKeys.notifications.unreadCount, {
+      count: previous,
+    });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client }, children);
+    return { invalidate, wrapper };
+  }
+
+  it("refreshes the dashboard counts when the unread count rises", async () => {
+    const { invalidate, wrapper } = seeded(1);
+    vi.spyOn(notificationApi, "unreadCount").mockResolvedValue({ count: 2 });
+
+    const { result } = renderHook(() => useUnreadCount(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual({ count: 2 }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.myStats });
+  });
+
+  it("leaves the dashboard counts alone when the unread count falls", async () => {
+    const { invalidate, wrapper } = seeded(2);
+    vi.spyOn(notificationApi, "unreadCount").mockResolvedValue({ count: 1 });
+
+    const { result } = renderHook(() => useUnreadCount(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual({ count: 1 }));
+    expect(invalidate).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.myStats,
+    });
   });
 });

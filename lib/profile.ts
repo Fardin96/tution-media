@@ -1,9 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, getStoredTokens } from "./api";
 import { client, unwrap, type Schemas } from "./api-client";
 import { loadAreas } from "./areas";
 import { refreshSiteContentForUser } from "./site-content.actions";
 import { loadSubjects } from "./subjects";
+import { queryKeys } from "./query-keys";
 
 export type ProfileRole = "STUDENT" | "TUTOR";
 export type Gender = NonNullable<Schemas["CreateTutorProfileInput"]["gender"]>;
@@ -94,6 +95,8 @@ export interface ProfileForm {
   latitude: number | null;
   longitude: number | null;
   district: string | null;
+  /** Shown beside the district code after a reload. Not sent to the API. */
+  districtName: string | null;
   parentsInfo: string;
   /** Student: exactly one area. Tutor: areas they teach in. */
   areaIds: number[];
@@ -275,6 +278,7 @@ export const emptyForm = (fullName = ""): ProfileForm => ({
   latitude: null,
   longitude: null,
   district: null,
+  districtName: null,
   parentsInfo: "",
   areaIds: [],
   subjectIds: [],
@@ -298,6 +302,7 @@ export function formFromProfile(
     latitude: profile.location?.lat ?? null,
     longitude: profile.location?.lng ?? null,
     district: profile.location?.districtCode || null,
+    districtName: profile.location?.districtName ?? null,
     parentsInfo: "parentsInfo" in profile ? (profile.parentsInfo ?? "") : "",
     areaIds: "areaId" in profile ? [profile.areaId] : (extras.areaIds ?? []),
     subjectIds: extras.subjectIds ?? [],
@@ -520,6 +525,19 @@ const patchProfile = (role: ProfileRole, body: ProfileBody) =>
 export const profileApi = {
   me: async (): Promise<Me> => (await unwrap(client.GET("/api/v1/me"))).account,
 
+  /** Makes an uploaded AVATAR file the profile photo. The previous upload is deleted. */
+  setAvatar: async (fileId: string) =>
+    unwrap(
+      client.PUT("/api/v1/me/avatar", {
+        body: { fileId } satisfies Schemas["SetAvatarInput"],
+      }),
+    ),
+
+  /** Deletes the uploaded photo. The Google picture from sign-in shows again, if there is one. */
+  removeAvatar: async () => unwrap(client.DELETE("/api/v1/me/avatar")),
+
+  stats: () => unwrap(client.GET("/api/v1/me/stats")),
+
   /** Creates the profile, or updates it if a previous attempt already created it. */
   save: async (
     role: ProfileRole,
@@ -647,6 +665,25 @@ export function useSetVideoHomePage(onSaved?: (video: Video) => void) {
       void refreshLandingForUser();
       onSaved?.(video);
     },
+  });
+}
+
+/** Shared with the dashboard's prefetch, so both write the same cache entry. */
+export const myStatsQueryOptions = {
+  queryKey: queryKeys.myStats,
+  queryFn: () => profileApi.stats(),
+  staleTime: 30_000,
+};
+
+/**
+ * The dashboard's at-a-glance counts. Students and tutors only; the counts move with
+ * requirements, applications and invites, so writes there expire this key.
+ */
+export function useMyStats(role: ProfileRole | null | undefined) {
+  return useQuery({
+    ...myStatsQueryOptions,
+    enabled: role === "STUDENT" || role === "TUTOR",
+    refetchOnWindowFocus: true,
   });
 }
 

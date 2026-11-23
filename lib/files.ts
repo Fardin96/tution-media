@@ -45,6 +45,11 @@ export const FILE_RULES: Record<
     maxBytes: 2 * MB,
     hint: "MP4, WebM or MOV, up to 2 MB",
   },
+  AVATAR: {
+    accept: ["image/jpeg", "image/png", "image/webp"],
+    maxBytes: 2 * MB,
+    hint: "JPG, PNG or WebP, up to 2 MB",
+  },
   BLOG_COVER: {
     accept: ["image/jpeg", "image/png", "image/webp"],
     maxBytes: 2 * MB,

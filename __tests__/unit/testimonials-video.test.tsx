@@ -25,20 +25,34 @@ const withoutVideo = {
   items: [D.testimonials.items[0]],
 };
 
+// jsdom has no IntersectionObserver; useInView needs one. Every target reports the same
+// state, so the video mounts only when the carousel counts as near the viewport.
+function stubIntersection(isIntersecting: boolean) {
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      private callback: IntersectionObserverCallback;
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+      }
+      observe(target: Element) {
+        this.callback(
+          [{ isIntersecting, target } as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+}
+
 describe("Testimonials video", () => {
   let play: MockInstance<HTMLMediaElement["play"]>;
 
   beforeEach(() => {
     motionState.reduced = false;
-    // jsdom has no IntersectionObserver; useInView needs one.
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    stubIntersection(true);
     play = vi
       .spyOn(HTMLMediaElement.prototype, "play")
       .mockReturnValue(Promise.resolve());
@@ -48,9 +62,10 @@ describe("Testimonials video", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    delete (navigator as { connection?: unknown }).connection;
   });
 
-  it("renders a muted, looping, inline video with the photo as poster", () => {
+  it("renders a muted, looping, inline video with no poster and no preload", () => {
     const { container } = render(<Testimonials content={withVideo} />);
     const video = container.querySelector("video");
     expect(video).not.toBeNull();
@@ -58,8 +73,9 @@ describe("Testimonials video", () => {
     expect(video!.muted).toBe(true);
     expect(video!.loop).toBe(true);
     expect(video).toHaveAttribute("playsinline");
-    expect(video).toHaveAttribute("poster", D.testimonials.items[0].photo);
-    expect(video).toHaveAttribute("preload", "metadata");
+    // The photo underneath is the stand-in; a poster would download it a second time.
+    expect(video).not.toHaveAttribute("poster");
+    expect(video).toHaveAttribute("preload", "none");
     expect(video).toHaveAttribute("aria-hidden", "true");
     expect(video).not.toHaveAttribute("controls");
   });
@@ -73,6 +89,27 @@ describe("Testimonials video", () => {
 
   it("renders no video for an item without one", () => {
     const { container } = render(<Testimonials content={withoutVideo} />);
+    expect(container.querySelector("video")).toBeNull();
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it("does not autoplay when Save-Data is on", () => {
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: {
+        saveData: true,
+        addEventListener() {},
+        removeEventListener() {},
+      },
+    });
+    const { container } = render(<Testimonials content={withVideo} />);
+    expect(container.querySelector("video")).not.toBeNull();
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it("mounts no video while the carousel is not near the viewport", () => {
+    stubIntersection(false);
+    const { container } = render(<Testimonials content={withVideo} />);
     expect(container.querySelector("video")).toBeNull();
     expect(play).not.toHaveBeenCalled();
   });

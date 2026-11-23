@@ -223,7 +223,7 @@ describe("ApplicationCaseActions", () => {
     ).toBeInTheDocument();
   });
 
-  it("hides the dispute button on a pending application and skips the fetch", () => {
+  it("hides the whole card on a pending application and skips the fetch", () => {
     wrap(
       <ApplicationCaseActions
         application={application("PENDING")}
@@ -232,10 +232,29 @@ describe("ApplicationCaseActions", () => {
     );
     expect(screen.queryByRole("button", { name: "Open a dispute" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Report Rahim Uddin" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Report Rahim Uddin" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Something wrong?" }),
+    ).toBeNull();
     expect(apiFetch).not.toHaveBeenCalled();
   });
+
+  it.each(["WITHDRAWN", "EXPIRED"] as const)(
+    "hides the report on a %s application",
+    (status) => {
+      const { container } = wrap(
+        <ApplicationCaseActions
+          application={application(status)}
+          viewerRole="TUTOR"
+        />,
+      );
+      expect(
+        screen.queryByRole("button", { name: "Report Nadia Islam" }),
+      ).toBeNull();
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
 
   it("shows the status of an open dispute instead of the button", async () => {
     serveDisputes([dispute("UNDER_REVIEW")]);

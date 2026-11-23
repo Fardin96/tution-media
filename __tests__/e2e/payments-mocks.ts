@@ -235,6 +235,7 @@ export async function mockPaymentsApi(
           id: "acc_1",
           role: "TUTOR",
           email: "test@example.com",
+          avatarUrl: null,
           status: "ACTIVE",
           consentVersion: null,
           consentAcceptedAt: null,

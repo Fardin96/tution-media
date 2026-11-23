@@ -12,10 +12,10 @@ describe("blockScopeText", () => {
       "Videos",
     );
     expect(blockScopeText({ blocksVideos: false, blocksDocuments: true })).toBe(
-      "IDs and certificates",
+      "IDs, certificates and photos",
     );
     expect(blockScopeText({ blocksVideos: true, blocksDocuments: true })).toBe(
-      "Videos, IDs and certificates",
+      "Videos, IDs, certificates and photos",
     );
   });
 

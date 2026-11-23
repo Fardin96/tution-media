@@ -583,7 +583,10 @@ function SaveBar({
   onSave: () => void;
 }) {
   return (
-    <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-[24px] bg-[var(--color-neutral-white)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_-8px_24px_-12px_rgb(0_0_0/0.12)] sm:px-6">
+    <div
+      data-sticky-actions
+      className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-[24px] bg-[var(--color-neutral-white)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_-8px_24px_-12px_rgb(0_0_0/0.12)] sm:px-6"
+    >
       <div className="grid gap-0.5">
         <p
           aria-live="polite"

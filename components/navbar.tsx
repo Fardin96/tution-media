@@ -40,19 +40,21 @@ export function Navbar({ links, cta }: NavbarProps) {
       <nav className="mx-auto flex h-[var(--navbar-height)] w-full max-w-[1280px] items-center gap-6 px-4 sm:px-6 lg:justify-between lg:px-8">
         <Link
           href="/"
-          className="mx-auto flex shrink-0 items-center gap-2 lg:mx-0"
+          data-home-link
+          className="mx-auto flex max-w-full shrink-0 items-center gap-2 lg:mx-0"
         >
+          {/* Declared at the file's real 732x212: a wrong ratio sized the logo before it loaded and pushed the header. */}
           <Image
             src="/assets/ic-demo/Icon.png"
             alt="Masters Hub"
-            className="h-11 w-auto sm:h-14"
-            width={183}
-            height={17}
+            className="aspect-[732/212] h-11 w-auto sm:h-14"
+            width={732}
+            height={212}
             preload
           />
         </Link>
 
-        <div className="hidden items-center gap-6 lg:flex xl:gap-8">
+        <div className="hidden min-w-0 items-center gap-6 lg:flex xl:gap-8">
           {links.map((link, i) => (
             <Link
               key={i}

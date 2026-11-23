@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -20,6 +21,7 @@ import { PendingLabel } from "@/components/ui/pending-label";
 import {
   STATUS_META,
   useMyApplications,
+  type ApplicationInitiator,
   type ApplicationStatus,
 } from "@/lib/applications";
 
@@ -54,6 +56,67 @@ const COPY = {
     emptyNext: "Find a tutor to request.",
   },
 } as const;
+
+// Each stat tile lands here with one initiator; an empty list needs a next step, not "no match".
+const EMPTY_BY_INITIATOR: Record<
+  "TUTOR" | "STUDENT",
+  Record<ApplicationInitiator, { text: string; href: string; cta: string }>
+> = {
+  TUTOR: {
+    TUTOR: {
+      text: "You haven't applied to any tuitions yet.",
+      href: "/dashboard/find-tuitions",
+      cta: "Find tuitions",
+    },
+    STUDENT: {
+      text: "No students have requested your packages yet.",
+      href: "/dashboard/tutor/packages",
+      cta: "See your packages",
+    },
+  },
+  STUDENT: {
+    TUTOR: {
+      text: "No tutors have applied to your requirements yet.",
+      href: "/dashboard/find-tutors",
+      cta: "Find tutors",
+    },
+    STUDENT: {
+      text: "You haven't requested any packages yet.",
+      href: "/dashboard/find-tutors?tab=packages",
+      cta: "Browse packages",
+    },
+  },
+};
+
+// For a student, TUTOR means the applications tutors sent them, not ones the student sent.
+const INITIATOR_LABEL: Record<
+  "TUTOR" | "STUDENT",
+  Record<ApplicationInitiator, string>
+> = {
+  TUTOR: {
+    TUTOR: "Applications you sent",
+    STUDENT: "Requests from students",
+  },
+  STUDENT: {
+    TUTOR: "Applications from tutors",
+    STUDENT: "Your requests",
+  },
+};
+
+// Changing one filter must keep the other, so the URL is built from the current params.
+function pageHref(
+  pathname: string,
+  current: URLSearchParams,
+  changes: Record<string, string | null>,
+): string {
+  const next = new URLSearchParams(current.toString());
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === null) next.delete(key);
+    else next.set(key, value);
+  }
+  const query = next.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
 
 function ListSkeleton() {
   return (
@@ -102,7 +165,14 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
     : "ALL";
   const statusParam = filter === "ALL" ? undefined : filter;
 
-  const query = useMyApplications(statusParam);
+  const rawInitiator = searchParams.get("initiatedBy");
+  const initiatedBy: ApplicationInitiator | undefined =
+    rawInitiator === "TUTOR" || rawInitiator === "STUDENT"
+      ? rawInitiator
+      : undefined;
+
+  const query = useMyApplications(statusParam, initiatedBy);
+  const activeFilterRef = useRef<HTMLButtonElement>(null);
 
   const applications = useMemo(
     () => query.data?.pages.flatMap((page) => page.applications) ?? [],
@@ -110,12 +180,28 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
   );
 
   const onFilterChange = (value: StatusFilter) => {
-    router.replace(value === "ALL" ? pathname : `${pathname}?status=${value}`, {
+    router.replace(
+      pageHref(pathname, searchParams, {
+        status: value === "ALL" ? null : value,
+      }),
+      { scroll: false },
+    );
+  };
+
+  // The chip and empty-state buttons unmount with the click, so focus moves first to the
+  // pressed status toggle, the one control that stays on screen.
+  const clearFilters = (keys: ("status" | "initiatedBy")[]) => {
+    activeFilterRef.current?.focus();
+    const changes = Object.fromEntries(keys.map((key) => [key, null]));
+    router.replace(pageHref(pathname, searchParams, changes), {
       scroll: false,
     });
   };
 
   const filterLabel = FILTERS.find((f) => f.value === filter)?.label ?? "All";
+  const emptyInitiator = initiatedBy
+    ? EMPTY_BY_INITIATOR[role][initiatedBy]
+    : null;
 
   let body: ReactNode;
   if (query.isPending) {
@@ -143,7 +229,36 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
   } else if (applications.length === 0) {
     body = (
       <div className={cn(card, "flex flex-col items-start gap-3 p-6")}>
-        {filter === "ALL" ? (
+        {initiatedBy && filter !== "ALL" ? (
+          <>
+            <p className="text-pretty text-[var(--color-text-secondary)]">
+              {`No ${filterLabel.toLowerCase()} results in “${INITIATOR_LABEL[role][initiatedBy]}”.`}
+            </p>
+            <button
+              type="button"
+              onClick={() => clearFilters(["status", "initiatedBy"])}
+              className={cn(secondaryButton, "min-h-10 px-4")}
+            >
+              Show all applications
+            </button>
+          </>
+        ) : emptyInitiator ? (
+          <>
+            <p className="text-pretty text-[var(--color-text-secondary)]">
+              {emptyInitiator.text}
+            </p>
+            <Link href={emptyInitiator.href} className={primaryButton}>
+              <LinkPendingLabel>{emptyInitiator.cta}</LinkPendingLabel>
+            </Link>
+            <button
+              type="button"
+              onClick={() => clearFilters(["initiatedBy"])}
+              className={cn(secondaryButton, "min-h-10 px-4")}
+            >
+              Show all applications
+            </button>
+          </>
+        ) : filter === "ALL" ? (
           <>
             <p className="text-pretty text-[var(--color-text-secondary)]">
               {copy.emptyAll}
@@ -159,7 +274,7 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
             </p>
             <button
               type="button"
-              onClick={() => onFilterChange("ALL")}
+              onClick={() => clearFilters(["status"])}
               className={cn(secondaryButton, "min-h-10 px-4")}
             >
               Show all applications
@@ -201,32 +316,53 @@ export function ApplicationsPage({ role }: { role: "TUTOR" | "STUDENT" }) {
         {copy.description}
       </p>
 
-      <div className="mt-6 flex flex-col gap-3">
-        <div
-          role="group"
-          aria-label="Filter by status"
-          className="flex flex-wrap gap-2"
-        >
-          {FILTERS.map((item) => {
-            const pressed = item.value === filter;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => onFilterChange(item.value)}
-                className={cn(
-                  "inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold transition-[background-color,box-shadow,color] duration-150 ease-out active:scale-[0.96] motion-reduce:transition-none",
-                  pressed
-                    ? "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)]"
-                    : "bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] shadow-[0_0_0_1px_rgb(0_0_0/0.1),0_1px_2px_rgb(0_0_0/0.06)] hover:bg-[var(--color-neutral-off-white)]",
-                  focusRing,
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="grid gap-2">
+          <div
+            role="group"
+            aria-label="Filter by status"
+            className="flex flex-wrap gap-2"
+          >
+            {FILTERS.map((item) => {
+              const pressed = item.value === filter;
+              return (
+                <button
+                  key={item.value}
+                  ref={pressed ? activeFilterRef : undefined}
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => onFilterChange(item.value)}
+                  className={cn(
+                    "inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold transition-[background-color,box-shadow,color] duration-150 ease-out active:scale-[0.96] motion-reduce:transition-none",
+                    pressed
+                      ? "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)]"
+                      : "bg-[var(--color-neutral-white)] text-[var(--color-neutral-charcoal)] shadow-[0_0_0_1px_rgb(0_0_0/0.1),0_1px_2px_rgb(0_0_0/0.06)] hover:bg-[var(--color-neutral-off-white)]",
+                    focusRing,
+                  )}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+          {initiatedBy && (
+            <div>
+              <span className="inline-flex h-8 items-center gap-1 rounded-full bg-[var(--color-secondary-sky)] ps-3 pe-1 text-sm font-medium text-[var(--color-primary-deep)]">
+                {INITIATOR_LABEL[role][initiatedBy]}
+                <button
+                  type="button"
+                  onClick={() => clearFilters(["initiatedBy"])}
+                  aria-label={`Clear filter: ${INITIATOR_LABEL[role][initiatedBy]}`}
+                  className={cn(
+                    "relative flex size-6 items-center justify-center rounded-full transition-colors duration-150 after:absolute after:-inset-2.5 hover:bg-[color-mix(in_oklab,var(--color-primary-deep)_12%,transparent)]",
+                    focusRing,
+                  )}
+                >
+                  <X aria-hidden="true" className="size-3.5" strokeWidth={2} />
+                </button>
+              </span>
+            </div>
+          )}
         </div>
         <p
           aria-live="polite"

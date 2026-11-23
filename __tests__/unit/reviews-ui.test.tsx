@@ -314,7 +314,11 @@ function listBody(
     reviews: reviews.map((r) => ({
       ...r,
       createdAt: "2026-11-10T04:00:00.000Z",
-      student: { id: "s1", name: "Nadia Islam" },
+      student: {
+        id: "s1",
+        name: "Nadia Islam",
+        avatarUrl: null as string | null,
+      },
     })),
     nextCursor,
     summary: {
@@ -400,5 +404,25 @@ describe("TutorReviewList", () => {
     expect(
       screen.queryByRole("button", { name: "Show more" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("ReviewList author photo", () => {
+  it("shows the reviewer's photo beside their review", async () => {
+    const PHOTO = "https://pub-test.r2.dev/avatars/nadia.webp";
+    const body = listBody(
+      [{ id: "a", rating: 5, comment: "Excellent tutor." }],
+      {
+        ratingAvg: 5,
+        ratingCount: 1,
+      },
+    );
+    body.reviews[0].student.avatarUrl = PHOTO;
+    vi.mocked(apiFetch).mockResolvedValue(respond(body));
+    const { container } = wrap(<TutorReviewList tutorId="t1" />);
+
+    await screen.findByText("Excellent tutor.");
+    expect(container.querySelector("img")).toHaveAttribute("src", PHOTO);
+    expect(screen.getByText("Nadia Islam")).toBeInTheDocument();
   });
 });

@@ -236,6 +236,22 @@ test.describe("Student tuition requirements flow", () => {
           return route.fulfill({ status: 404 });
         }
 
+        // The dashboard's recommended tutors list; without this the requirement itself came back.
+        if (subPath === "tutors" && method === "GET") {
+          return route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+              tutors: [],
+              total: 0,
+              page: 1,
+              hasMore: false,
+              matchVersion: 1,
+              suggestions: [],
+            } satisfies Schemas["RecommendedTutorPage"]),
+          });
+        }
+
         const foundReq = mockReqs.find((r) => r.id === id);
         if (method === "GET") {
           if (foundReq) {

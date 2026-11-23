@@ -55,8 +55,9 @@ export default function SearchBar({
           <Image
             src="/assets/ic/ic-pin-map.png"
             alt=""
-            width={18}
-            height={20}
+            width={72}
+            height={82}
+            className="h-5 w-auto"
           />
           <PlaceholdersAndVanishInput
             name="location"

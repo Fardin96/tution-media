@@ -54,9 +54,9 @@ export function Footer({ footer, cta, hiddenAnchors }: FooterProps) {
               <Image
                 src="/assets/ic-demo/Icon-blue.png"
                 alt="Masters Hub"
-                className="h-14 w-auto"
-                width={218}
-                height={32}
+                className="aspect-[860/220] h-14 w-auto"
+                width={860}
+                height={220}
               />
             </Link>
             <p className="text-sm leading-relaxed text-pretty text-[var(--color-text-secondary)] sm:text-base">

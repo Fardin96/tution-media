@@ -213,7 +213,13 @@ function StepCard({ step }: { step: HowItWorksFlow["steps"][number] }) {
           backgroundColor: `color-mix(in oklab, ${meta.hue} 10%, white)`,
         }}
       >
-        <Image src={meta.icon} alt="" width={24} height={24} />
+        <Image
+          src={meta.icon}
+          alt=""
+          width={24}
+          height={24}
+          className="size-6 object-contain"
+        />
       </span>
       <div className="min-w-0 self-center">
         <h3 className="text-lg leading-[1.25] font-medium text-[var(--color-neutral-charcoal)] sm:text-2xl">

@@ -7,6 +7,7 @@ type Schemas = components["schemas"];
 const TUTOR = {
   id: "tutor-public-1",
   name: "Nusrat Jahan",
+  avatarUrl: null,
   gender: "FEMALE",
   instituteName: "University of Dhaka",
   ratingAvg: 4.5,

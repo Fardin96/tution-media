@@ -34,6 +34,7 @@ export function PageFrame({
         <Link
           href={signedIn ? "/dashboard" : "/"}
           aria-label="Masters Hub Home"
+          data-home-link
         >
           <Image
             src="/assets/ic-demo/Icon-blue.png"

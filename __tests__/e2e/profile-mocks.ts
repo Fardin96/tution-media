@@ -83,6 +83,7 @@ const base = {
     lng: 90.376,
     addressText: "House 12, Road 4",
     districtCode: "dhaka",
+    districtName: "Dhaka",
     placeId: null,
     needsReaddress: false,
   },
@@ -166,6 +167,7 @@ export async function mockApi(
           id: "acc_1",
           role,
           email: "test@example.com",
+          avatarUrl: null,
           status: "ACTIVE",
           consentVersion: null,
           consentAcceptedAt: null,
@@ -217,6 +219,38 @@ export async function mockApi(
       phoneVerified = { phoneNumber, verifiedAt: new Date().toISOString() };
       return json(route, phoneVerified satisfies Schemas["PhoneVerified"]);
     }
+    if (path === "/me/stats")
+      return json(
+        route,
+        role === "TUTOR"
+          ? ({
+              role: "TUTOR",
+              applicationsSent: 4,
+              activeStudents: 2,
+              invitesReceived: 3,
+            } satisfies Schemas["TutorStats"])
+          : ({
+              role: "STUDENT",
+              openRequirements: 1,
+              applicationsReceived: 5,
+              tutorsHired: 1,
+            } satisfies Schemas["StudentStats"]),
+      );
+    if (/^\/students\/[^/]+\/reviews$/.test(path))
+      return json(route, {
+        reviews: [],
+        nextCursor: null,
+        summary: {
+          ratingAvg: 0,
+          ratingCount: 0,
+          breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        },
+      } satisfies Schemas["StudentReviewList"]);
+    if (path === "/applications")
+      return json(route, {
+        applications: [],
+        nextCursor: null,
+      } satisfies Schemas["ApplicationPage"]);
     if (path === "/subjects") return json(route, subjectsMock);
     if (path === "/areas") return json(route, areasMock);
     if (path === "/tutors/me/areas")
@@ -239,6 +273,7 @@ export async function mockApi(
         tutor: {
           id: "p_1",
           name: "Nusrat Jahan",
+          avatarUrl: null,
           gender: "FEMALE",
           instituteName: "University of Dhaka",
           ratingAvg: 0,

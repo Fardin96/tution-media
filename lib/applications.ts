@@ -21,6 +21,8 @@ export type ApplicationContact = Schemas["ApplicationContact"];
 export type ApplicationTutorProfile = Schemas["ApplicationTutorProfile"];
 export type ApplicationTutorSet = Schemas["ApplicationTutorSet"];
 export type ApplicationStatus = Application["status"];
+/** Who sent the application: TUTOR for applications a tutor sent, STUDENT for requests a student sent. */
+export type ApplicationInitiator = Application["initiatedBy"];
 export type ApplicationAction = Application["allowedActions"][number];
 export type RecommendedTutorPage = Schemas["RecommendedTutorPage"];
 export type RecommendedTutor = RecommendedTutorPage["tutors"][number];
@@ -47,8 +49,11 @@ export const APPLICATION_ACTIONS = [
 ] as const satisfies readonly ApplicationAction[];
 
 export const applicationApi = {
-  list: (q: { status?: ApplicationStatus; cursor?: string }) =>
-    unwrap(client.GET("/api/v1/applications", { params: { query: q } })),
+  list: (q: {
+    status?: ApplicationStatus;
+    initiatedBy?: ApplicationInitiator;
+    cursor?: string;
+  }) => unwrap(client.GET("/api/v1/applications", { params: { query: q } })),
   get: (id: string) =>
     unwrap(
       client.GET("/api/v1/applications/{id}", { params: { path: { id } } }),
@@ -258,11 +263,14 @@ export function useInviteTutor(requirementId: string) {
   });
 }
 
-export function useMyApplications(status?: ApplicationStatus) {
+export function useMyApplications(
+  status?: ApplicationStatus,
+  initiatedBy?: ApplicationInitiator,
+) {
   return useInfiniteQuery({
-    queryKey: queryKeys.applications.list(status),
+    queryKey: queryKeys.applications.list(status, initiatedBy),
     queryFn: ({ pageParam }) =>
-      applicationApi.list({ status, cursor: pageParam }),
+      applicationApi.list({ status, initiatedBy, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 15_000,

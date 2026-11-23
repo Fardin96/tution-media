@@ -37,6 +37,7 @@ vi.mock("@/lib/tutor-profile", async (importOriginal) => ({
 const TUTOR: PublicTutor = {
   id: "tutor-1",
   name: "Nusrat Jahan",
+  avatarUrl: null,
   instituteName: "University of Dhaka",
   gender: "FEMALE",
   ratingAvg: 4.5,

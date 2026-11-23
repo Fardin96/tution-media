@@ -17,9 +17,8 @@ export default function TagLine({
         src="/assets/ic/ic-briefcase.png"
         alt="Masters Hub"
         className="h-auto w-5"
-        width={24}
-        height={24}
-        preload
+        width={86}
+        height={82}
       />
       <span className="text-primary-900 text-base leading-[1.5] font-normal">
         {line}

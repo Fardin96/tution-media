@@ -85,15 +85,15 @@ export function useLiftUploadBlock(accountId: string) {
   });
 }
 
-/** "Videos", "IDs and certificates", or both; null when nothing is paused. */
+/** "Videos", "IDs, certificates and photos", or both; null when nothing is paused. */
 export function blockScopeText(block: {
   blocksVideos: boolean;
   blocksDocuments: boolean;
 }): string | null {
   if (block.blocksVideos && block.blocksDocuments)
-    return "Videos, IDs and certificates";
+    return "Videos, IDs, certificates and photos";
   if (block.blocksVideos) return "Videos";
-  if (block.blocksDocuments) return "IDs and certificates";
+  if (block.blocksDocuments) return "IDs, certificates and photos";
   return null;
 }
 
@@ -127,6 +127,7 @@ const PURPOSE_TEXT: Record<UploadPurpose, string> = {
   SITE_VIDEO: "Site video",
   STORY_IMAGE: "Story photo",
   STORY_VIDEO: "Story video",
+  AVATAR: "Profile picture",
 };
 
 export function purposeText(purpose: UploadPurpose | null): string | null {

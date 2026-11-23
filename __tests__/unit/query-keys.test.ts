@@ -2,6 +2,8 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import {
   queryKeys,
+  invalidateApplications,
+  invalidateRequirements,
   invalidateTutorProfile,
   invalidateTutorRequirements,
 } from "@/lib/query-keys";
@@ -123,5 +125,29 @@ describe("invalidateTutorProfile", () => {
     await expect(
       invalidateTutorProfile(client, TUTOR_ID),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("dashboard counts", () => {
+  it("applications writes expire the stats through the me key that covers them", async () => {
+    const client = new QueryClient();
+    const spy = vi.spyOn(client, "invalidateQueries");
+
+    await invalidateApplications(client);
+
+    expect(spy.mock.calls).toContainEqual([{ queryKey: queryKeys.me }]);
+    expect(queryKeys.myStats.slice(0, 1)).toEqual(queryKeys.me);
+  });
+
+  it("requirement writes expire the list and the stats", async () => {
+    const client = new QueryClient();
+    const spy = vi.spyOn(client, "invalidateQueries");
+
+    await invalidateRequirements(client);
+
+    expect(spy.mock.calls).toEqual([
+      [{ queryKey: ["requirements"] }],
+      [{ queryKey: ["me", "stats"] }],
+    ]);
   });
 });

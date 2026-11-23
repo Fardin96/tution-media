@@ -18,6 +18,7 @@ import { ToggleSwitch } from "@/components/admin/matching-ui";
 import { useSiteMedia } from "@/components/admin/site-content/media";
 import { FilePicker } from "@/components/files/file-picker";
 import { IMAGE_OPTIONS, VIDEO_OPTIONS } from "@/lib/admin-site-content";
+import { canOptimizeImage } from "@/lib/media";
 import { FILE_RULES, type FileAsset, type FilePurpose } from "@/lib/files";
 import { fileRefId, wordCount } from "@/lib/site-content-schema";
 import {
@@ -453,7 +454,7 @@ export function MediaField({
                   src={previewUrl}
                   alt=""
                   fill
-                  unoptimized
+                  unoptimized={!canOptimizeImage(previewUrl)}
                   sizes="240px"
                   className="object-cover"
                 />

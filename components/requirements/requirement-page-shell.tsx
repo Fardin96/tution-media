@@ -33,7 +33,7 @@ export function RequirementPageShell({
       style={{ backgroundImage: WASH }}
     >
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 sm:px-6">
-        <Link href="/dashboard" aria-label="Masters Hub Home">
+        <Link href="/dashboard" aria-label="Masters Hub Home" data-home-link>
           <Image
             src="/assets/ic-demo/Icon-blue.png"
             alt="Masters Hub"

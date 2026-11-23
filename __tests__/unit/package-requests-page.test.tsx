@@ -69,6 +69,7 @@ function pkg(overrides: Partial<MyPackage> = {}): MyPackage {
     tutor: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       ratingAvg: 4.5,
       ratingCount: 12,
@@ -117,12 +118,13 @@ function request(overrides: Partial<Application> = {}): Application {
     tutor: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       instituteName: null,
       ratingAvg: 4.5,
       ratingCount: 12,
     },
-    student: { id: "s1", name: "Nadia Islam", areaId: 2 },
+    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 2 },
     target: {
       kind: "PACKAGE",
       id: PACKAGE_ID,
@@ -259,7 +261,12 @@ describe("PackageRequestsPage", () => {
         applications: [
           request({
             id: "app-2",
-            student: { id: "s2", name: "Tanvir Hasan", areaId: 2 },
+            student: {
+              id: "s2",
+              name: "Tanvir Hasan",
+              avatarUrl: null,
+              areaId: 2,
+            },
           }),
         ],
         nextCursor: null,

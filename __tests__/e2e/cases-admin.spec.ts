@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { adminSessionCookie, mockCasesApi } from "./cases-mocks";
 
 async function signIn(context: BrowserContext) {
@@ -7,6 +7,19 @@ async function signIn(context: BrowserContext) {
 }
 
 type Api = Awaited<ReturnType<typeof signIn>>;
+
+// Below lg the admin nav lives in the menu drawer. The button is React-driven, so a click
+// before hydration does nothing; retry until the drawer is open.
+async function openAdminNav(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) >= 1024) return;
+  const drawer = page.getByRole("dialog", { name: "Admin menu" });
+  await expect(async () => {
+    if (!(await drawer.isVisible())) {
+      await page.getByRole("button", { name: "Open admin menu" }).click();
+    }
+    await expect(drawer).toBeVisible({ timeout: 1000 });
+  }).toPass();
+}
 
 // Background reads (the admin /me check, the notification count) can land after the list
 // request, so look up the last read of the list itself rather than the last read overall.
@@ -206,6 +219,7 @@ test.describe("Admin disputes", () => {
       },
     ]);
 
+    await openAdminNav(page);
     await page
       .getByRole("link", { name: "Disputes", exact: true })
       .first()
@@ -223,6 +237,7 @@ test.describe("Admin navigation", () => {
   }) => {
     await signIn(context);
     await page.goto("/dashboard/admin/reviews");
+    await openAdminNav(page);
 
     const nav = page.getByRole("navigation", { name: "Admin" }).first();
     // The route skeleton streams first; read the links once the shell is in.
@@ -237,6 +252,28 @@ test.describe("Admin navigation", () => {
       "Reports",
       "Disputes",
     ]);
+  });
+
+  test("cancelling logout from the menu keeps the session and returns focus", async ({
+    page,
+    context,
+  }) => {
+    await signIn(context);
+    await page.goto("/dashboard/admin");
+    await openAdminNav(page);
+
+    await page.getByRole("button", { name: "Log out" }).click();
+    const confirm = page.getByRole("alertdialog");
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toBeHidden();
+
+    // On narrow screens the drawer is gone, so focus goes back to its button.
+    if ((page.viewportSize()?.width ?? 1280) < 1024) {
+      await expect(
+        page.getByRole("button", { name: "Open admin menu" }),
+      ).toBeFocused();
+    }
   });
 });
 

@@ -25,6 +25,7 @@ const ME = {
     id: ADMIN_ID,
     role: "ADMIN",
     email: "admin@example.com",
+    avatarUrl: null,
     status: "ACTIVE",
     consentVersion: null,
     consentAcceptedAt: null,

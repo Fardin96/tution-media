@@ -64,6 +64,7 @@ function pkg(overrides: Partial<MyPackage> & { id: string }): MyPackage {
     tutor: {
       id: "tutor-1",
       name: "Rahim",
+      avatarUrl: null,
       gender: "MALE",
       ratingAvg: 0,
       ratingCount: 0,

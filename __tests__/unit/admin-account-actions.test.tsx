@@ -54,6 +54,7 @@ function detail(
     role: "STUDENT",
     status: "ACTIVE",
     name: "Rahim Uddin",
+    avatarUrl: null,
     phoneNumber: "+8801711000111",
     phoneVerifiedAt: null,
     createdAt: "2026-11-01T00:00:00.000Z",
@@ -350,5 +351,16 @@ describe("account detail: deactivate and delete", () => {
     expect(
       screen.getByRole("button", { name: "Block account" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("account detail: photo", () => {
+  it("shows the account's photo in the header", async () => {
+    const PHOTO = "https://pub-test.r2.dev/avatars/rahim.webp";
+    mockApi(detail({ avatarUrl: PHOTO }));
+    const { container } = renderPage();
+
+    await screen.findByRole("heading", { level: 1, name: "Rahim Uddin" });
+    expect(container.querySelector("img")).toHaveAttribute("src", PHOTO);
   });
 });

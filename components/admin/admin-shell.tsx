@@ -1,6 +1,7 @@
 "use client";
 
 import type * as React from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,7 +15,10 @@ import {
   IdCard,
   LayoutGrid,
   LayoutTemplate,
+  LogOut,
+  Menu,
   MapPin,
+  X,
   Newspaper,
   MessageSquareQuote,
   MessageSquareWarning,
@@ -32,7 +36,19 @@ import {
 import { cn } from "@/lib/utils";
 import { useAdminMe } from "@/lib/admin";
 import { card, focusRing } from "@/components/profile/styles";
-import { LogoutButton } from "@/components/auth/logout-button";
+import {
+  LogoutButton,
+  logoutTriggerClass,
+} from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const ADMIN_NAV = [
   {
@@ -188,10 +204,49 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Admin chrome: sidebar on wide screens, a scrolling tab row on narrow ones, and the approval gate. */
+/** Admin chrome: sidebar on wide screens, a top bar with a menu drawer on narrow ones, and the approval gate. */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const me = useAdminMe();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  // Adjusting state during render (not in an effect) closes the drawer on every navigation.
+  if (pathname !== menuPath) {
+    setMenuPath(pathname);
+    setMenuOpen(false);
+  }
+
+  // The sidebar takes over at lg, so a drawer left open would sit on top of it.
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const closeIfWide = () => {
+      if (wide.matches) setMenuOpen(false);
+    };
+    wide.addEventListener("change", closeIfWide);
+    return () => wide.removeEventListener("change", closeIfWide);
+  }, []);
+
+  // Focus returns to the menu button when the logout dialog closes, since the drawer that held the trigger is gone.
+  const onLogoutOpenChange = (open: boolean) => {
+    setLogoutOpen(open);
+    // A frame later: the dialog's focus trap is still active until this close commits.
+    if (!open)
+      requestAnimationFrame(() => {
+        // The menu button is display: none at lg. Focusing it there would drop focus to the body.
+        const button = menuButton.current;
+        if (button?.getClientRects().length) button.focus();
+        else
+          document
+            .querySelector<HTMLElement>("aside [data-home-link]")
+            ?.focus();
+      });
+  };
+
+  const currentLabel =
+    ADMIN_NAV.find((item) => isActive(pathname, item.href))?.label ?? "Admin";
 
   return (
     <div className="min-h-dvh bg-[var(--color-neutral-off-white)] lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -199,6 +254,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/dashboard/admin"
           aria-label="Admin overview"
+          data-home-link
           className="px-3"
         >
           <Image
@@ -226,58 +282,102 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
         <div className="grid gap-3 border-t border-[var(--color-neutral-border)] pt-4">
-          {me.adminUser && (
-            <div className="min-w-0 px-3">
-              <p className="truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
-                {me.adminUser.name}
-              </p>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                {me.adminUser.adminRole === "SUPER_ADMIN"
-                  ? "Super admin"
-                  : "Admin"}
-              </p>
-            </div>
-          )}
+          <AdminIdentity adminUser={me.adminUser} />
           <LogoutButton className="h-11 text-sm" />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 border-b border-[var(--color-neutral-border)] bg-[color-mix(in_oklab,var(--color-neutral-white)_92%,transparent)] backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between gap-4 px-4 pt-3">
-            <Link href="/dashboard/admin" aria-label="Admin overview">
-              <Image
-                src="/assets/ic-demo/Icon-blue.png"
-                alt="Masters Hub"
-                width={860}
-                height={220}
-                preload
-                className="h-8 w-auto"
-              />
-            </Link>
-            <LogoutButton className="h-10 w-auto px-4 text-sm" />
-          </div>
-          {/* The row scrolls; the last tab peeks past the edge so it reads as scrollable. */}
-          <nav
-            aria-label="Admin"
-            className="[scrollbar-width:none] overflow-x-auto"
-          >
-            <ul className="flex w-max gap-1 px-4 py-2">
-              {ADMIN_NAV.map((item) => (
-                <li key={item.href}>
-                  <NavLink
-                    href={item.href}
-                    active={isActive(pathname, item.href)}
-                    icon={item.icon}
-                    compact
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--color-neutral-border)] bg-[color-mix(in_oklab,var(--color-neutral-white)_92%,transparent)] px-2 backdrop-blur lg:hidden">
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                ref={menuButton}
+                type="button"
+                aria-label="Open admin menu"
+                className={cn(
+                  "grid size-11 shrink-0 place-items-center rounded-full text-[var(--color-neutral-charcoal)] transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
+                  focusRing,
+                )}
+              >
+                <Menu aria-hidden className="size-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              onCloseAutoFocus={(event) => {
+                // The logout dialog takes focus; the drawer must not pull it back.
+                if (logoutOpen) event.preventDefault();
+              }}
+              showCloseButton={false}
+              className="data-[side=left]:w-[min(20rem,85vw)] motion-reduce:animate-none"
+            >
+              <div className="flex h-14 items-center justify-between px-6">
+                <SheetTitle className="text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+                  Admin menu
+                </SheetTitle>
+                <SheetClose asChild>
+                  <button
+                    type="button"
+                    aria-label="Close admin menu"
+                    className={cn(
+                      "grid size-11 place-items-center rounded-full text-[var(--color-neutral-charcoal)] transition-colors duration-150 ease-out hover:bg-[var(--color-neutral-off-white)] motion-reduce:transition-none",
+                      focusRing,
+                    )}
                   >
-                    {item.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
+                    <X aria-hidden className="size-5" />
+                  </button>
+                </SheetClose>
+              </div>
+              <SheetDescription className="sr-only">
+                Every admin page.
+              </SheetDescription>
+              <MobileNav
+                pathname={pathname}
+                onNavigate={() => setMenuOpen(false)}
+              />
+              <div className="grid gap-3 border-t border-[var(--color-neutral-border)] px-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <AdminIdentity adminUser={me.adminUser} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLogoutOpen(true);
+                  }}
+                  className={logoutTriggerClass}
+                >
+                  <LogOut className="size-4" />
+                  Log out
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Link
+            href="/dashboard/admin"
+            aria-label="Admin overview"
+            data-home-link
+            className="shrink-0"
+          >
+            <Image
+              src="/assets/ic-demo/Icon-blue.png"
+              alt="Masters Hub"
+              width={860}
+              height={220}
+              preload
+              className="h-8 w-auto"
+            />
+          </Link>
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+            {currentLabel}
+          </p>
         </header>
+        {/* Renders only the dialog and overlay; the drawer's button opens it. */}
+        <LogoutButton
+          hideTrigger
+          open={logoutOpen}
+          onOpenChange={onLogoutOpenChange}
+        />
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-10">
           {me.isPending ? (
@@ -310,36 +410,93 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AdminIdentity({
+  adminUser,
+}: {
+  adminUser: ReturnType<typeof useAdminMe>["adminUser"];
+}) {
+  if (!adminUser) return null;
+  return (
+    <div className="min-w-0 px-3">
+      <p className="truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+        {adminUser.name}
+      </p>
+      <p className="text-xs text-[var(--color-text-secondary)]">
+        {adminUser.adminRole === "SUPER_ADMIN" ? "Super admin" : "Admin"}
+      </p>
+    </div>
+  );
+}
+
+// Mounted only while the drawer is open, so the effect runs on each open.
+function MobileNav({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const navRef = useRef<HTMLElement>(null);
+
+  // Brings the current page into view.
+  useEffect(() => {
+    navRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  return (
+    <nav
+      ref={navRef}
+      aria-label="Admin"
+      className="flex-1 overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
+    >
+      <ul className="grid gap-1">
+        {ADMIN_NAV.map((item) => (
+          <li key={item.href}>
+            <NavLink
+              href={item.href}
+              active={isActive(pathname, item.href)}
+              icon={item.icon}
+              onNavigate={onNavigate}
+            >
+              {item.label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 function NavLink({
   href,
   active,
   icon: Icon,
-  compact = false,
+  onNavigate,
   children,
 }: {
   href: string;
   active: boolean;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  compact?: boolean;
+  // Runs on every click, including a link to the current page, which doesn't change the pathname.
+  onNavigate?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
       className={cn(
-        "flex items-center gap-3 rounded-full font-semibold whitespace-nowrap transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none",
+        "flex min-h-11 items-center gap-3 rounded-full px-3 text-sm font-semibold whitespace-nowrap transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none",
         focusRing,
-        compact ? "min-h-10 px-3.5 text-sm" : "min-h-11 px-3 text-sm",
         active
           ? "bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]"
           : "text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-off-white)] hover:text-[var(--color-neutral-charcoal)]",
       )}
     >
-      <Icon
-        aria-hidden
-        className={cn("size-4 shrink-0", compact && "hidden sm:block")}
-      />
+      <Icon aria-hidden className="size-4 shrink-0" />
       {children}
     </Link>
   );
