@@ -1,4 +1,4 @@
-// Dependency-free fuzzy matching for the admin dashboard finder.
+// Dependency-free fuzzy matching for admin search.
 // Ranges are half-open [start, end) offsets into the ORIGINAL text, in code units.
 
 export type Range = [number, number];

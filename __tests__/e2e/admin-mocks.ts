@@ -28,6 +28,34 @@ const NOW = "2026-11-18T09:00:00.000Z";
 const EARLIER = "2026-11-17T10:00:00.000Z";
 const TUTOR = { id: "t_1", name: "Nusrat Jahan" };
 const OTHER_TUTOR = { id: "t_2", name: "Tanvir Hasan" };
+const ACCOUNTS: Schemas["AdminAccountSummary"][] = [
+  {
+    id: "t_1",
+    email: "nusrat@example.test",
+    role: "TUTOR",
+    status: "ACTIVE",
+    name: "Nusrat Jahan",
+    phoneNumber: null,
+    phoneVerifiedAt: null,
+    avatarUrl: null,
+    createdAt: EARLIER,
+    lastLoginAt: null,
+    deletedAt: null,
+  },
+  {
+    id: "s_1",
+    email: "rafi@example.test",
+    role: "STUDENT",
+    status: "ACTIVE",
+    name: "Rafiul Islam",
+    phoneNumber: null,
+    phoneVerifiedAt: null,
+    avatarUrl: null,
+    createdAt: EARLIER,
+    lastLoginAt: null,
+    deletedAt: null,
+  },
+];
 
 /** The session cookie only says ADMIN for both admin roles. Super-admin rights come from GET /me. */
 export const adminSessionCookie = {
@@ -436,7 +464,7 @@ const DASHBOARD_CATALOG = [
     title: "Sign-ups over time",
     description: "New students and tutors per day or month.",
     definition:
-      "Student and tutor accounts created per Dhaka day (per month for 12 months).",
+      "Student and tutor accounts created per Dhaka day (per month for 12 months and all time).",
     group: "people",
     kind: "series",
     span: 6,
@@ -449,7 +477,7 @@ const DASHBOARD_CATALOG = [
     title: "Fees over time",
     description: "Fees collected and refunded per day or month.",
     definition:
-      "Fee payments received and reversals (refunds included) per Dhaka day (per month for 12 months). Processing charges are not included.",
+      "Fee payments received and reversals (refunds included) per Dhaka day (per month for 12 months and all time). Processing charges are not included.",
     group: "money",
     kind: "series",
     span: 6,
@@ -542,7 +570,7 @@ const DASHBOARD_CATALOG = [
     title: "Reports and disputes",
     description: "Cases opened and closed per day or month.",
     definition:
-      "Reports and disputes opened, and closed (resolved or dismissed), per Dhaka day (per month for 12 months).",
+      "Reports and disputes opened, and closed (resolved or dismissed), per Dhaka day (per month for 12 months and all time).",
     group: "trust",
     kind: "series",
     span: 6,
@@ -839,6 +867,18 @@ export async function mockAdminApi(
     body: unknown,
   ): Reply {
     if (method === "GET" && path === "/me") return ok(me);
+
+    // Accounts list, for the command palette's people search (q matches name or email).
+    if (method === "GET" && path === "/admin/accounts") {
+      const q = (params.get("q") ?? "").toLowerCase();
+      const accounts = ACCOUNTS.filter((a) =>
+        `${a.name ?? ""} ${a.email}`.toLowerCase().includes(q),
+      ).slice(0, Number(params.get("limit") ?? 25));
+      return ok({
+        accounts,
+        nextCursor: null,
+      } satisfies Schemas["AdminAccountPage"]);
+    }
 
     // Payment attempts
     if (method === "GET" && path === "/admin/payment-attempts/summary") {

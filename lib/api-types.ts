@@ -13285,7 +13285,7 @@ export interface paths {
     };
     /**
      * Get one dashboard widget
-     * @description The data for one widget over a range (7d, 30d, 90d or 12m; default 30d), in Asia/Dhaka days or months. Cached for 60 seconds and shared by all admins. Unknown id: 404.
+     * @description The data for one widget over a range (7d, 30d, 90d, 12m or all; default 30d), in Asia/Dhaka days or months. all runs from the earliest account (at least 12 months) and has no previous period. Cached for 60 seconds and shared by all admins. Unknown id: 404.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -13294,7 +13294,7 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          range?: "7d" | "30d" | "90d" | "12m";
+          range?: "7d" | "30d" | "90d" | "12m" | "all";
         };
         header?: never;
         path: {
@@ -19632,7 +19632,7 @@ export interface components {
         | "trust-cases"
         | "activity-trend";
       /** @enum {string} */
-      range: "7d" | "30d" | "90d" | "12m";
+      range: "7d" | "30d" | "90d" | "12m" | "all";
       /** Format: date-time */
       generatedAt: string;
       data:

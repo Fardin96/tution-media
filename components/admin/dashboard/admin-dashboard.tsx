@@ -10,6 +10,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useIsFetching } from "@tanstack/react-query";
+import { useReducedMotion } from "motion/react";
 import {
   DASHBOARD_SKELETON,
   DEFAULT_RANGE,
@@ -27,15 +28,16 @@ import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { AdminPage } from "@/components/admin/admin-ui";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { overRange } from "./format";
 import { CustomizeSheet } from "./customize-sheet";
-import { DashboardFinder } from "./finder";
 import { WidgetBody } from "./widget-body";
 import { WidgetCard } from "./widget-card";
+import { jumpToWidget } from "./jump";
 
 const STICKY_BELOW_LG = "3.5rem";
 const DESKTOP = "(min-width: 1024px)";
 
-/** The admin home: range, finder and customise above a grid of widgets. */
+/** The admin home: range and customise above a grid of widgets. Search lives in the admin shell. */
 export function AdminDashboard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -44,6 +46,34 @@ export function AdminDashboard() {
   const me = useAdminMe();
   const layout = useDashboardLayout();
   const [customizing, setCustomizing] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const [jumpNote, setJumpNote] = useState("");
+
+  // ?focus=<id> comes from the command palette: jump to that widget once, then drop the param.
+  const focus = searchParams.get("focus");
+  const handledFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focus || !layout.data) return;
+    if (handledFocus.current === focus) return;
+    handledFocus.current = focus;
+    if (layout.data.widgets.some((id) => id === focus)) {
+      void jumpToWidget(focus, {
+        reducedMotion: !!reduceMotion,
+        announce: setJumpNote,
+      });
+    } else {
+      // Set from a callback, like the jump's own announcements, not synchronously in the effect.
+      void Promise.resolve().then(() =>
+        setJumpNote("That widget isn't on the page."),
+      );
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("focus");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [focus, layout.data, reduceMotion, searchParams, router, pathname]);
 
   const catalog = layout.data?.catalog ?? [];
   const items = (layout.data?.widgets ?? []).flatMap((id): CatalogItem[] => {
@@ -92,6 +122,9 @@ export function AdminDashboard() {
         <p role="status" className="sr-only">
           {message}
         </p>
+        <p aria-live="polite" className="sr-only">
+          {jumpNote}
+        </p>
 
         <div
           id="dashboard-toolbar"
@@ -99,11 +132,6 @@ export function AdminDashboard() {
           className="z-20 flex flex-wrap items-center gap-3 bg-[var(--color-neutral-off-white)] py-3 lg:sticky lg:top-0"
         >
           <RangeControl value={range} onChange={selectRange} />
-          {layout.data && (
-            <div className="min-w-0 flex-1 basis-48">
-              <DashboardFinder layout={layout.data} />
-            </div>
-          )}
           <button
             type="button"
             onClick={() => setCustomizing(true)}
@@ -198,17 +226,16 @@ function DashboardWidgetSlot({
 
 /**
  * One polite message for the page: "Loading dashboard…", then "Dashboard updated." once,
- * and "Showing the last …" when the range changes. State is adjusted during render, not in an
+ * and "Showing data over …" when the range changes. State is adjusted during render, not in an
  * effect, so each change is announced once.
  */
 function useLiveMessage(loading: boolean, range: DashboardRange) {
   const [seen, setSeen] = useState({ loading: false, range, text: "" });
   let current = seen;
   if (seen.loading !== loading || seen.range !== range) {
-    const label = RANGES.find((r) => r.value === range)?.label ?? range;
     const text =
       seen.range !== range
-        ? `Showing the last ${label}.`
+        ? `Showing data ${overRange(range)}.`
         : loading
           ? "Loading dashboard…"
           : seen.loading
@@ -277,7 +304,7 @@ function RangeControl({
     <div
       role="radiogroup"
       aria-label="Date range"
-      className="grid w-full grid-cols-[repeat(4,minmax(0,1fr))] gap-1 rounded-2xl bg-[var(--color-neutral-white)] p-1 shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_1px_2px_rgb(0_0_0/0.04)] sm:inline-flex sm:w-auto sm:shrink-0 sm:rounded-full"
+      className="grid w-full grid-cols-[repeat(5,minmax(0,1fr))] gap-1 rounded-2xl bg-[var(--color-neutral-white)] p-1 shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_1px_2px_rgb(0_0_0/0.04)] sm:inline-flex sm:w-auto sm:shrink-0 sm:rounded-full"
     >
       {RANGES.map((option, i) => {
         const checked = option.value === value;
@@ -295,21 +322,15 @@ function RangeControl({
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, i)}
             className={cn(
-              "min-h-11 min-w-0 rounded-[12px] px-3 text-center text-sm leading-tight font-semibold whitespace-normal transition-colors duration-150 ease-out motion-reduce:transition-none sm:rounded-full sm:px-4 sm:whitespace-nowrap lg:px-3 xl:px-4",
+              "min-h-11 min-w-0 rounded-[12px] px-2 text-center text-sm leading-tight font-semibold whitespace-normal transition-colors duration-150 ease-out motion-reduce:transition-none sm:rounded-full sm:px-4 sm:whitespace-nowrap lg:px-3 xl:px-4",
               focusRing,
               checked
                 ? "bg-[var(--color-secondary-sky)] text-[var(--color-neutral-charcoal)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-neutral-charcoal)]",
             )}
           >
-            {option.value === "12m" ? (
-              <>
-                <span className="sm:hidden">12m</span>
-                <span className="hidden sm:inline">12 months</span>
-              </>
-            ) : (
-              option.label
-            )}
+            <span className="sm:hidden">{option.short ?? option.label}</span>
+            <span className="hidden sm:inline">{option.label}</span>
           </button>
         );
       })}
@@ -328,8 +349,7 @@ export function DashboardSkeleton() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 py-3">
-        <Skeleton className="h-11 w-full rounded-2xl sm:w-[22rem] sm:rounded-full" />
-        <Skeleton className="h-11 min-w-0 flex-1 basis-48 rounded-full" />
+        <Skeleton className="h-11 w-full rounded-2xl sm:w-[27rem] sm:rounded-full" />
         <Skeleton className="ms-auto h-11 w-28 shrink-0 rounded-full" />
       </div>
       <GridSkeleton />

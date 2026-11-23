@@ -24,12 +24,15 @@ export type MetricFormat = KpiPayload["format"];
 export type ColorToken = SeriesPayload["series"][number]["color"];
 export type DashboardRange = DashboardWidget["range"];
 
-export const RANGES: { value: DashboardRange; label: string }[] = [
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-  { value: "90d", label: "90 days" },
-  { value: "12m", label: "12 months" },
-];
+/** `short` is the label under 640px, where the full one does not fit the range control. */
+export const RANGES: { value: DashboardRange; label: string; short: string }[] =
+  [
+    { value: "7d", label: "7 days", short: "7d" },
+    { value: "30d", label: "30 days", short: "30d" },
+    { value: "90d", label: "90 days", short: "90d" },
+    { value: "12m", label: "12 months", short: "12m" },
+    { value: "all", label: "All time", short: "All" },
+  ];
 export const DEFAULT_RANGE: DashboardRange = "30d";
 // Mirrors MAX_DASHBOARD_WIDGETS in tuition-api dashboard.schema.ts.
 export const MAX_WIDGETS = 24;
@@ -149,7 +152,7 @@ export function useResetDashboardLayout() {
   );
 }
 
-/** Adds one widget at the end of the saved layout (used by the finder's "Add and jump"). */
+/** Adds one widget at the end of the saved layout (used by the admin search palette's "Add and jump"). */
 export function useAddDashboardWidget() {
   const qc = useQueryClient();
   return useMutation({

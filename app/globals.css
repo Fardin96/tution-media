@@ -340,7 +340,7 @@
   }
 }
 
-/* Admin dashboard finder: the jumped-to widget blinks twice. Only opacity animates; the border and the glow share one colour. */
+/* Admin search: the jumped-to widget blinks twice. Only opacity animates; the border and the glow share one colour. */
 li[data-blink] {
   z-index: 10;
 }

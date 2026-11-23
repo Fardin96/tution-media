@@ -14,6 +14,7 @@ import {
   type DashboardRange,
 } from "@/lib/admin-dashboard";
 import { AdminDashboard } from "@/components/admin/dashboard/admin-dashboard";
+import { jumpToWidget } from "@/components/admin/dashboard/jump";
 
 const nav = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -32,8 +33,8 @@ vi.mock("@/lib/admin", async (importOriginal) => ({
   useAdminMe: () => ({ adminUser: { name: "Ada Lovelace" } }),
 }));
 
-vi.mock("@/components/admin/dashboard/finder", () => ({
-  DashboardFinder: () => <div>finder</div>,
+vi.mock("@/components/admin/dashboard/jump", () => ({
+  jumpToWidget: vi.fn(async () => true),
 }));
 
 vi.mock("@/components/admin/dashboard/customize-sheet", () => ({
@@ -170,5 +171,49 @@ describe("AdminDashboard range", () => {
       release();
     });
     await screen.findByText("value 900");
+  });
+});
+
+describe("AdminDashboard ?focus", () => {
+  beforeEach(() => {
+    nav.replace.mockClear();
+    nav.search = "";
+    nav.rerender = null;
+    vi.mocked(jumpToWidget).mockClear();
+    vi.spyOn(adminDashboardApi, "layout").mockResolvedValue(layout);
+    vi.spyOn(adminDashboardApi, "widget").mockResolvedValue({
+      id: "signups",
+      generatedAt: "2026-11-23T00:00:00.000Z",
+      range: "30d",
+      data: { kind: "kpi", value: "100" } as never,
+    } as never);
+  });
+
+  it("jumps to the widget once and removes focus from the URL but keeps the range", async () => {
+    nav.search = "focus=signups&range=90d";
+    renderDashboard();
+    await screen.findByRole("heading", { name: "Sign-ups" });
+
+    await waitFor(() =>
+      expect(jumpToWidget).toHaveBeenCalledWith("signups", expect.anything()),
+    );
+    expect(nav.replace).toHaveBeenCalledWith("/dashboard/admin?range=90d", {
+      scroll: false,
+    });
+    expect(jumpToWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces a focus id that is not on the dashboard and drops it from the URL, keeping the range", async () => {
+    nav.search = "focus=mau&range=90d";
+    renderDashboard();
+    await screen.findByRole("heading", { name: "Sign-ups" });
+    expect(
+      await screen.findByText("That widget isn't on the page."),
+    ).toBeInTheDocument();
+    expect(jumpToWidget).not.toHaveBeenCalled();
+    expect(nav.replace).toHaveBeenCalledTimes(1);
+    expect(nav.replace).toHaveBeenCalledWith("/dashboard/admin?range=90d", {
+      scroll: false,
+    });
   });
 });

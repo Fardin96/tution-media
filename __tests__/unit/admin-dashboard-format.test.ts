@@ -7,7 +7,40 @@ import {
   formatBucket,
   formatCompact,
   formatMetric,
+  overRange,
 } from "@/components/admin/dashboard/format";
+import { parseRange, RANGES } from "@/lib/admin-dashboard";
+
+describe("ranges", () => {
+  it("lists all time last, with short labels for phones", () => {
+    expect(RANGES.map((r) => r.value)).toEqual([
+      "7d",
+      "30d",
+      "90d",
+      "12m",
+      "all",
+    ]);
+    expect(RANGES.at(-1)).toEqual({
+      value: "all",
+      label: "All time",
+      short: "All",
+    });
+    expect(RANGES.every((r) => r.short.length > 0)).toBe(true);
+  });
+
+  it("parses all, and falls back to 30d for anything else", () => {
+    expect(parseRange("all")).toBe("all");
+    expect(parseRange("12m")).toBe("12m");
+    expect(parseRange("forever")).toBe("30d");
+    expect(parseRange(null)).toBe("30d");
+  });
+
+  it("reads all time in summaries and the last N elsewhere", () => {
+    expect(overRange("all")).toBe("over all time");
+    expect(overRange("30d")).toBe("over the last 30 days");
+    expect(overRange("12m")).toBe("over the last 12 months");
+  });
+});
 
 describe("formatMetric", () => {
   it("shows an em dash for no data", () => {

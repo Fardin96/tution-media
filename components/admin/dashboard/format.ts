@@ -1,5 +1,9 @@
 import { formatAmount } from "@/lib/admin";
-import type { MetricFormat } from "@/lib/admin-dashboard";
+import {
+  RANGES,
+  type DashboardRange,
+  type MetricFormat,
+} from "@/lib/admin-dashboard";
 
 const COUNT = new Intl.NumberFormat("en-US");
 const COMPACT = new Intl.NumberFormat("en-US", {
@@ -121,4 +125,11 @@ export function bucketOf(dates: string[]): "day" | "month" {
   const second = new Date(dates[1]!).getTime();
   const days = Math.abs(second - first) / 86_400_000;
   return days > 20 ? "month" : "day";
+}
+
+/** The period a summary covers: "over all time" or "over the last 30 days". */
+export function overRange(range: DashboardRange) {
+  if (range === "all") return "over all time";
+  const label = RANGES.find((r) => r.value === range)?.label ?? range;
+  return `over the last ${label}`;
 }

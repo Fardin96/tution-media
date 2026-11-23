@@ -18,16 +18,32 @@ import {
 } from "@/components/ui/chart";
 import {
   COLOR_VAR,
-  RANGES,
   type DashboardRange,
   type SeriesPayload,
 } from "@/lib/admin-dashboard";
-import { bucketOf, formatBucket, formatCompact, formatMetric } from "./format";
+import {
+  bucketOf,
+  formatBucket,
+  formatCompact,
+  formatMetric,
+  overRange,
+} from "./format";
 
 const listFormat = new Intl.ListFormat("en", {
   style: "long",
   type: "conjunction",
 });
+
+/** Bars read well up to 14 points; past that each one is a few pixels wide, so the series draws as an area. */
+const MAX_BARS = 14;
+
+/** The chart a series draws as: a bar series with more than 14 points becomes a plain area. */
+export function chartKind({
+  chart,
+  points,
+}: Pick<SeriesPayload, "chart" | "points">): SeriesPayload["chart"] {
+  return chart === "bar" && points.length > MAX_BARS ? "area" : chart;
+}
 
 export function SeriesWidget({
   payload,
@@ -39,9 +55,11 @@ export function SeriesWidget({
   range: DashboardRange;
 }) {
   const reduce = useReducedMotion() ?? false;
-  const { chart, format, series, points, totals, note } = payload;
+  const { chart: declared, format, series, points, totals, note } = payload;
+  const chart = chartKind(payload);
+  // A bar series turned into an area keeps its lighter area fill.
+  const asArea = declared === "bar" && chart === "area";
   const bucket = bucketOf(points.map((p) => p.date));
-  const rangeLabel = RANGES.find((r) => r.value === range)?.label ?? range;
 
   const config: ChartConfig = Object.fromEntries(
     series.map((s) => [s.key, { label: s.label, color: COLOR_VAR[s.color] }]),
@@ -55,7 +73,7 @@ export function SeriesWidget({
       (s) =>
         `${formatMetric(totals[s.key] ?? null, format)} ${s.label.toLowerCase()}`,
     ),
-  )} over the last ${rangeLabel}.`;
+  )} ${overRange(range)}.`;
 
   const colour = (key: string) => `var(--color-${key})`;
   const labelOf = (key: string) => config[key]?.label ?? key;
@@ -71,6 +89,7 @@ export function SeriesWidget({
   const tooltip = (
     <ChartTooltip
       cursor={chart === "bar"}
+
       content={
         <ChartTooltipContent
           labelFormatter={(label) => formatBucket(String(label), bucket)}
@@ -106,13 +125,18 @@ export function SeriesWidget({
       tickLine={false}
       axisLine={false}
       tickMargin={8}
+      // Recharts drops ticks that would collide; the first and last dates stay.
+      interval="preserveStartEnd"
+      minTickGap={20}
+      tick={{ fontSize: 12 }}
       tickFormatter={(value: string) => formatBucket(value, bucket)}
     />,
     <YAxis
       key="y"
       tickLine={false}
       axisLine={false}
-      width={56}
+      width={52}
+      tick={{ fontSize: 12 }}
       tickFormatter={(value: number) => formatCompact(value, format)}
     />,
   ];
@@ -129,7 +153,7 @@ export function SeriesWidget({
             <span
               aria-hidden
               className="size-2.5 shrink-0 rounded-[2px]"
-              style={{ backgroundColor: colour(s.key) }}
+              style={{ backgroundColor: COLOR_VAR[s.color] }}
             />
             <span className="text-[var(--color-text-secondary)]">
               {s.label}
@@ -145,7 +169,9 @@ export function SeriesWidget({
           <BarChart
             accessibilityLayer
             data={data}
-            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            margin={{ top: 8, right: 20, bottom: 0, left: 0 }}
+            barCategoryGap="15%"
+            barGap={2}
           >
             {axes}
             {tooltip}
@@ -164,7 +190,7 @@ export function SeriesWidget({
           <AreaChart
             accessibilityLayer
             data={data}
-            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            margin={{ top: 8, right: 20, bottom: 0, left: 0 }}
           >
             {axes}
             {tooltip}
@@ -176,7 +202,7 @@ export function SeriesWidget({
                 stackId={chart === "stacked-area" ? "stack" : undefined}
                 stroke={colour(s.key)}
                 fill={colour(s.key)}
-                fillOpacity={0.2}
+                fillOpacity={asArea ? 0.15 : 0.2}
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={!reduce}

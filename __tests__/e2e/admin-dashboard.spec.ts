@@ -40,13 +40,20 @@ function widgetOrder(page: Page) {
     );
 }
 
-/** Ctrl+K, type a query and press Enter on the first match. */
+/** Control+K opens the admin palette, then type a query. Enter picks the best match. */
 async function findAndPick(page: Page, query: string) {
-  await page.keyboard.press("Control+k");
-  const finder = page.getByRole("combobox", { name: "Find a widget or page" });
-  await expect(finder).toBeFocused();
-  await finder.pressSequentially(query);
-  return finder;
+  const search = page.getByRole("combobox", { name: "Search admin" });
+  // The shortcut listens after hydration, so a key pressed right after goto can be lost. Retry until it opens.
+  await expect(async () => {
+    await page.keyboard.press("Control+k");
+    await expect(search).toBeFocused({ timeout: 500 });
+  }).toPass();
+  await search.pressSequentially(query);
+  return search;
+}
+
+function palette(page: Page) {
+  return page.getByRole("dialog", { name: "Search admin" });
 }
 
 /** Jumping to a widget scrolls it into view, blinks it and focuses its card. */
@@ -73,8 +80,11 @@ test.describe("Admin dashboard", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Dashboard" }),
     ).toBeVisible();
+    // The flagged step's percent is already shown on the step, so only the change is repeated.
     await expect(
-      page.getByText("38%, down 7 pts on the previous 30 days"),
+      page.getByText("Down 7 pts on the previous 30 days", {
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { level: 2, name: "Monthly active users" }),
@@ -187,27 +197,63 @@ test.describe("Admin dashboard", () => {
     expect(api.writes).toEqual([]);
   });
 
-  test("Control+K opens the finder and jumps to a widget that is on the page", async ({
+  test("Control+K opens the palette and jumps to a widget that is on the page", async ({
     page,
     context,
   }) => {
     await signIn(context);
     await openDashboard(page);
 
-    const finder = await findAndPick(page, "mau");
-    await expect(page.getByRole("option").first()).toContainText(
-      "Monthly active users",
-    );
+    await findAndPick(page, "mau");
+    await expect(
+      page.getByRole("option", { name: /Monthly active users/ }),
+    ).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("Enter");
 
-    await expect(finder).toHaveValue("");
+    await expect(palette(page)).toBeHidden();
     await expectBlinkAndFocus(page, "mau");
+  });
+
+  test("Control+K from another admin page adds nothing and jumps to a dashboard widget", async ({
+    page,
+    context,
+  }) => {
+    await signIn(context);
+    await page.goto("/dashboard/admin/payments");
+
+    await findAndPick(page, "mau");
+    // Enter picks the best match, so wait for the widget (which loads with the layout) first.
+    await expect(
+      palette(page).getByRole("option", { name: /Monthly active users/ }),
+    ).toBeVisible();
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/dashboard\/admin$/);
+    await expectBlinkAndFocus(page, "mau");
+  });
+
+  test("Control+K finds a person and opens their account", async ({
+    page,
+    context,
+  }) => {
+    await signIn(context);
+    await page.goto("/dashboard/admin/payments");
+
+    await findAndPick(page, "nusrat");
+    const person = page
+      .getByRole("group", { name: "People" })
+      .getByRole("option", { name: /Nusrat Jahan/ });
+    await expect(person).toBeVisible();
+    await expect(person).toContainText("nusrat@example.test");
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/dashboard\/admin\/accounts\/t_1$/);
   });
 
   test.describe("with reduced motion", () => {
     test.use({ reducedMotion: "reduce" });
 
-    test("the finder still jumps, blinks and focuses the widget", async ({
+    test("the palette still jumps, blinks and focuses the widget", async ({
       page,
       context,
     }) => {
@@ -221,7 +267,7 @@ test.describe("Admin dashboard", () => {
     });
   });
 
-  test("adding a widget from the finder saves it and jumps to it", async ({
+  test("adding a widget from the palette saves it and jumps to it", async ({
     page,
     context,
   }) => {
@@ -229,8 +275,7 @@ test.describe("Admin dashboard", () => {
     await openDashboard(page);
 
     await findAndPick(page, "fill rate");
-    const first = page.getByRole("option").first();
-    await expect(first).toContainText("Fill rate");
+    const first = page.getByRole("option", { name: /Fill rate/ });
     await expect(first).toContainText("Not on your dashboard");
     await page.keyboard.press("Enter");
 
@@ -245,7 +290,7 @@ test.describe("Admin dashboard", () => {
     ]);
   });
 
-  test("the finder opens a page from the admin nav", async ({
+  test("the palette opens a page from the admin nav", async ({
     page,
     context,
   }) => {
@@ -254,9 +299,8 @@ test.describe("Admin dashboard", () => {
 
     await findAndPick(page, "refunds");
     await page
-      .getByRole("option")
-      .filter({ hasText: "Page" })
-      .filter({ hasText: "Refunds" })
+      .getByRole("group", { name: "Pages" })
+      .getByRole("option", { name: /Refunds/ })
       .click();
 
     await expect(page).toHaveURL(/\/dashboard\/admin\/refunds$/);

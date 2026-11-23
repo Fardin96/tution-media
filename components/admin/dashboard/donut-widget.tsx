@@ -34,68 +34,70 @@ export function DonutWidget({
   const data = slices.map((s) => ({ name: s.label, value: s.value }));
 
   return (
-    <figure className="flex flex-col items-center gap-6 sm:flex-row">
-      <figcaption className="sr-only">{summary}</figcaption>
-      <div aria-hidden="true" className="relative size-[200px] shrink-0">
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-          initialDimension={{ width: 1, height: 1 }}
-        >
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius="60%"
-              outerRadius="100%"
-              paddingAngle={2}
-              stroke="var(--color-neutral-white)"
-              strokeWidth={2}
-              isAnimationActive={!reduce}
-            >
-              {slices.map((s) => (
-                <Cell key={s.key} fill={COLOR_VAR[s.color]} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-xs text-[var(--color-text-secondary)]">
-            {center.label}
-          </span>
-          <span className="text-xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] tabular-nums">
-            {formatMetric(center.value, center.format)}
-          </span>
+    <figure className="@container">
+      <div className="flex flex-col items-center gap-6 @md:flex-row">
+        <figcaption className="sr-only">{summary}</figcaption>
+        <div aria-hidden="true" className="relative size-[176px] shrink-0">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={{ width: 1, height: 1 }}
+          >
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius="60%"
+                outerRadius="100%"
+                paddingAngle={2}
+                stroke="var(--color-neutral-white)"
+                strokeWidth={2}
+                isAnimationActive={!reduce}
+              >
+                {slices.map((s) => (
+                  <Cell key={s.key} fill={COLOR_VAR[s.color]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              {center.label}
+            </span>
+            <span className="text-xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] tabular-nums">
+              {formatMetric(center.value, center.format)}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="flex w-full min-w-0 flex-col gap-3">
-        <ul aria-hidden="true" className="grid gap-2 text-sm">
-          {slices.map((s) => (
-            <li key={s.key} className="flex items-center gap-3">
-              <span
-                aria-hidden="true"
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: COLOR_VAR[s.color] }}
-              />
-              <span className="min-w-0 flex-1 text-[var(--color-neutral-charcoal)]">
-                {s.label}
-              </span>
-              <span className="font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
-                {formatMetric(s.value, format)}
-              </span>
-              <span className="w-12 text-right text-[var(--color-text-secondary)] tabular-nums">
-                {formatMetric(s.value / total, "percent")}
-              </span>
-            </li>
-          ))}
-        </ul>
-        {note && (
-          <p className="text-xs text-pretty text-[var(--color-text-secondary)]">
-            {note}
-          </p>
-        )}
+        <div className="flex w-full min-w-0 flex-col gap-3">
+          <ul aria-hidden="true" className="grid gap-2 text-sm">
+            {slices.map((s) => (
+              <li key={s.key} className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="size-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: COLOR_VAR[s.color] }}
+                />
+                <span className="min-w-0 flex-1 text-[var(--color-neutral-charcoal)]">
+                  {s.label}
+                </span>
+                <span className="font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
+                  {formatMetric(s.value, format)}
+                </span>
+                <span className="w-12 text-right text-[var(--color-text-secondary)] tabular-nums">
+                  {formatMetric(s.value / total, "percent")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {note && (
+            <p className="text-xs text-pretty text-[var(--color-text-secondary)]">
+              {note}
+            </p>
+          )}
+        </div>
       </div>
 
       <table className="sr-only">
