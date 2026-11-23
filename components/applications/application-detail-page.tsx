@@ -20,6 +20,7 @@ import {
   whatsappHref,
 } from "@/components/applications/format";
 import { Rows, Section } from "@/components/applications/detail-sections";
+import { StudentLocation } from "@/components/applications/student-location";
 import {
   TutorProfileSection,
   TutorSetSection,
@@ -252,6 +253,12 @@ export function ApplicationDetailPage({
                 Contact details appear once the application is accepted.
               </p>
             )}
+          </Section>
+        )}
+
+        {app.studentLocation && (
+          <Section title="Student's location">
+            <StudentLocation location={app.studentLocation} />
           </Section>
         )}
 

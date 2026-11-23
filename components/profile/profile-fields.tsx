@@ -34,6 +34,8 @@ interface ProfileFieldsProps {
   inlineErrors?: boolean;
   /** One field shown read-only with its own hint and an action (e.g. a phone that must be verified to change). */
   locked?: LockedField;
+  /** The address field reports when its lookup starts or ends. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 export interface LockedField {
@@ -49,6 +51,7 @@ export function ProfileFields({
   onChange,
   inlineErrors = true,
   locked,
+  onBusyChange,
 }: ProfileFieldsProps) {
   return (
     <div className="grid gap-6">
@@ -61,6 +64,7 @@ export function ProfileFields({
           onChange={onChange}
           inlineErrors={inlineErrors}
           locked={locked?.key === field.key ? locked : undefined}
+          onBusyChange={onBusyChange}
         />
       ))}
     </div>
@@ -74,6 +78,7 @@ function Field({
   onChange,
   inlineErrors,
   locked,
+  onBusyChange,
 }: {
   field: FieldDef;
   form: ProfileForm;
@@ -81,6 +86,7 @@ function Field({
   onChange: ProfileFieldsProps["onChange"];
   inlineErrors: boolean;
   locked?: LockedField;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -163,6 +169,7 @@ function Field({
             longitude: form.longitude,
             district: form.district,
             districtName: form.districtName,
+            source: form.source,
           }}
           label={field.label}
           placeholder={field.placeholder}
@@ -172,8 +179,10 @@ function Field({
           optional={field.optional}
           describedBy={describedBy}
           autoComplete={field.autoComplete}
+          onBusyChange={onBusyChange}
           onChange={(value) =>
             onChange({
+              source: value.source,
               address: value.address,
               placeId: value.placeId,
               latitude: value.latitude,

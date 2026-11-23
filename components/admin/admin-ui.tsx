@@ -317,6 +317,7 @@ export function AdminDialog({
   title,
   description,
   busy = false,
+  onCloseAutoFocus,
   children,
 }: {
   open: boolean;
@@ -324,6 +325,10 @@ export function AdminDialog({
   title: string;
   description?: React.ReactNode;
   busy?: boolean;
+  /** Radix hook for where focus lands on close; call preventDefault to pick a different target. */
+  onCloseAutoFocus?: React.ComponentProps<
+    typeof DialogContent
+  >["onCloseAutoFocus"];
   children: React.ReactNode;
 }) {
   return (
@@ -337,6 +342,7 @@ export function AdminDialog({
       <DialogPortal>
         <DialogOverlay className="fixed inset-0 z-50 bg-black/40" />
         <DialogContent
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cn(
             "fixed start-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overscroll-contain rounded-[24px] bg-[var(--color-neutral-white)] p-6 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-12px_rgb(0_0_0/0.08)] focus:outline-none rtl:translate-x-1/2",
           )}

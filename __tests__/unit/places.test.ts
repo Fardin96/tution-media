@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   fetchPlacePredictions,
   fetchPlaceDetails,
+  fetchReverseGeocode,
   makeSessionToken,
+  PlaceLookupError,
   pickedPlaceLabel,
 } from "@/lib/places";
 
@@ -200,5 +202,102 @@ describe("fetchPlaceDetails", () => {
     await expect(fetchPlaceDetails("ChIJ123", "token-1")).rejects.toThrow(
       "Pick a location in Bangladesh.",
     );
+  });
+});
+
+describe("fetchReverseGeocode", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts lat and lng to the reverse proxy and returns the address", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          formattedAddress: "Dhaka",
+          placeId: "ChIJ-pin",
+          district: "Dhaka",
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await fetchReverseGeocode(23.7465, 90.376);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/places/reverse",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ lat: 23.7465, lng: 90.376 }),
+      }),
+    );
+    expect(result).toEqual({
+      formattedAddress: "Dhaka",
+      placeId: "ChIJ-pin",
+      district: "Dhaka",
+    });
+  });
+
+  it("posts the placeId of a clicked POI when there is one", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          formattedAddress: "Dhaka College, Dhaka",
+          placeId: "ChIJ-poi",
+          district: "Dhaka",
+        }),
+        { status: 200 },
+      ),
+    );
+    await fetchReverseGeocode(23.7465, 90.376, "ChIJ-poi");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/places/reverse",
+      expect.objectContaining({
+        body: JSON.stringify({
+          lat: 23.7465,
+          lng: 90.376,
+          placeId: "ChIJ-poi",
+        }),
+      }),
+    );
+  });
+
+  it("throws the proxy's message and status on a 422", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "No address found here." }), {
+        status: 422,
+      }),
+    );
+    const err = await fetchReverseGeocode(23.7, 90.4).catch((e) => e);
+    expect(err).toBeInstanceOf(PlaceLookupError);
+    expect(err).toMatchObject({
+      message: "No address found here.",
+      status: 422,
+    });
+  });
+
+  it("throws the fallback message on a 502, whatever the body says", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ message: "Couldn't look up that spot. Try again." }),
+        {
+          status: 502,
+        },
+      ),
+    );
+    const err = await fetchReverseGeocode(23.7, 90.4).catch((e) => e);
+    expect(err).toMatchObject({
+      message: "Couldn't look up that spot. Try again.",
+      status: 502,
+    });
+  });
+
+  it("throws the fallback message when the error body is not JSON", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html>bad gateway</html>", { status: 502 }),
+    );
+    const err = await fetchReverseGeocode(23.7, 90.4).catch((e) => e);
+    expect(err).toMatchObject({
+      message: "Couldn't find an address there.",
+      status: 502,
+    });
   });
 });

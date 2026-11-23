@@ -10,6 +10,7 @@ import {
 } from "@/lib/education";
 import { optionName, type Option } from "@/lib/profile";
 import { durationLabel } from "@/lib/packages";
+import type { Schemas } from "@/lib/api-client";
 import { formatTaka, formatTime } from "@/lib/requirements";
 import type { Application } from "@/lib/applications";
 
@@ -149,6 +150,23 @@ export function genderLabel(gender: "MALE" | "FEMALE" | "OTHER"): string {
 /** WhatsApp click-to-chat needs digits only, with the country code. */
 export function whatsappHref(number: string): string {
   return `https://wa.me/${number.replace(/\D/g, "")}`;
+}
+
+/** Google Maps directions to the student. The exact pin wins; the address is the fallback. */
+export function directionsUrl(
+  location: Schemas["ApplicationStudentLocation"],
+): string {
+  const { address, lat, lng, placeId } = location;
+  if (lat !== null && lng !== null) {
+    const placeParam = placeId
+      ? `&destination_place_id=${encodeURIComponent(placeId)}`
+      : "";
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${placeParam}`;
+  }
+  const base = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+  return placeId
+    ? `${base}&destination_place_id=${encodeURIComponent(placeId)}`
+    : base;
 }
 
 /** An application is closed for the counterpart once the target is taken and this one did not win. */

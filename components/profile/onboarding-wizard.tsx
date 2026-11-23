@@ -98,6 +98,8 @@ export function OnboardingWizard({
   const [form, setForm] = useState<ProfileForm>(() => emptyForm(defaultName));
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  // The address lookup holds Continue until it settles.
+  const [addressBusy, setAddressBusy] = useState(false);
   // Set while the final save runs and kept on success until the router leaves the page.
   const [finishing, setFinishing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -210,7 +212,7 @@ export function OnboardingWizard({
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Enter in a field must not start a second save while one is in flight.
-    if (saving || finishing) return;
+    if (saving || finishing || addressBusy) return;
     const found = validate(current.fields, form);
     if (Object.keys(found).length) {
       showErrorsInSequence(
@@ -395,6 +397,7 @@ export function OnboardingWizard({
                         errors={errors}
                         onChange={update}
                         inlineErrors={false}
+                        onBusyChange={setAddressBusy}
                       />
                     </div>
                   )}
@@ -429,7 +432,7 @@ export function OnboardingWizard({
               )}
               <button
                 type="submit"
-                disabled={checking || saving || nextBlocked}
+                disabled={checking || saving || addressBusy || nextBlocked}
                 aria-busy={saving || undefined}
                 aria-describedby={
                   nextBlocked && !phoneStatus.isPending

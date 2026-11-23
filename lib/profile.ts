@@ -97,6 +97,8 @@ export interface ProfileForm {
   district: string | null;
   /** Shown beside the district code after a reload. Not sent to the API. */
   districtName: string | null;
+  /** "pin": saved as a PIN location, which has no place id and never expires. Default "place". */
+  source?: "place" | "pin";
   parentsInfo: string;
   /** Student: exactly one area. Tutor: areas they teach in. */
   areaIds: number[];
@@ -202,7 +204,7 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
       description: "Where tuition will take place.",
       fields: [
         { key: "areaIds", kind: "area", label: "Area" },
-        { ...address, hint: "Your detailed address stays private." },
+        { ...address, hint: "Only a tutor you hire sees this." },
       ],
     },
   ],
@@ -303,6 +305,7 @@ export function formFromProfile(
     longitude: profile.location?.lng ?? null,
     district: profile.location?.districtCode || null,
     districtName: profile.location?.districtName ?? null,
+    source: profile.location?.placeId ? "place" : "pin",
     parentsInfo: "parentsInfo" in profile ? (profile.parentsInfo ?? "") : "",
     areaIds: "areaId" in profile ? [profile.areaId] : (extras.areaIds ?? []),
     subjectIds: extras.subjectIds ?? [],
@@ -328,6 +331,15 @@ export function validate(fields: FieldDef[], form: ProfileForm): FormErrors {
       continue;
     }
     if (typeof value !== "string") continue;
+    // A location needs its district: the district is what matching uses.
+    if (
+      f.kind === "address" &&
+      form.latitude != null &&
+      !form.district?.trim()
+    ) {
+      errors[f.key] = "Enter your district or move the pin.";
+      continue;
+    }
     const text = value.trim();
     if (!text) {
       if (!f.optional)
@@ -389,18 +401,20 @@ export function toPayload(
       const address = form.address.trim();
       body.address = address;
       const district = form.district?.trim();
+      // A pin is saved without a place id, so the API keeps it as a PIN location.
+      const pin = form.source === "pin";
       if (
-        form.placeId &&
         district &&
         form.latitude != null &&
-        form.longitude != null
+        form.longitude != null &&
+        (form.placeId || pin)
       )
         body.location = {
           lat: form.latitude,
           lng: form.longitude,
           addressText: address,
           district,
-          placeId: form.placeId,
+          ...(pin ? {} : { placeId: form.placeId }),
         };
       continue;
     }

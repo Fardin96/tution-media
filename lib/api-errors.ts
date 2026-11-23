@@ -79,6 +79,8 @@ export const ERROR_CODES = {
   SmsUnavailable: "SMS_UNAVAILABLE",
   InviteExists: "INVITE_EXISTS",
   InviteLimitReached: "INVITE_LIMIT_REACHED",
+  AccountExists: "ACCOUNT_EXISTS",
+  SuperAdminEmail: "SUPER_ADMIN_EMAIL",
   RequirementDuplicate: "REQUIREMENT_DUPLICATE",
 } as const satisfies Record<string, ErrorCode>;
 
@@ -274,6 +276,9 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "We couldn't send the SMS right now. Try again in a few minutes.",
   INVITE_EXISTS: "You already invited this tutor.",
   INVITE_LIMIT_REACHED: "You can invite up to 20 tutors to one tuition.",
+  ACCOUNT_EXISTS: "This email already has an account, so it can't be invited.",
+  SUPER_ADMIN_EMAIL:
+    "This email belongs to a super admin. They can sign in without an invite.",
   REQUIREMENT_DUPLICATE:
     "You already have an open requirement like this one. Edit it instead.",
 };

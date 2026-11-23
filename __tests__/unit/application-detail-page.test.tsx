@@ -134,6 +134,7 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
     },
     allowedActions: [],
     counterpartContact: null,
+    studentLocation: null,
     fee: null,
     tutorProfile: {
       id: "t1",
@@ -382,6 +383,39 @@ describe("ApplicationDetailPage back link", () => {
     expect(
       await screen.findByRole("link", { name: "Applications" }),
     ).toHaveAttribute("href", "/dashboard/applications");
+  });
+});
+
+describe("ApplicationDetailPage student location", () => {
+  const LOCATION = {
+    address: "House 12, Road 5, Dhanmondi, Dhaka",
+    lat: null,
+    lng: null,
+    placeId: null,
+  };
+
+  it("shows the student's location to the tutor once accepted", async () => {
+    mockDetail(detail({ status: "CONFIRMED", studentLocation: LOCATION }));
+    renderPage("TUTOR");
+
+    expect(
+      await screen.findByRole("heading", { name: "Student's location" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Get directions (opens Google Maps)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the section when the API sends no location", async () => {
+    mockDetail(detail({ status: "CONFIRMED", studentLocation: null }));
+    renderPage("TUTOR");
+
+    expect(
+      await screen.findByRole("heading", { name: "Tuition" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Student's location" }),
+    ).not.toBeInTheDocument();
   });
 });
 

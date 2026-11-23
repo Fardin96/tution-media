@@ -82,7 +82,7 @@ export interface paths {
     put?: never;
     /**
      * Sign in or sign up with Google
-     * @description Verifies the Google ID token. Sign-up sends role (and optionally consentVersion); sign-in omits role. An unknown Google account with no role gets 404. A blocked account, or a deleted account signing in without a role, gets 403. Returns an access token and a refresh token.
+     * @description Verifies the Google ID token. Sign-up sends role (and optionally consentVersion); sign-in omits role. An unknown Google account with no role gets 404. A blocked account, or a deleted account signing in without a role, gets 403. An unknown Google account with an open admin invite (no role, or role ADMIN) and a verified email becomes an ACTIVE admin; 403 if the inviter is no longer an active super admin; 409 if the invite was used or revoked at the same moment. Returns an access token and a refresh token.
      *
      *     **Who:** Public.
      *
@@ -130,6 +130,15 @@ export interface paths {
         };
         /** @description Not found */
         404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
           headers: {
             [name: string]: unknown;
           };
@@ -10891,6 +10900,267 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/admins/invites": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List admin invites
+     * @description Super admins only. Open invites, newest first, capped at 200. Expired invites stay listed with expired true until they are replaced or revoked.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminInviteList"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Invite a new admin by email
+     * @description Super admins only. The invited Google account becomes an ACTIVE admin on its next sign-in (POST /auth/google, no role). Invites last 14 days. 409 ACCOUNT_EXISTS if the email already has an account, SUPER_ADMIN_EMAIL for a super admin's email, INVITE_EXISTS if an open invite exists (an expired one is replaced).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateAdminInviteInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminInvite"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/admins/invites/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Revoke an admin invite
+     * @description Super admins only. Deletes the open invite. 404 if it does not exist.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description No content */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/admin/accounts": {
     parameters: {
       query?: never;
@@ -19977,6 +20247,20 @@ export interface components {
         totalBytes: number;
       }[];
     };
+    AdminInvite: {
+      /** Format: uuid */
+      id: string;
+      email: string;
+      invitedByName: string;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      expiresAt: string;
+      expired: boolean;
+    };
+    AdminInviteList: {
+      invites: components["schemas"]["AdminInvite"][];
+    };
     AdminPackage: {
       id: string;
       tutor: {
@@ -20767,6 +21051,8 @@ export interface components {
         "confirm" | "reject" | "withdraw" | "reopen" | "cancel" | "complete"
       )[];
       counterpartContact: components["schemas"]["ApplicationContact"] | null;
+      studentLocation:
+        components["schemas"]["ApplicationStudentLocation"] | null;
       fee: components["schemas"]["ApplicationFee"] | null;
       tutorProfile: components["schemas"]["ApplicationTutorProfile"] | null;
       tutorSet: components["schemas"]["ApplicationTutorSet"] | null;
@@ -20789,6 +21075,12 @@ export interface components {
       name: string;
       areaId: number;
       avatarUrl: string | null;
+    };
+    ApplicationStudentLocation: {
+      address: string;
+      lat: number | null;
+      lng: number | null;
+      placeId: string | null;
     };
     ApplicationTarget: {
       /** @enum {string} */
@@ -21142,6 +21434,10 @@ export interface components {
     ConsentResult: {
       consentVersion: string | null;
       consentAcceptedAt: string | null;
+    };
+    CreateAdminInviteInput: {
+      /** Format: email */
+      email: string;
     };
     CreateAreaInput: {
       /** @enum {string} */
@@ -21723,6 +22019,8 @@ export interface components {
       | "SMS_UNAVAILABLE"
       | "INVITE_EXISTS"
       | "INVITE_LIMIT_REACHED"
+      | "ACCOUNT_EXISTS"
+      | "SUPER_ADMIN_EMAIL"
       | "REQUIREMENT_DUPLICATE"
       | "STORY_LIMIT_REACHED"
       | "STORY_PENDING"
