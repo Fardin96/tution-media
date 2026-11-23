@@ -101,7 +101,24 @@ const flaggedTutors: FunnelPayload = {
   ],
 };
 
+// Decorative copies (the in-bar figures) are aria-hidden.
+const HIDDEN = '[aria-hidden="true"] *';
+
 describe("FunnelWidget", () => {
+  it("puts a split-colour figure in each bar: the count first, then the share that moved on", () => {
+    const { container } = render(<FunnelWidget payload={flaggedPlacement} />);
+    const bars = container.querySelectorAll(
+      'ol[aria-label="Placement steps"] [aria-hidden="true"].h-48',
+    );
+    // Each figure is drawn twice: in the bar colour, and in white clipped to the bar.
+    expect(within(bars[0] as HTMLElement).getAllByText("100")).toHaveLength(2);
+    expect(within(bars[1] as HTMLElement).getAllByText("40")).toHaveLength(2);
+    expect(within(bars[1] as HTMLElement).getAllByText("%")).toHaveLength(2);
+    expect(
+      (bars[1] as HTMLElement).querySelector('[style*="clip-path"]'),
+    ).not.toBeNull();
+  });
+
   it("numbers each step in order with its count", () => {
     render(<FunnelWidget payload={flaggedPlacement} />);
     const steps = within(
@@ -110,10 +127,14 @@ describe("FunnelWidget", () => {
     expect(steps).toHaveLength(2);
     expect(within(steps[0]).getByText("1.")).toBeInTheDocument();
     expect(within(steps[0]).getByText("Applied")).toBeInTheDocument();
-    expect(within(steps[0]).getByText("100")).toBeInTheDocument();
+    expect(
+      within(steps[0]).getByText("100", { ignore: HIDDEN }),
+    ).toBeInTheDocument();
     expect(within(steps[1]).getByText("2.")).toBeInTheDocument();
     expect(within(steps[1]).getByText("Accepted")).toBeInTheDocument();
-    expect(within(steps[1]).getByText("40")).toBeInTheDocument();
+    expect(
+      within(steps[1]).getByText("40", { ignore: HIDDEN }),
+    ).toBeInTheDocument();
   });
 
   it("says where the funnel starts instead of a conversion on the first step", () => {

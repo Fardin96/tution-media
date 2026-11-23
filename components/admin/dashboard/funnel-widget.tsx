@@ -101,8 +101,9 @@ export function FunnelWidget({ payload }: { payload: FunnelPayload }) {
 
       <p className="text-xs text-pretty text-[var(--color-text-secondary)]">
         Each bar is a share of the first step. The pale bar behind it is the
-        step before, so the gap between them is who dropped off. Recent sign-ups
-        may still move on.
+        step before, so the gap between them is who dropped off. The number in a
+        bar is the share of the step before that moved on. Recent sign-ups may
+        still move on.
       </p>
     </div>
   );
@@ -198,10 +199,10 @@ function Step({
         />
       </div>
 
-      {/* Wide: a column rising from a shared baseline. */}
+      {/* Wide: a column rising from a shared baseline, its headline figure split by the bar edge. */}
       <div
         aria-hidden="true"
-        className="relative hidden h-40 overflow-hidden rounded-[12px] bg-[var(--color-surface-subtle)] @2xl:block"
+        className="[container-type:inline-size] relative hidden h-48 overflow-hidden rounded-[12px] bg-[var(--color-surface-subtle)] @2xl:block"
       >
         <div
           className="absolute inset-x-0 bottom-0 rounded-t-[12px] bg-[var(--color-secondary-sky)]"
@@ -209,13 +210,25 @@ function Step({
         />
         <div
           className="absolute inset-x-0 bottom-0 rounded-t-[12px]"
-          style={{ height: `${bar}%`, backgroundColor: fill }}
+          style={{
+            height: `${bar}%`,
+            // Darkens within its own hue (blue or amber), with a hairline highlight on the top edge.
+            backgroundImage: `linear-gradient(180deg, ${fill}, color-mix(in oklab, ${fill} 84%, black))`,
+            boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.28)",
+          }}
+        />
+        <SplitFigure
+          bar={bar}
+          color={fill}
+          value={previous ? stage.conversion : stage.count}
+          percent={previous !== null}
         />
       </div>
 
       {previous ? (
         <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm tabular-nums @2xl:flex-col">
-          <div className="flex gap-1">
+          {/* Wide cards show this figure inside the bar, so the text stays for screen readers only. */}
+          <div className="flex gap-1 @2xl:sr-only">
             <dt className="sr-only">Moved on</dt>
             <dd
               className={cn(
@@ -255,5 +268,60 @@ function Step({
         </p>
       )}
     </li>
+  );
+}
+
+/** Big figures stay readable: 12,480 becomes "12.5K". */
+const compact = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+/**
+ * The column's headline figure, centred on the bar's top edge. It is drawn twice: in the bar
+ * colour over the empty track, and in white clipped to the bar, so the digits change colour
+ * exactly where the bar ends. Clamped so it never leaves the column.
+ */
+function SplitFigure({
+  bar,
+  color,
+  value,
+  percent,
+}: {
+  bar: number;
+  color: string;
+  value: number | null;
+  percent: boolean;
+}) {
+  if (value === null) return null;
+  const digits = percent
+    ? String(Math.round(value * 100))
+    : value >= 10_000
+      ? compact.format(value)
+      : formatMetric(value, "count");
+  const centre = Math.min(Math.max(100 - bar, 26), 80);
+  const figure = (tone: string) => (
+    <span
+      className="absolute left-5 flex -translate-y-1/2 items-start text-[clamp(2.25rem,24cqi,3.5rem)] leading-none font-semibold tracking-[-0.045em] tabular-nums"
+      style={{ top: `${centre}%`, color: tone }}
+    >
+      {digits}
+      {percent && (
+        <span className="mt-[0.3em] ml-1 text-[0.45em] font-medium tracking-normal">
+          %
+        </span>
+      )}
+    </span>
+  );
+  return (
+    <>
+      {figure(color)}
+      <span
+        className="absolute inset-0"
+        style={{ clipPath: `inset(${100 - bar}% 0 0 0)` }}
+      >
+        {figure("var(--color-neutral-white)")}
+      </span>
+    </>
   );
 }
