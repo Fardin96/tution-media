@@ -50,6 +50,8 @@ export interface AuthSplitProps {
   hideSwitch?: boolean;
   /** Fixed role sent to the backend (e.g. ADMIN). When omitted on sign-up the user picks Student/Tutor. */
   role?: Extract<UserRole, "STUDENT" | "TUTOR" | "ADMIN">;
+  /** A safe return path (see safeNext). It follows the user across the sign-in / sign-up switch. */
+  next?: string;
 }
 
 // Soft brand-blue light wash; drifts via the hero's mesh animation layer.
@@ -59,6 +61,11 @@ const PANEL_WASH = [
   "radial-gradient(45% 40% at 80% 18%, var(--color-secondary-sky), transparent 70%)",
   "radial-gradient(40% 35% at 15% 90%, var(--color-secondary-sky), transparent 70%)",
 ].join(",");
+
+/** Carries the return path across the sign-in / sign-up switch. */
+function withNext(path: string, next: string | undefined) {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
 
 const enter =
   "animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500 ease-out motion-reduce:animate-none";
@@ -74,6 +81,7 @@ export function AuthSplit({
   description,
   hideSwitch = false,
   role: fixedRole,
+  next,
 }: AuthSplitProps) {
   const copy = COPY[mode];
   const router = useRouter();
@@ -86,12 +94,12 @@ export function AuthSplit({
           ? {
               action: {
                 label: "Sign up",
-                onClick: () => router.push("/sign-up"),
+                onClick: () => router.push(withNext("/sign-up", next)),
               },
             }
           : undefined,
       ),
-    [router],
+    [router, next],
   );
 
   const showRolePicker = mode === "sign-up" && !fixedRole;
@@ -149,6 +157,7 @@ export function AuthSplit({
               role={effectiveRole}
               disabled={!canSubmit}
               onError={onError}
+              next={next}
             />
           </div>
 
@@ -167,7 +176,7 @@ export function AuthSplit({
             >
               {copy.switchText}{" "}
               <Link
-                href={copy.switchHref}
+                href={withNext(copy.switchHref, next)}
                 className="rounded-sm font-semibold text-[var(--color-primary-core)] underline-offset-4 transition-colors duration-150 hover:text-[var(--color-primary-hover)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary-core)]"
               >
                 {copy.switchLabel}

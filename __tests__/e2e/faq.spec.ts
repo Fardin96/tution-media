@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("FAQ: 04 starts open, one answer at a time, keyboard works, View All links to sign in", async ({
+test("FAQ: 04 starts open, one answer at a time, keyboard works, no View All link", async ({
   page,
 }) => {
   await page.goto("/");
@@ -27,8 +27,5 @@ test("FAQ: 04 starts open, one answer at a time, keyboard works, View All links 
   await page.keyboard.press("Enter");
   await expect.poll(expanded).toBe("00100");
 
-  await expect(faq.getByRole("link", { name: "View All" })).toHaveAttribute(
-    "href",
-    "/sign-in",
-  );
+  await expect(faq.getByRole("link", { name: "View All" })).toHaveCount(0);
 });

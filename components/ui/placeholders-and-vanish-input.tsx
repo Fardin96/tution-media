@@ -1,7 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type InputHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/utils";
 
 type Particle = { x: number; y: number; r: number; color: string };
@@ -9,6 +15,8 @@ type Particle = { x: number; y: number; r: number; color: string };
 /**
  * One input with rotating placeholders that vanishes into particles when its
  * parent <form> submits. The form owns submission; this only animates.
+ * Pass `value` and `onValueChange` to control the text; `inputProps` go on the
+ * <input> (name, value and change handling stay with this component).
  */
 export function PlaceholdersAndVanishInput({
   placeholders,
@@ -17,6 +25,9 @@ export function PlaceholdersAndVanishInput({
   type = "text",
   autoComplete,
   className,
+  value,
+  onValueChange,
+  inputProps,
 }: {
   placeholders: string[];
   name: string;
@@ -25,6 +36,12 @@ export function PlaceholdersAndVanishInput({
   type?: "text" | "search";
   autoComplete?: string;
   className?: string;
+  value?: string;
+  onValueChange?: (v: string) => void;
+  inputProps?: Omit<
+    InputHTMLAttributes<HTMLInputElement>,
+    "value" | "onChange" | "name" | "type"
+  >;
 }) {
   const reduceMotion = useReducedMotion();
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
@@ -52,8 +69,25 @@ export function PlaceholdersAndVanishInput({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState("");
+  const [ownValue, setOwnValue] = useState("");
+  const controlled = value !== undefined;
+  const current = controlled ? value : ownValue;
   const [animating, setAnimating] = useState(false);
+
+  // Latest callback in a ref, so an inline onValueChange does not change setValue, and with it
+  // the submit listener effect below, on every render.
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  });
+
+  const setValue = useCallback(
+    (next: string) => {
+      if (!controlled) setOwnValue(next);
+      onValueChangeRef.current?.(next);
+    },
+    [controlled],
+  );
 
   const draw = useCallback(() => {
     const input = inputRef.current;
@@ -87,41 +121,44 @@ export function PlaceholdersAndVanishInput({
     particlesRef.current = particles;
   }, []);
 
-  const animate = useCallback((start: number) => {
-    const frame = (pos: number) => {
-      requestAnimationFrame(() => {
-        const next: Particle[] = [];
-        for (const p of particlesRef.current) {
-          if (p.x < pos) next.push(p);
-          else if (p.r > 0) {
-            p.x += Math.random() > 0.5 ? 1 : -1;
-            p.y += Math.random() > 0.5 ? 1 : -1;
-            p.r -= 0.05 * Math.random();
-            next.push(p);
-          }
-        }
-        particlesRef.current = next;
-        const ctx = canvasRef.current?.getContext("2d");
-        if (ctx) {
-          ctx.clearRect(pos, 0, 800, 800);
-          for (const p of next) {
-            if (p.x > pos) {
-              ctx.beginPath();
-              ctx.rect(p.x, p.y, p.r, p.r);
-              ctx.strokeStyle = p.color;
-              ctx.stroke();
+  const animate = useCallback(
+    (start: number) => {
+      const frame = (pos: number) => {
+        requestAnimationFrame(() => {
+          const next: Particle[] = [];
+          for (const p of particlesRef.current) {
+            if (p.x < pos) next.push(p);
+            else if (p.r > 0) {
+              p.x += Math.random() > 0.5 ? 1 : -1;
+              p.y += Math.random() > 0.5 ? 1 : -1;
+              p.r -= 0.05 * Math.random();
+              next.push(p);
             }
           }
-        }
-        if (next.length > 0) frame(pos - 8);
-        else {
-          setValue("");
-          setAnimating(false);
-        }
-      });
-    };
-    frame(start);
-  }, []);
+          particlesRef.current = next;
+          const ctx = canvasRef.current?.getContext("2d");
+          if (ctx) {
+            ctx.clearRect(pos, 0, 800, 800);
+            for (const p of next) {
+              if (p.x > pos) {
+                ctx.beginPath();
+                ctx.rect(p.x, p.y, p.r, p.r);
+                ctx.strokeStyle = p.color;
+                ctx.stroke();
+              }
+            }
+          }
+          if (next.length > 0) frame(pos - 8);
+          else {
+            setValue("");
+            setAnimating(false);
+          }
+        });
+      };
+      frame(start);
+    },
+    [setValue],
+  );
 
   // Vanish when the surrounding form submits (the form reads the value first).
   useEffect(() => {
@@ -150,12 +187,13 @@ export function PlaceholdersAndVanishInput({
         )}
       />
       <input
+        {...inputProps}
         ref={inputRef}
         name={name}
         type={type}
         aria-label={label}
         autoComplete={autoComplete}
-        value={value}
+        value={current}
         onChange={(e) => !animating && setValue(e.target.value)}
         className={cn(
           "relative z-10 h-full w-full bg-transparent text-base text-[var(--color-neutral-charcoal)] outline-none [&::-webkit-search-cancel-button]:hidden",
@@ -166,7 +204,7 @@ export function PlaceholdersAndVanishInput({
       <div
         className={cn(
           "pointer-events-none absolute inset-0 flex items-center",
-          value && "invisible",
+          current && "invisible",
         )}
       >
         <AnimatePresence mode="wait" initial={false}>

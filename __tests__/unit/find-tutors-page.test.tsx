@@ -237,7 +237,7 @@ describe("FindTutorsPage tutors tab", () => {
   function mockTutors(path: string, tutors: unknown[]) {
     vi.mocked(apiFetch).mockImplementation(async (input: string) => {
       const { pathname } = new URL(String(input), "http://localhost");
-      if (pathname === path) return json({ tutors });
+      if (pathname === path) return json({ tutors, nextCursor: null });
       return json({ error: "unexpected" }, 500);
     });
   }

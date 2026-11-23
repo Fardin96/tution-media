@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { apiFetch } from "@/lib/api";
 import {
@@ -163,5 +163,93 @@ describe("GoogleSignInButton", () => {
 
     expect(onError).toHaveBeenCalledWith("This account is blocked.");
     expect(push).not.toHaveBeenCalled();
+  });
+
+  describe("after a successful sign-in", () => {
+    /** Routes the auth call to a token response and /me to the given profile shape. */
+    function signInAs(me: Record<string, unknown>) {
+      vi.mocked(apiFetch).mockImplementation(async (url) => {
+        if (String(url).endsWith("/api/v1/auth/google")) {
+          return new Response(
+            JSON.stringify({
+              accessToken: "a",
+              refreshToken: "r",
+              account: {
+                id: "acc",
+                role: "STUDENT",
+                email: "a@b.c",
+                status: "ACTIVE",
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        // GET /me wraps the profile in `account`.
+        return new Response(JSON.stringify({ account: me }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("{}", { status: 200 })),
+      );
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("returns an existing user to next", async () => {
+      signInAs({ role: "STUDENT", student: { id: "s1" } });
+      render(
+        <GoogleSignInButton
+          clientId="id"
+          mode="sign-in"
+          next="/tutors/abc?sort=emerging"
+        />,
+      );
+      await waitFor(() => expect(callback).toBeDefined());
+
+      await callback!({ credential: fakeJwt });
+
+      await waitFor(() =>
+        expect(push).toHaveBeenCalledWith("/tutors/abc?sort=emerging"),
+      );
+    });
+
+    it("goes to the dashboard when there is no next", async () => {
+      signInAs({ role: "STUDENT", student: { id: "s1" } });
+      render(<GoogleSignInButton clientId="id" mode="sign-in" />);
+      await waitFor(() => expect(callback).toBeDefined());
+
+      await callback!({ credential: fakeJwt });
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    });
+
+    it("new user goes to onboarding with next carried on", async () => {
+      signInAs({ role: "STUDENT", student: null, tutor: null });
+      render(
+        <GoogleSignInButton clientId="id" mode="sign-in" next="/tutors/abc" />,
+      );
+      await waitFor(() => expect(callback).toBeDefined());
+
+      await callback!({ credential: fakeJwt });
+
+      await waitFor(() =>
+        expect(push).toHaveBeenCalledWith("/onboarding?next=%2Ftutors%2Fabc"),
+      );
+    });
+
+    it("new user goes to onboarding without next when there is none", async () => {
+      signInAs({ role: "STUDENT", student: null, tutor: null });
+      render(<GoogleSignInButton clientId="id" mode="sign-in" />);
+      await waitFor(() => expect(callback).toBeDefined());
+
+      await callback!({ credential: fakeJwt });
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/onboarding"));
+    });
   });
 });

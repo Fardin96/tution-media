@@ -661,13 +661,6 @@ export function FaqEditor({
           </select>
         )}
       </Field>
-      <LinkInputs
-        label="View All button"
-        value={value.cta}
-        onChange={(cta) => onChange({ ...value, cta })}
-        errors={errors}
-        path="cta"
-      />
     </div>
   );
 }

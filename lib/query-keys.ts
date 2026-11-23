@@ -193,6 +193,9 @@ export const queryKeys = {
     package: (id: string) => ["browse", "package", id] as const,
     tutors: <F extends object>(filters: F) =>
       ["browse", "tutors", filters] as const,
+    /** The public /tutors list, keyed by the API-facing filters only. */
+    publicTutors: <F extends object>(filters: F) =>
+      ["browse", "tutors", "public", filters] as const,
     nearbyTutors: (radiusMeters: number) =>
       ["browse", "tutors", "nearby", radiusMeters] as const,
   },

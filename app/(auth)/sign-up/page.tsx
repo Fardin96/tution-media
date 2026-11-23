@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import { AuthSplit } from "@/components/auth/auth-split";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata: Metadata = { title: "Sign up · Masters Hub" };
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   if (!clientId) {
     throw new Error("Missing GOOGLE_OAUTH_CLIENT_ID environment variable");
   }
-  return <AuthSplit mode="sign-up" clientId={clientId} />;
+  const next = safeNext((await searchParams).next);
+  return (
+    <AuthSplit mode="sign-up" clientId={clientId} next={next ?? undefined} />
+  );
 }
