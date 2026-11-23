@@ -100,7 +100,7 @@
 ## Testing quirks
 
 - **Unit tests**: `environment: "jsdom"`, globals enabled, setup at `vitest.setup.ts`. Include pattern: `__tests__/unit/**/*.{test,spec}.{ts,tsx}`.
-- **InputOTP in unit tests**: `__tests__/unit/phone-verifier.test.tsx` and `__tests__/unit/phone-verification-panel.test.tsx` stub `ResizeObserver` (`vi.stubGlobal`) and `document.elementFromPoint`, which input-otp needs and jsdom lacks. Any new test that renders `InputOTP` needs both stubs.
+- **InputOTP in unit tests**: `__tests__/unit/phone-verifier.test.tsx` and `__tests__/unit/phone-verification-panel.test.tsx` stub `ResizeObserver` (`vi.stubGlobal`) and `document.elementFromPoint`, which input-otp needs and jsdom lacks. Any new test that renders `InputOTP` needs both stubs. input-otp also leaves 0/10/50 ms timers after every value change, so a file that types into it on real timers waits 100 ms in `afterAll` (as `phone-verifier.test.tsx` does); otherwise CI can report "window is not defined" after jsdom tears down.
 - **Parity snapshots**: `__tests__/unit/__snapshots__/landing-parity.test.tsx.snap` must never be updated with `-u` unless the landing design itself changes on purpose.
 - **Site content tests**: `__tests__/unit/landing-parity.test.tsx`, `landing-content.test.tsx`, `site-content.test.ts`, `site-content-server.test.ts`, `site-page.test.tsx`, `site-pages-routes.test.tsx`, `admin-site-content.test.ts`, `admin-site-content-page.test.tsx`, `admin-site-content-media.test.tsx` (MediaField, with `support/upload-fake.ts` standing in for `useFileUpload`); e2e `__tests__/e2e/site-pages.spec.ts`.
 - **E2E tests**: Requires dev server running. `baseURL: http://localhost:3000`. Trace: `on-first-retry`. CI doubles retry count (`retries: 2`).
