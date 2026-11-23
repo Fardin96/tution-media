@@ -18,6 +18,7 @@ import { durationLabel, packageLevelText, priceLabel } from "@/lib/packages";
 import { daysSummary, formatTimeRange } from "@/lib/tutor-requirements";
 import { cn } from "@/lib/utils";
 import { RatingInline } from "./browse-ui";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 /** Students see where a package happens. Zone counts are private to the tutor. */
 export function studentPlaceText(
@@ -61,20 +62,23 @@ export function PackageCard({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--color-neutral-charcoal)]">
-        <span>
-          Taught by{" "}
-          <Link
-            href={`/tutors/${pkg.tutor.id}`}
-            className="rounded-sm font-medium text-[var(--color-neutral-charcoal)] underline-offset-4 hover:underline focus-visible:underline"
-          >
-            {pkg.tutor.name}
-          </Link>
-        </span>
-        <RatingInline
-          ratingAvg={pkg.tutor.ratingAvg}
-          ratingCount={pkg.tutor.ratingCount}
-        />
+      <div className="flex min-w-0 items-center gap-3">
+        <UserAvatar src={pkg.tutor.avatarUrl} name={pkg.tutor.name} size={32} />
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--color-neutral-charcoal)]">
+          <span>
+            Taught by{" "}
+            <Link
+              href={`/tutors/${pkg.tutor.id}`}
+              className="rounded-sm font-medium text-[var(--color-neutral-charcoal)] underline-offset-4 hover:underline focus-visible:underline"
+            >
+              {pkg.tutor.name}
+            </Link>
+          </span>
+          <RatingInline
+            ratingAvg={pkg.tutor.ratingAvg}
+            ratingCount={pkg.tutor.ratingCount}
+          />
+        </div>
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">

@@ -63,6 +63,7 @@ const side = (start: number, tag: string) =>
     key: `${tag}${k}`,
     repeat: true,
   }));
+// The centre four are above the fold on desktop, so they load eagerly; the repeats stay lazy.
 const photoRow = [
   ...side(n - 1, "l").reverse(),
   ...assets.photos.map((photo) => ({ photo, key: photo.id, repeat: false })),
@@ -88,6 +89,7 @@ export default function OurHeroes() {
               alt=""
               fill
               sizes="(min-width: 1024px) min(288px, 20vw), min(288px, calc(100vw - 72px))"
+              loading={repeat ? undefined : "eager"}
               className="object-cover"
             />
           </li>

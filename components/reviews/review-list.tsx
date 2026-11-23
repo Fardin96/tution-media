@@ -7,6 +7,7 @@ import { PendingLabel } from "@/components/ui/pending-label";
 import { formatDay } from "@/components/applications/format";
 import { enterClass, enterStyle } from "@/components/motion/enter";
 import { StarRating } from "@/components/reviews/star-rating";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   useStudentReviews,
   useTutorReviews,
@@ -129,23 +130,30 @@ export function ReviewListView({ query }: { query: ReviewQuery }) {
             )}
             style={enterStyle(index)}
           >
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              <StarRating value={review.rating} size="sm" />
-              <time
-                dateTime={review.createdAt}
-                className="text-xs text-[var(--color-text-secondary)] tabular-nums"
-              >
-                {formatDay(review.createdAt)}
-              </time>
+            <div className="flex items-center gap-3">
+              <UserAvatar
+                src={review.authorAvatarUrl}
+                name={review.authorName}
+                size={32}
+              />
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <p className="min-w-0 truncate text-sm font-semibold text-[var(--color-neutral-charcoal)]">
+                  {review.authorName}
+                </p>
+                <time
+                  dateTime={review.createdAt}
+                  className="text-xs text-[var(--color-text-secondary)] tabular-nums"
+                >
+                  {formatDay(review.createdAt)}
+                </time>
+              </div>
             </div>
+            <StarRating value={review.rating} size="sm" />
             {review.comment && (
               <p className="text-sm break-words whitespace-pre-line text-[var(--color-neutral-charcoal)]">
                 {review.comment}
               </p>
             )}
-            <p className="text-xs font-medium text-[var(--color-text-secondary)]">
-              {review.authorName}
-            </p>
           </li>
         ))}
       </ul>

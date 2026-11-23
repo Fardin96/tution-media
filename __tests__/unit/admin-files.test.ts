@@ -128,6 +128,7 @@ describe("removeFileText", () => {
 describe("PURPOSE_LABEL", () => {
   it("has a readable label for every purpose", () => {
     expect(PURPOSE_LABEL).toEqual({
+      AVATAR: "Profile picture",
       STUDENT_ID: "Student ID",
       TUTOR_ID: "Tutor ID",
       CREDENTIAL: "Credential",

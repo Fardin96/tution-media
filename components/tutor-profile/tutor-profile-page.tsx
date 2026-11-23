@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
-import {
-  ErrorBlock,
-  RatingInline,
-  TutorInitial,
-} from "@/components/browse/browse-ui";
+import { ErrorBlock, RatingInline } from "@/components/browse/browse-ui";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { TutorReviewList } from "@/components/reviews/review-list";
 import {
   ProfileBack,
@@ -134,7 +131,7 @@ function TutorDetails({ tutor, id }: { tutor: PublicTutor; id: string }) {
   return (
     <>
       <header className={cn(card, "flex items-start gap-4 p-6")}>
-        <TutorInitial name={tutor.name} />
+        <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={44} />
         <div className="grid min-w-0 gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight text-pretty break-words text-[var(--color-neutral-charcoal)]">

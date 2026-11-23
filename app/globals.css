@@ -7,7 +7,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Manrope comes from next/font (app/layout.tsx). Bengali comes after the system Latin faces,
+     so it only supplies glyphs they lack (the ৳ sign). */
+  --font-sans:
+    var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, var(--font-bengali), sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -212,6 +216,8 @@
   }
   html {
     @apply font-sans;
+    /* Manrope has no italic, so faux italic stays on for emphasis. Faux bold stays off. */
+    font-synthesis: style;
   }
 }
 

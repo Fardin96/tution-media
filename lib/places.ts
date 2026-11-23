@@ -11,6 +11,24 @@ export interface PlaceDetails {
   district: string | null;
 }
 
+/**
+ * The text the user picked. Google's formatted address can differ from it, so it never replaces
+ * what the user chose: the suggestion's text wins, and the formatted address is only a last resort.
+ */
+export function pickedPlaceLabel(
+  prediction: PlacePrediction,
+  formatted: string,
+): string {
+  return (
+    prediction.description.trim() ||
+    [prediction.mainText, prediction.secondaryText]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(", ") ||
+    formatted.trim()
+  ).slice(0, 500);
+}
+
 /** Insecure-but-unique enough for a single autocomplete session. */
 export function makeSessionToken(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {

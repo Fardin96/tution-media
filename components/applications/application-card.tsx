@@ -7,6 +7,7 @@ import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { applicationQueryOptions, type Application } from "@/lib/applications";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
@@ -36,9 +37,8 @@ export function ApplicationCard({
   const { areas } = useAreas();
   const { target } = application;
   const isTutor = role === "TUTOR";
-  const counterpartName = isTutor
-    ? application.student.name
-    : application.tutor.name;
+  const counterpart = isTutor ? application.student : application.tutor;
+  const counterpartName = counterpart.name;
 
   const heading = headingText(target, counterpartName);
   const details = [
@@ -55,27 +55,34 @@ export function ApplicationCard({
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
-            {heading}
-          </h2>
-          {heading !== counterpartName && (
-            <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
-              {counterpartName}
-            </p>
-          )}
-          {!isTutor && application.tutor.ratingCount > 0 && (
-            <p className="mt-0.5 flex items-center gap-1 text-sm text-[var(--color-text-secondary)] tabular-nums">
-              <Star
-                aria-hidden="true"
-                className="size-4 fill-current text-[var(--color-semantic-warning-text)]"
-              />
-              {ratingText(
-                application.tutor.ratingAvg,
-                application.tutor.ratingCount,
-              )}
-            </p>
-          )}
+        <div className="flex min-w-0 items-center gap-3">
+          <UserAvatar
+            src={counterpart.avatarUrl}
+            name={counterpartName}
+            size={40}
+          />
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
+              {heading}
+            </h2>
+            {heading !== counterpartName && (
+              <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+                {counterpartName}
+              </p>
+            )}
+            {!isTutor && application.tutor.ratingCount > 0 && (
+              <p className="mt-0.5 flex items-center gap-1 text-sm text-[var(--color-text-secondary)] tabular-nums">
+                <Star
+                  aria-hidden="true"
+                  className="size-4 fill-current text-[var(--color-semantic-warning-text)]"
+                />
+                {ratingText(
+                  application.tutor.ratingAvg,
+                  application.tutor.ratingCount,
+                )}
+              </p>
+            )}
+          </div>
         </div>
         <StatusPill status={application.status} />
       </div>

@@ -37,7 +37,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   images: {
-    formats: ["image/avif", "image/webp"],
+    // WebP only: AVIF encodes 4-7x slower here and its files were bigger than WebP's.
+    formats: ["image/webp"],
     // Only the default quality is used; a new quality= value must be added here or it is coerced.
     qualities: [75],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
@@ -64,7 +65,7 @@ const nextConfig: NextConfig = {
       {
         // Not immutable: these file names aren't hashed and site content points at them,
         // so a replaced file has to reach browsers within a day.
-        source: "/assets/:path*",
+        source: "/:dir(assets|videos)/:path*",
         headers: [
           {
             key: "Cache-Control",

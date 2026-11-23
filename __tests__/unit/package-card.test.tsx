@@ -63,6 +63,7 @@ function pkg(overrides: Partial<TuitionPackage> = {}): TuitionPackage {
     tutor: {
       id: "tutor-1",
       name: "Nusrat Jahan",
+      avatarUrl: null,
       gender: "FEMALE",
       ratingAvg: 4.5,
       ratingCount: 12,
@@ -211,5 +212,24 @@ describe("studentPlaceText", () => {
     expect(studentPlaceText({ teachesOnline: false, zoneCount: 0 })).toBe(
       "To be agreed",
     );
+  });
+});
+
+describe("PackageCard tutor photo", () => {
+  const PHOTO = "https://pub-test.r2.dev/avatars/nusrat.webp";
+
+  it("shows the tutor's photo beside the Taught by line", () => {
+    const { container } = renderCard(
+      pkg({ tutor: { ...pkg().tutor, avatarUrl: PHOTO } }),
+    );
+    expect(container.querySelector("img")).toHaveAttribute("src", PHOTO);
+    expect(
+      screen.getByRole("link", { name: "Nusrat Jahan" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the tutor's initial when there is no photo", () => {
+    renderCard(pkg());
+    expect(screen.getByText("N")).toBeInTheDocument();
   });
 });

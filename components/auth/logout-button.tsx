@@ -11,9 +11,26 @@ import { BlockingOverlay } from "@/components/ui/blocking-overlay";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function LogoutButton({ className }: { className?: string }) {
+export const logoutTriggerClass =
+  "h-12 w-full gap-2 rounded-full border-[var(--color-neutral-border)] text-base font-semibold text-[var(--color-neutral-charcoal)] hover:bg-[var(--color-neutral-off-white)] active:scale-[0.96]";
+
+export function LogoutButton({
+  className,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
+}: {
+  className?: string;
+  // Controlled when the caller owns the dialog, e.g. the admin drawer closes before it opens.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  // The caller renders its own trigger; this keeps the confirm dialog and overlay mounted.
+  hideTrigger?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
 
   // The whole logout runs inside the transition, so isPending covers revoke, clear and redirect.
   // The dialog stays open (its action shows the spinner) until signOut returns.
@@ -39,20 +56,19 @@ export function LogoutButton({ className }: { className?: string }) {
   return (
     <>
       <BlockingOverlay open={isPending} label="Logging out…" />
-      <Button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={isPending}
-        aria-busy={isPending || undefined}
-        variant="outline"
-        className={cn(
-          "h-12 w-full gap-2 rounded-full border-[var(--color-neutral-border)] text-base font-semibold text-[var(--color-neutral-charcoal)] hover:bg-[var(--color-neutral-off-white)] active:scale-[0.96]",
-          className,
-        )}
-      >
-        <LogOut className="size-4" />
-        <PendingLabel pending={isPending}>Log out</PendingLabel>
-      </Button>
+      {!hideTrigger && (
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={isPending}
+          aria-busy={isPending || undefined}
+          variant="outline"
+          className={cn(logoutTriggerClass, className)}
+        >
+          <LogOut className="size-4" />
+          <PendingLabel pending={isPending}>Log out</PendingLabel>
+        </Button>
+      )}
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}

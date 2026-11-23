@@ -7,6 +7,7 @@ import { client, unwrap, type Schemas } from "./api-client";
 import type { ApiError } from "./profile";
 import { queryKeys } from "./query-keys";
 import type { Tone } from "./requirements";
+import type { ApplicationStatus } from "./applications";
 
 // Shapes come from tuition-api's OpenAPI document (lib/api-types.ts).
 export type MyReport = Schemas["MyReport"];
@@ -145,6 +146,11 @@ export const CASE_STATUS_META: Record<
 /** A case with no outcome yet. */
 export function isCaseActive(status: CaseStatus) {
   return status === "OPEN" || status === "UNDER_REVIEW";
+}
+
+/** The API refuses reports on these statuses (409 REPORT_NOT_ALLOWED), so the button is hidden. */
+export function canReportApplication(status: ApplicationStatus): boolean {
+  return status !== "PENDING" && status !== "WITHDRAWN" && status !== "EXPIRED";
 }
 
 /** Inline message for report or dispute details (10 to 2000 characters after trimming), or undefined. */

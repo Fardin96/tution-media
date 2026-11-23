@@ -4,11 +4,13 @@ import { GraduationCap, MapPin } from "lucide-react";
 import { card, focusRing } from "@/components/profile/styles";
 import { formatDistanceKm } from "@/lib/browse";
 import { cn } from "@/lib/utils";
-import { RatingInline, TutorInitial } from "./browse-ui";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { RatingInline } from "./browse-ui";
 
 export interface TutorResult {
   id: string;
   name: string;
+  avatarUrl: string | null;
   instituteName?: string | null;
   ratingAvg: number;
   ratingCount: number;
@@ -46,7 +48,7 @@ export function TutorResultCard({
     >
       <div className="grid gap-2">
         <div className="flex items-center gap-3">
-          <TutorInitial name={tutor.name} />
+          <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={44} />
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
             <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
               <Link

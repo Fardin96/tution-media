@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowDown,
@@ -14,10 +14,12 @@ import {
   BookOpen,
   Briefcase,
   CalendarDays,
+  Camera,
   Check,
   Eye,
   FileText,
   Flag,
+  Mail,
   MapPin,
   MessageCircle,
   Pencil,
@@ -32,12 +34,13 @@ import {
   Upload,
   Users,
   XCircle,
+  type LucideIcon,
 } from "lucide-react";
 import type { UserSession } from "@/lib/auth";
-import { tutors as sampleTutors } from "@/lib/tutors";
 import { cn } from "@/lib/utils";
 import {
   queryKeys,
+  invalidateRequirements,
   invalidateTutorProfile,
   invalidateTutorRequirements,
 } from "@/lib/query-keys";
@@ -70,6 +73,8 @@ import {
   SECTIONS,
   clearSession,
   useSetVideoHomePage,
+  useMyStats,
+  myStatsQueryOptions,
   formatBdPhone,
   formFromProfile,
   normalizeBdPhone,
@@ -101,7 +106,11 @@ import {
   statusMeta,
   type Requirement,
 } from "@/lib/requirements";
-import { studentRequirementQueryOptions } from "@/lib/applications";
+import {
+  studentRequirementQueryOptions,
+  useRecommendedTutors,
+  type RecommendedTutor,
+} from "@/lib/applications";
 import { daysLabel, daysPerWeekLabel, EVERY_DAY } from "@/lib/days";
 import { isFeatureEnabled, type FeatureFlags } from "@/lib/features";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -109,6 +118,12 @@ import { enterClass, enterStyle } from "@/components/motion/enter";
 import { revealMotion } from "@/components/motion/swap";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import {
+  EmptyCard,
+  ErrorBlock,
+  RatingInline,
+} from "@/components/browse/browse-ui";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { DeleteAccountButton } from "@/components/auth/delete-account-button";
@@ -121,6 +136,7 @@ import {
 import { TutorPackagesSection } from "@/components/packages/dashboard-section";
 import { StoriesSection } from "@/components/stories/stories-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
+import { StudentReviewList } from "@/components/reviews/review-list";
 import { EditSection, SaveCancelled } from "./edit-section";
 import type { SubmittedVerification } from "./verification-upload-dialog";
 import {
@@ -155,6 +171,9 @@ const VerificationUploadDialog = dynamic(() =>
 );
 const VideoDialog = dynamic(() =>
   import("./video-dialog").then((m) => m.VideoDialog),
+);
+const AvatarDialog = dynamic(() =>
+  import("./avatar-dialog").then((m) => m.AvatarDialog),
 );
 
 /**
@@ -215,7 +234,7 @@ type LoadResult =
       studentData: StudentData;
     };
 
-async function loadDashboard(): Promise<LoadResult> {
+async function loadDashboard(queryClient: QueryClient): Promise<LoadResult> {
   let account: Me;
   try {
     account = await profileApi.me();
@@ -226,6 +245,9 @@ async function loadDashboard(): Promise<LoadResult> {
   }
   const profile = profileOf(account);
   if (!profile) return { kind: "redirect", to: "/onboarding" };
+  // The counts are not needed to paint, but starting them now saves a round trip after render.
+  if (account.tutor || account.student)
+    void queryClient.prefetchQuery(myStatsQueryOptions);
 
   const tutorData: TutorData = {
     credentials: null,
@@ -290,6 +312,10 @@ export function ProfileDashboard({
 
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  const retryLoad = () => {
+    setRetrying(true);
+    setAttempt((a) => a + 1);
+  };
 
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<{
@@ -312,7 +338,7 @@ export function ProfileDashboard({
 
   useEffect(() => {
     let live = true;
-    loadDashboard()
+    loadDashboard(queryClient)
       .then(async (result) => {
         if (!live) return;
         if (result.kind === "redirect") {
@@ -338,7 +364,7 @@ export function ProfileDashboard({
     return () => {
       live = false;
     };
-  }, [router, attempt]);
+  }, [router, attempt, queryClient]);
 
   const role = session.role as ProfileRole;
   const profile = me && profileOf(me);
@@ -587,9 +613,28 @@ export function ProfileDashboard({
 
   const displayName = profile?.name || session.name || "there";
 
+  // The Hero, TopBar and photo dialog all show the same signed link, and useRefreshExpiredMedia
+  // does not refetch /me. So an expired link refetches /me once; the ref keeps the others quiet.
+  const refetchedAvatar = useRef<string | null>(null);
+  const refreshExpiredAvatar = (expired: string | null | undefined) => {
+    if (!expired || refetchedAvatar.current === expired) return;
+    refetchedAvatar.current = expired;
+    void profileApi
+      .me()
+      .then((account) =>
+        setMe((m) => m && { ...m, avatarUrl: account.avatarUrl }),
+      )
+      .catch(() => undefined);
+  };
+
   return (
     <div className="min-h-dvh bg-[var(--color-neutral-off-white)]">
-      <TopBar name={displayName} picture={session.picture} />
+      <TopBar
+        name={displayName}
+        avatarUrl={me?.avatarUrl}
+        picture={session.picture}
+        onExpired={() => refreshExpiredAvatar(me?.avatarUrl)}
+      />
 
       {loadError ? (
         <main className="mx-auto max-w-md px-4 py-24 text-center">
@@ -604,10 +649,7 @@ export function ProfileDashboard({
               type="button"
               disabled={retrying}
               aria-busy={retrying || undefined}
-              onClick={() => {
-                setRetrying(true);
-                setAttempt((a) => a + 1);
-              }}
+              onClick={retryLoad}
               className={cn(primaryButton, "mt-6")}
             >
               <PendingLabel pending={retrying}>
@@ -625,6 +667,11 @@ export function ProfileDashboard({
             role={role}
             name={displayName}
             picture={session.picture}
+            avatarUrl={me.avatarUrl}
+            onAvatarChanged={(url) =>
+              setMe((m) => m && { ...m, avatarUrl: url })
+            }
+            onAvatarExpired={() => refreshExpiredAvatar(me.avatarUrl)}
             profile={profile}
             areaLabel={
               me.student
@@ -639,12 +686,9 @@ export function ProfileDashboard({
           <main className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
             <Stats
               role={role}
+              profileId={profile.id}
               rating={Number(profile.ratingAvg)}
               ratingCount={profile.ratingCount}
-              openRequirementsCount={
-                studentData.requirements?.filter((r) => r.status === "OPEN")
-                  .length ?? null
-              }
             />
 
             <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
@@ -734,8 +778,13 @@ export function ProfileDashboard({
                     </Suspense>
                     <StoriesSection role="STUDENT" />
                     <ApplicationsCard />
+                    <StudentReviewsSection profileId={profile.id} />
                     <ReportsCard />
-                    <RecommendedTutors />
+                    <RecommendedTutors
+                      requirements={studentData.requirements}
+                      onRetry={retryLoad}
+                      retrying={retrying}
+                    />
                   </>
                 )}
               </div>
@@ -805,11 +854,24 @@ export function ProfileDashboard({
 
 /* ───────── Chrome ───────── */
 
-function TopBar({ name, picture }: { name: string; picture?: string }) {
+export function TopBar({
+  name,
+  avatarUrl,
+  picture,
+  onExpired,
+}: {
+  name: string;
+  /** The same upload the Hero shows; the Google picture is only the fallback. Undefined until /me loads. */
+  avatarUrl?: string | null;
+  picture?: string;
+  onExpired?: () => void;
+}) {
+  // Initials until /me loads: the Google picture would otherwise show, then swap for the upload.
+  const src = avatarUrl === undefined ? null : (avatarUrl ?? picture);
   return (
     <header className="sticky top-0 z-40 bg-[color-mix(in_oklab,var(--color-neutral-white)_85%,transparent)] shadow-[0_1px_0_rgb(0_0_0/0.06)] backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className={cn("rounded-lg", focusRing)}>
+        <Link href="/" data-home-link className={cn("rounded-lg", focusRing)}>
           <Image
             src="/assets/ic-demo/Icon-blue.png"
             alt="Masters Hub home"
@@ -822,7 +884,7 @@ function TopBar({ name, picture }: { name: string; picture?: string }) {
         <div className="flex items-center gap-3">
           <NotificationBell />
           <span className="hidden items-center gap-2 sm:flex">
-            <Avatar name={name} picture={picture} size={32} />
+            <UserAvatar src={src} name={name} size={32} onExpired={onExpired} />
             <span
               className="max-w-40 truncate text-sm font-medium text-[var(--color-neutral-charcoal)]"
               title={name}
@@ -834,51 +896,6 @@ function TopBar({ name, picture }: { name: string; picture?: string }) {
         </div>
       </div>
     </header>
-  );
-}
-
-function Avatar({
-  name,
-  picture,
-  size,
-  className,
-}: {
-  name: string;
-  picture?: string;
-  size: number;
-  className?: string;
-}) {
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-  return picture ? (
-    <Image
-      src={picture}
-      alt=""
-      width={size}
-      height={size}
-      unoptimized
-      referrerPolicy="no-referrer"
-      className={cn(
-        "shrink-0 rounded-full object-cover outline-1 -outline-offset-1 outline-[oklch(0_0_0/0.1)]",
-        className,
-      )}
-      style={{ width: size, height: size }}
-    />
-  ) : (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-[var(--color-secondary-sky)] font-semibold text-[var(--color-primary-deep)]",
-        className,
-      )}
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
-    >
-      {initials || "?"}
-    </span>
   );
 }
 
@@ -934,13 +951,21 @@ function Hero({
   role,
   name,
   picture,
+  avatarUrl,
+  onAvatarChanged,
+  onAvatarExpired,
   profile,
   areaLabel,
   checklist,
 }: {
   role: ProfileRole;
   name: string;
+  /** The Google picture from sign-in, shown only when the account has no avatar. */
   picture?: string;
+  avatarUrl: string | null;
+  onAvatarChanged: (avatarUrl: string | null) => void;
+  /** Refetches the account when the signed photo link has expired. */
+  onAvatarExpired: () => void;
   profile: NonNullable<ReturnType<typeof profileOf>>;
   areaLabel: string | null;
   checklist: CheckItem[];
@@ -948,6 +973,8 @@ function Hero({
   const done = checklist.filter((c) => c.done).length;
   const pct = Math.round((done / checklist.length) * 100);
   const v = VERIFICATION[profile.verificationStatus];
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const photoDialogMounted = useStayMounted(photoOpen);
 
   return (
     <div
@@ -970,12 +997,45 @@ function Hero({
 
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 pt-8 pb-10 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
         <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar
-            name={name}
-            picture={picture}
-            size={96}
-            className="shadow-[0_0_0_4px_var(--color-neutral-white),0_12px_32px_-8px_rgb(0_0_0/0.25)]"
-          />
+          <div className="relative w-fit shrink-0">
+            <UserAvatar
+              src={avatarUrl ?? picture}
+              name={name}
+              size={96}
+              onExpired={onAvatarExpired}
+              className="shadow-[0_0_0_4px_var(--color-neutral-white),0_12px_32px_-8px_rgb(0_0_0/0.25)]"
+            />
+            {/* 44px hit area around a 32px badge, so the target meets touch sizing. */}
+            <button
+              type="button"
+              aria-label="Change profile picture"
+              onClick={() => setPhotoOpen(true)}
+              className={cn(
+                "group absolute -end-2 -bottom-2 grid size-11 place-items-center rounded-full",
+                focusRing,
+              )}
+            >
+              {/* The press scales the visible badge, not the 44px hit area around it. */}
+              <span
+                aria-hidden="true"
+                className="grid size-8 place-items-center rounded-full bg-[var(--color-primary-core)] text-[var(--color-neutral-white)] shadow-[0_0_0_2px_var(--color-neutral-white)] transition-[scale] duration-150 ease-out group-active:scale-[0.96] motion-reduce:transition-none"
+              >
+                <Camera className="size-4" />
+              </span>
+            </button>
+            {photoDialogMounted && (
+              <AvatarDialog
+                open={photoOpen}
+                onOpenChange={setPhotoOpen}
+                role={role}
+                avatarUrl={avatarUrl}
+                name={name}
+                tutorId={role === "TUTOR" ? profile.id : null}
+                onChanged={onAvatarChanged}
+                onExpired={onAvatarExpired}
+              />
+            )}
+          </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-[var(--color-primary-deep)]">
               {role === "TUTOR" ? "Tutor dashboard" : "Student dashboard"}
@@ -1099,74 +1159,104 @@ function Hero({
 
 /* ───────── Stats ───────── */
 
-function Stats({
+type StatTile = {
+  icon: LucideIcon;
+  label: string;
+  bg: string;
+  /** Where the number is counted. Omitted when no page shows it. */
+  href?: string;
+  /** undefined while a count loads. */
+  value: number | string | undefined;
+  /** Counts come from GET /me/stats and show "—" when it fails. The rating comes from /me. */
+  fromStats: boolean;
+};
+
+/** The dashboard's at-a-glance row. Counts come from GET /me/stats; the rating comes from /me. */
+export function Stats({
   role,
+  profileId,
   rating,
   ratingCount,
-  openRequirementsCount,
 }: {
   role: ProfileRole;
+  profileId: string;
   rating: number;
   ratingCount: number;
-  openRequirementsCount?: number | null;
 }) {
-  const ratingTile = {
+  const stats = useMyStats(role);
+  const counts = stats.data;
+  const tutor = counts?.role === "TUTOR" ? counts : undefined;
+  const student = counts?.role === "STUDENT" ? counts : undefined;
+
+  const ratingTile: StatTile = {
     icon: Star,
-    label: ratingCount ? `Rating · ${ratingCount} reviews` : "Rating",
+    label: ratingCount
+      ? `Rating · ${ratingCount} ${ratingCount === 1 ? "review" : "reviews"}`
+      : "Rating",
     value: ratingCount ? rating.toFixed(1) : "No reviews yet",
     bg: "var(--color-secondary-cream)",
-    live: true,
+    fromStats: false,
   };
-  // shortcut: sample numbers until the applications/requirements screens exist.
-  const tiles =
+  const tiles: StatTile[] =
     role === "TUTOR"
       ? [
           {
             icon: Briefcase,
             label: "Applications sent",
-            value: "12",
+            value: tutor?.applicationsSent,
             bg: "var(--color-secondary-sky)",
+            href: "/dashboard/applications?initiatedBy=TUTOR",
+            fromStats: true,
           },
           {
             icon: Users,
             label: "Active students",
-            value: "3",
+            value: tutor?.activeStudents,
             bg: "var(--color-secondary-lime)",
+            href: "/dashboard/applications?status=CONFIRMED",
+            fromStats: true,
           },
           {
-            icon: Eye,
-            label: "Profile views",
-            value: "248",
+            icon: Mail,
+            label: "Invites received",
+            value: tutor?.invitesReceived,
             bg: "var(--color-secondary-peach)",
+            href: "/dashboard/find-tuitions?scope=invited",
+            fromStats: true,
           },
-          ratingTile,
+          { ...ratingTile, href: `/tutors/${profileId}` },
         ]
       : [
           {
             icon: BookOpen,
             label: "Open requirements",
-            value:
-              openRequirementsCount !== null &&
-              openRequirementsCount !== undefined
-                ? String(openRequirementsCount)
-                : "0",
+            value: student?.openRequirements,
             bg: "var(--color-secondary-sky)",
-            live: true,
+            href: "#requirements",
+            fromStats: true,
           },
           {
             icon: Briefcase,
             label: "Applications received",
-            value: "7",
+            value: student?.applicationsReceived,
             bg: "var(--color-secondary-lime)",
+            href: "/dashboard/applications?initiatedBy=TUTOR",
+            fromStats: true,
           },
           {
+            // Hired is CONFIRMED or COMPLETED; the unfiltered list shows both.
             icon: Users,
             label: "Tutors hired",
-            value: "1",
+            value: student?.tutorsHired,
             bg: "var(--color-secondary-peach)",
+            href: "/dashboard/applications",
+            fromStats: true,
           },
-          ratingTile,
+          { ...ratingTile, href: "#reviews" },
         ];
+
+  // A background refetch that fails keeps the counts already shown; only a failure with no data shows dashes.
+  const failedNoData = stats.isError && stats.data === undefined;
 
   return (
     <section aria-labelledby="stats-heading" className="-mt-2">
@@ -1174,39 +1264,108 @@ function Stats({
         At a glance
       </h2>
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tiles.map(({ icon: Icon, label, value, bg, ...rest }) => (
-          <li
-            key={label}
-            className="relative flex min-h-32 flex-col justify-between gap-4 rounded-[20px] p-4 sm:p-5"
-            style={{ backgroundColor: bg }}
-          >
-            <span className="flex items-start justify-between gap-2">
-              <span className="flex size-9 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--color-neutral-white)_70%,transparent)] text-[var(--color-neutral-charcoal)]">
-                <Icon aria-hidden="true" className="size-[18px]" />
-              </span>
-              {!("live" in rest) && (
-                <span className="text-[11px] font-medium text-[var(--color-neutral-charcoal)]/75">
-                  Sample
-                </span>
-              )}
-            </span>
-            <span>
-              <span
-                className={cn(
-                  "block font-semibold tracking-tight text-[var(--color-neutral-charcoal)] tabular-nums",
-                  value.length > 4 ? "text-base" : "text-3xl",
-                )}
-              >
-                {value}
-              </span>
-              <span className="mt-0.5 block text-sm text-[var(--color-neutral-charcoal)]/80">
-                {label}
-              </span>
-            </span>
+        {tiles.map((tile) => (
+          <li key={tile.label}>
+            <StatTileView tile={tile} failed={tile.fromStats && failedNoData} />
           </li>
         ))}
       </ul>
+      {failedNoData && (
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => void stats.refetch()}
+            disabled={stats.isFetching}
+            aria-busy={stats.isFetching || undefined}
+            className={cn(ghostButton, "min-h-10 px-3")}
+          >
+            <PendingLabel pending={stats.isFetching}>Retry</PendingLabel>
+          </button>
+        </div>
+      )}
     </section>
+  );
+}
+
+/** Press and hover feedback for a tile that links somewhere. */
+const TILE_LINK =
+  "transition-[scale,box-shadow] duration-150 ease-out hover:shadow-[0_0_0_1px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.04),0_16px_36px_-12px_rgb(0_0_0/0.12)] active:scale-[0.96] motion-reduce:transition-none";
+
+function StatTileView({ tile, failed }: { tile: StatTile; failed: boolean }) {
+  const { icon: Icon, label, bg, href, value, fromStats } = tile;
+  const text = typeof value === "number" ? String(value) : value;
+  const className = cn(
+    "flex h-full min-h-32 flex-col justify-between gap-4 rounded-[20px] p-4 sm:p-5",
+    href && cn(focusRing, TILE_LINK),
+  );
+
+  let figure: ReactNode;
+  if (failed) {
+    figure = (
+      <>
+        <span aria-hidden="true">—</span>
+        <span className="sr-only">Couldn&apos;t load</span>
+      </>
+    );
+  } else if (fromStats && value === undefined) {
+    figure = (
+      <>
+        <Skeleton className="h-9 w-12 rounded-lg" />
+        <span className="sr-only">Loading</span>
+      </>
+    );
+  } else {
+    figure = text;
+  }
+
+  // Block-level wrappers, not spans: the skeleton is a div and can't sit inside a span.
+  const content = (
+    <>
+      <span className="flex size-9 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--color-neutral-white)_70%,transparent)] text-[var(--color-neutral-charcoal)]">
+        <Icon aria-hidden="true" className="size-[18px]" />
+      </span>
+      <div>
+        <div
+          className={cn(
+            "font-semibold tracking-tight text-[var(--color-neutral-charcoal)] tabular-nums",
+            text && text.length > 4 ? "text-base" : "text-3xl",
+          )}
+        >
+          {figure}
+        </div>
+        <span className="mt-0.5 block text-sm text-[var(--color-neutral-charcoal)]/80">
+          {label}
+        </span>
+      </div>
+    </>
+  );
+
+  // next/link scrolls to a hash but leaves focus on the tile. A plain anchor keeps the hash
+  // jump, and the section (tabIndex -1) takes focus too: fragment jumps don't move focus in
+  // every browser. preventScroll leaves the scroll to the hash jump.
+  if (href?.startsWith("#")) {
+    return (
+      <a
+        href={href}
+        onClick={() =>
+          document.getElementById(href.slice(1))?.focus({ preventScroll: true })
+        }
+        className={className}
+        style={{ backgroundColor: bg }}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return href ? (
+    <Link href={href} className={className} style={{ backgroundColor: bg }}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className} style={{ backgroundColor: bg }}>
+      {content}
+    </div>
   );
 }
 
@@ -1572,11 +1731,16 @@ function TeachingZonesCard() {
       aria-labelledby="teaching-zones-heading"
       className="scroll-mt-24"
     >
-      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+      <div
+        className={cn(
+          card,
+          "flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center",
+        )}
+      >
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <MapPin aria-hidden="true" className="size-5" />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 text-pretty break-words">
           <h2
             id="teaching-zones-heading"
             className="font-semibold text-[var(--color-neutral-charcoal)]"
@@ -1587,9 +1751,11 @@ function TeachingZonesCard() {
             Areas where you teach in person. Requirement sets pick from these.
           </p>
         </div>
-        <Link href="/dashboard/tutor/zones" className={secondaryButton}>
-          <LinkPendingLabel>Manage zones</LinkPendingLabel>
-        </Link>
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
+          <Link href="/dashboard/tutor/zones" className={secondaryButton}>
+            <LinkPendingLabel>Manage zones</LinkPendingLabel>
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -1602,22 +1768,27 @@ function FindWorkCard() {
       aria-labelledby="find-work-heading"
       className="scroll-mt-24"
     >
-      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+      <div
+        className={cn(
+          card,
+          "flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center",
+        )}
+      >
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <Briefcase aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id="find-work-heading"
-            className="font-semibold text-[var(--color-neutral-charcoal)]"
+            className="font-semibold text-pretty break-words text-[var(--color-neutral-charcoal)]"
           >
             Find tuitions
           </h2>
-          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-pretty break-words text-[var(--color-text-secondary)]">
             Open requirements near your zones.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
           <Link href="/dashboard/find-tuitions" className={primaryButton}>
             <LinkPendingLabel>Find tuitions</LinkPendingLabel>
           </Link>
@@ -1637,24 +1808,31 @@ function PlacementFeesCard() {
       aria-labelledby="placement-fees-heading"
       className="scroll-mt-24"
     >
-      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+      <div
+        className={cn(
+          card,
+          "flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center",
+        )}
+      >
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <Receipt aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id="placement-fees-heading"
-            className="font-semibold text-[var(--color-neutral-charcoal)]"
+            className="font-semibold text-pretty break-words text-[var(--color-neutral-charcoal)]"
           >
             Placement fees
           </h2>
-          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-pretty break-words text-[var(--color-text-secondary)]">
             See what you owe and pay online.
           </p>
         </div>
-        <Link href="/dashboard/fees" className={secondaryButton}>
-          <LinkPendingLabel>View fees</LinkPendingLabel>
-        </Link>
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
+          <Link href="/dashboard/fees" className={secondaryButton}>
+            <LinkPendingLabel>View fees</LinkPendingLabel>
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -1667,24 +1845,31 @@ function ReportsCard() {
       aria-labelledby="reports-heading"
       className="scroll-mt-24"
     >
-      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+      <div
+        className={cn(
+          card,
+          "flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center",
+        )}
+      >
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <Flag aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id="reports-heading"
-            className="font-semibold text-[var(--color-neutral-charcoal)]"
+            className="font-semibold text-pretty break-words text-[var(--color-neutral-charcoal)]"
           >
             Reports and disputes
           </h2>
-          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-pretty break-words text-[var(--color-text-secondary)]">
             See what you&apos;ve raised and where it stands.
           </p>
         </div>
-        <Link href="/dashboard/reports" className={secondaryButton}>
-          <LinkPendingLabel>View reports</LinkPendingLabel>
-        </Link>
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
+          <Link href="/dashboard/reports" className={secondaryButton}>
+            <LinkPendingLabel>View reports</LinkPendingLabel>
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -1697,24 +1882,59 @@ function ApplicationsCard() {
       aria-labelledby="applications-heading"
       className="scroll-mt-24"
     >
-      <div className={cn(card, "flex flex-wrap items-center gap-4 p-5")}>
+      <div
+        className={cn(
+          card,
+          "flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center",
+        )}
+      >
         <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--color-secondary-sky)] text-[var(--color-primary-deep)]">
           <FileText aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id="applications-heading"
-            className="font-semibold text-[var(--color-neutral-charcoal)]"
+            className="font-semibold text-pretty break-words text-[var(--color-neutral-charcoal)]"
           >
             Your applications
           </h2>
-          <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-pretty break-words text-[var(--color-text-secondary)]">
             Track the tutors who applied and the packages you requested.
           </p>
         </div>
-        <Link href="/dashboard/applications" className={secondaryButton}>
-          <LinkPendingLabel>View applications</LinkPendingLabel>
-        </Link>
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
+          <Link href="/dashboard/applications" className={secondaryButton}>
+            <LinkPendingLabel>View applications</LinkPendingLabel>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function StudentReviewsSection({ profileId }: { profileId: string }) {
+  return (
+    <section
+      id="reviews"
+      aria-labelledby="reviews-heading"
+      tabIndex={-1}
+      className="scroll-mt-24 outline-none"
+    >
+      <SectionHeading
+        id="reviews-heading"
+        title="Reviews about you"
+        description="What tutors wrote after working with you. If a review breaks the rules, report it from that application."
+        action={
+          <Link
+            href="/dashboard/applications"
+            className={cn(ghostButton, "min-h-10 px-3")}
+          >
+            <LinkPendingLabel>Your applications</LinkPendingLabel>
+          </Link>
+        }
+      />
+      <div className="mt-5">
+        <StudentReviewList studentId={profileId} />
       </div>
     </section>
   );
@@ -1771,7 +1991,8 @@ export function RequirementsSection({
     <section
       id="requirements"
       aria-labelledby="requirements-heading"
-      className="scroll-mt-24"
+      tabIndex={-1}
+      className="scroll-mt-24 outline-none"
     >
       <SectionHeading
         id="requirements-heading"
@@ -1896,6 +2117,7 @@ function RequirementItem({
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
   const intent = useIntentPrefetch();
+  const queryClient = useQueryClient();
 
   const { subjects } = useSubjects();
   const { areas } = useAreas();
@@ -1912,6 +2134,7 @@ function RequirementItem({
     try {
       const updated = await requirementApi.close(r.id);
       onUpdateRequirement(updated);
+      void invalidateRequirements(queryClient);
       setConfirmingClose(false);
       setAnnounce("Requirement closed.");
       toast.success("Tuition requirement closed");
@@ -1922,6 +2145,7 @@ function RequirementItem({
       const status = (err as { status?: number }).status;
       if (status === 409) {
         onUpdateRequirement({ ...r, status: "CLOSED" });
+        void invalidateRequirements(queryClient);
         toast.error("It was already closed.");
       } else {
         toast.error(
@@ -1939,6 +2163,7 @@ function RequirementItem({
     try {
       const updated = await requirementApi.update(r.id, { status: "OPEN" });
       onUpdateRequirement(updated);
+      void invalidateRequirements(queryClient);
       setAnnounce("Requirement posted.");
     } catch (err: unknown) {
       toast.error(
@@ -1953,7 +2178,7 @@ function RequirementItem({
     <Root
       className={cn(
         card,
-        "flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between",
+        "flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between",
         className,
       )}
       style={style}
@@ -2041,7 +2266,7 @@ function RequirementItem({
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         {confirmingClose ? (
-          <div className="flex flex-col gap-2 sm:items-end">
+          <div className="flex flex-col gap-2 md:items-end">
             <span className="text-sm font-medium text-[var(--color-neutral-charcoal)]">
               Close this requirement? Tutors won&apos;t be able to apply.
             </span>
@@ -2142,7 +2367,80 @@ const PASTELS = [
   "var(--color-secondary-cream)",
 ];
 
-function RecommendedTutors() {
+/** The student's newest OPEN requirement: the one the recommendations are for. */
+function newestOpenRequirement(
+  requirements: Requirement[] | undefined,
+): Requirement | undefined {
+  return requirements
+    ?.filter((r) => r.status === "OPEN")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+}
+
+/**
+ * Top matches for the student's newest open requirement. `requirements` is the dashboard's own
+ * load, so it is not fetched twice; null means that load failed.
+ */
+export function RecommendedTutors({
+  requirements,
+  onRetry,
+  retrying,
+}: {
+  requirements: Requirement[] | null;
+  onRetry: () => void;
+  /** True while the dashboard reloads after Retry. */
+  retrying: boolean;
+}) {
+  const target = newestOpenRequirement(requirements ?? undefined);
+  const list = useRecommendedTutors(target?.id ?? "", target !== undefined);
+  const tutors = list.data?.pages[0]?.tutors.slice(0, 4) ?? [];
+
+  let body: ReactNode;
+  if (requirements === null) {
+    body = (
+      <ErrorBlock
+        message="Couldn't load your requirements."
+        onRetry={onRetry}
+        retrying={retrying}
+      />
+    );
+  } else if (!target) {
+    body = (
+      <EmptyCard title="Post a requirement to see matched tutors.">
+        <Link
+          href="/dashboard/requirements/new"
+          className={cn(primaryButton, "justify-self-start")}
+        >
+          <LinkPendingLabel>Post a requirement</LinkPendingLabel>
+        </Link>
+      </EmptyCard>
+    );
+  } else if (list.isPending) {
+    body = <RecommendedSkeleton />;
+  } else if (list.isError) {
+    body = (
+      <ErrorBlock
+        message="Couldn't load recommended tutors."
+        onRetry={() => void list.refetch()}
+        retrying={list.isFetching}
+      />
+    );
+  } else if (tutors.length === 0) {
+    body = (
+      <EmptyCard
+        title="No tutors match your open requirement yet."
+        body="New tutors show up here when they join."
+      />
+    );
+  } else {
+    body = (
+      <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 xl:grid-cols-4">
+        {tutors.map((row, i) => (
+          <RecommendedTutorCard key={row.tutor.id} row={row} index={i} />
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <section
       id="tutors"
@@ -2152,8 +2450,7 @@ function RecommendedTutors() {
       <SectionHeading
         id="tutors-heading"
         title="Recommended tutors"
-        description="Matched to your area and subjects."
-        sample
+        description="Matched to your newest open requirement."
         action={
           <Link
             href="/dashboard/find-tutors"
@@ -2166,49 +2463,78 @@ function RecommendedTutors() {
           </Link>
         }
       />
-      <ul className="mt-5 grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 xl:grid-cols-4">
-        {sampleTutors.slice(0, 4).map((t, i) => (
-          <li
-            key={t.id}
-            className={cn(
-              card,
-              "flex flex-col items-center gap-1 p-5 text-center",
-            )}
-          >
-            <span
-              className="mb-2 rounded-full p-1"
-              style={{ backgroundColor: PASTELS[i % PASTELS.length] }}
-            >
-              <Image
-                src={t.avatar}
-                alt=""
-                width={64}
-                height={64}
-                className="size-16 rounded-full outline-1 -outline-offset-1 outline-[oklch(0_0_0/0.1)]"
-              />
-            </span>
-            <h3 className="font-semibold text-[var(--color-neutral-charcoal)]">
-              {t.name}
-            </h3>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              {t.position}
-            </p>
-            <p className="mt-1 inline-flex items-center gap-1 text-sm text-[var(--color-neutral-charcoal)]">
-              <Star
-                aria-hidden="true"
-                className="size-4 fill-[var(--color-semantic-warning)] text-[var(--color-semantic-warning)]"
-              />
-              <span className="font-semibold tabular-nums">
-                {t.rating.toFixed(1)}
-              </span>
-              <span className="text-[var(--color-text-secondary)]">
-                ({t.reviews} reviews)
-              </span>
-            </p>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-5">{body}</div>
     </section>
+  );
+}
+
+function RecommendedSkeleton() {
+  return (
+    <div
+      role="status"
+      className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 xl:grid-cols-4"
+    >
+      <span className="sr-only">Loading recommended tutors…</span>
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className={cn(card, "flex flex-col items-center gap-3 p-5")}
+        >
+          <Skeleton className="size-16 rounded-full" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-40 max-w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecommendedTutorCard({
+  row,
+  index,
+}: {
+  row: RecommendedTutor;
+  index: number;
+}) {
+  const { tutor } = row;
+  const institute = tutor.instituteName?.trim();
+  return (
+    <li
+      className={cn(
+        card,
+        "relative flex flex-col items-center gap-1 p-5 text-center",
+      )}
+    >
+      <span
+        className="mb-2 rounded-full p-1"
+        style={{ backgroundColor: PASTELS[index % PASTELS.length] }}
+      >
+        <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={64} />
+      </span>
+      <h3 className="font-semibold text-[var(--color-neutral-charcoal)]">
+        <Link
+          href={`/tutors/${tutor.id}`}
+          className={cn(
+            "rounded-sm after:absolute after:inset-0 after:rounded-[24px]",
+            focusRing,
+          )}
+        >
+          {tutor.name}
+        </Link>
+      </h3>
+      {institute && (
+        <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
+          {institute}
+        </p>
+      )}
+      <span className="mt-1 block">
+        <RatingInline
+          ratingAvg={tutor.ratingAvg}
+          ratingCount={tutor.ratingCount}
+        />
+      </span>
+    </li>
   );
 }
 

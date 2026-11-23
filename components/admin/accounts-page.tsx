@@ -18,6 +18,7 @@ import {
   type PillTone,
 } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDateTime } from "@/lib/admin";
 import {
   useAdminAccounts,
@@ -212,25 +213,32 @@ function AccountRow({ account }: { account: AdminAccountSummary }) {
         "hover:shadow-[0_0_0_1px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.04),0_16px_36px_-12px_rgb(0_0_0/0.12)]",
       )}
     >
-      <div className="min-w-0 flex-1 basis-56">
-        <p className="font-semibold break-words text-[var(--color-neutral-charcoal)]">
-          {account.name ?? "No profile yet"}
-        </p>
-        <p className="mt-1 text-sm break-words text-[var(--color-text-secondary)]">
-          {account.email}
-        </p>
-        <p className="flex flex-wrap items-center gap-2 text-sm break-words text-[var(--color-text-secondary)] tabular-nums">
-          <span>{account.phoneNumber ?? "No phone number"}</span>
-          {account.phoneNumber &&
-            (account.phoneVerifiedAt ? (
-              <Badge variant="secondary">Verified</Badge>
-            ) : (
-              <Badge variant="outline">Not verified</Badge>
-            ))}
-        </p>
-        <p className="mt-2 text-xs text-[var(--color-text-secondary)] tabular-nums">
-          {`${ROLE_LABEL[account.role]} · Created ${formatDateTime(account.createdAt)}`}
-        </p>
+      <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+        <UserAvatar
+          src={account.avatarUrl}
+          name={account.name ?? account.email}
+          size={40}
+        />
+        <div className="min-w-0">
+          <p className="font-semibold break-words text-[var(--color-neutral-charcoal)]">
+            {account.name ?? "No profile yet"}
+          </p>
+          <p className="mt-1 text-sm break-words text-[var(--color-text-secondary)]">
+            {account.email}
+          </p>
+          <p className="flex flex-wrap items-center gap-2 text-sm break-words text-[var(--color-text-secondary)] tabular-nums">
+            <span>{account.phoneNumber ?? "No phone number"}</span>
+            {account.phoneNumber &&
+              (account.phoneVerifiedAt ? (
+                <Badge variant="secondary">Verified</Badge>
+              ) : (
+                <Badge variant="outline">Not verified</Badge>
+              ))}
+          </p>
+          <p className="mt-2 text-xs text-[var(--color-text-secondary)] tabular-nums">
+            {`${ROLE_LABEL[account.role]} · Created ${formatDateTime(account.createdAt)}`}
+          </p>
+        </div>
       </div>
       <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
     </Link>

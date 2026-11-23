@@ -11,6 +11,7 @@ import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import type { ApplicationDetail } from "@/lib/applications";
 import {
   CASE_STATUS_META,
+  canReportApplication,
   DISPUTE_TYPE_LABEL,
   isCaseActive,
   useMyDisputes,
@@ -27,6 +28,7 @@ export function ApplicationCaseActions({
   const [disputeOpen, setDisputeOpen] = useState(false);
   const canDispute =
     application.status === "CONFIRMED" || application.status === "COMPLETED";
+  const canReport = canReportApplication(application.status);
   const disputes = useMyDisputes(application.id, canDispute);
   const active = disputes.data?.pages
     .flatMap((page) => page.disputes)
@@ -35,6 +37,9 @@ export function ApplicationCaseActions({
     viewerRole === "STUDENT"
       ? application.tutor.name
       : application.student.name;
+
+  // No empty "Something wrong?" card when neither action applies.
+  if (!canDispute && !canReport) return null;
 
   return (
     <section
@@ -76,13 +81,15 @@ export function ApplicationCaseActions({
               Open a dispute
             </button>
           ))}
-        <button
-          type="button"
-          onClick={() => setReportOpen(true)}
-          className={cn(ghostButton, "min-h-10 max-w-full px-3")}
-        >
-          <span className="min-w-0 truncate">Report {otherName}</span>
-        </button>
+        {canReport && (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className={cn(ghostButton, "min-h-10 max-w-full px-3")}
+          >
+            <span className="min-w-0 truncate">Report {otherName}</span>
+          </button>
+        )}
       </div>
       {canDispute && (
         <DisputeDialog
@@ -91,12 +98,14 @@ export function ApplicationCaseActions({
           onOpenChange={setDisputeOpen}
         />
       )}
-      <ReportDialog
-        applicationId={application.id}
-        targetName={otherName}
-        open={reportOpen}
-        onOpenChange={setReportOpen}
-      />
+      {canReport && (
+        <ReportDialog
+          applicationId={application.id}
+          targetName={otherName}
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+        />
+      )}
     </section>
   );
 }

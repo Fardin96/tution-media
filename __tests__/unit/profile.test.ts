@@ -237,6 +237,7 @@ describe("formFromProfile", () => {
         lng: 90.376,
         addressText: "House 12, Road 4",
         districtCode: "dhaka",
+        districtName: "Dhaka",
         placeId: "ChIJ123",
         needsReaddress: false,
       },
@@ -246,6 +247,7 @@ describe("formFromProfile", () => {
       latitude: 23.7465,
       longitude: 90.376,
       district: "dhaka",
+      districtName: "Dhaka",
     });
   });
 

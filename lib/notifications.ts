@@ -25,11 +25,24 @@ export const notificationApi = {
   readAll: () => unwrap(client.POST("/api/v1/notifications/read-all")),
 };
 
-/** Polls every minute and on window focus, so the bell stays current without a socket. */
+/**
+ * Polls every minute and on window focus, so the bell stays current without a socket. A rise in the
+ * count means a new alert arrived (an invite, for a tutor), so the dashboard counts refresh too.
+ */
 export function useUnreadCount() {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: queryKeys.notifications.unreadCount,
-    queryFn: () => notificationApi.unreadCount(),
+    queryFn: async () => {
+      const next = await notificationApi.unreadCount();
+      const previous = queryClient.getQueryData<UnreadCount>(
+        queryKeys.notifications.unreadCount,
+      );
+      if (previous && next.count > previous.count) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.myStats });
+      }
+      return next;
+    },
     refetchInterval: UNREAD_POLL_MS,
     refetchOnWindowFocus: true,
   });
@@ -189,6 +202,8 @@ export function notificationText(n: TextFields): string {
         case "STORY_IMAGE":
         case "STORY_VIDEO":
           return "An admin removed your story.";
+        case "AVATAR":
+          return "An admin removed your profile picture.";
         default:
           return "An admin removed your file.";
       }
@@ -197,7 +212,7 @@ export function notificationText(n: TextFields): string {
         return "An admin paused your uploads.";
       if (n.blocksVideos) return "An admin paused your video uploads.";
       if (n.blocksDocuments)
-        return "An admin paused your ID and certificate uploads.";
+        return "An admin paused your ID, certificate and photo uploads.";
       return "An admin paused your uploads.";
     case "UPLOADS_UNBLOCKED":
       return "You can upload again.";

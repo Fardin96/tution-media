@@ -16,10 +16,10 @@ import {
   EmptyCard,
   ErrorBlock,
   RatingInline,
-  TutorInitial,
 } from "@/components/browse/browse-ui";
 import { enterClass, enterStyle } from "@/components/motion/enter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { dedupeBy } from "@/lib/browse";
@@ -117,7 +117,7 @@ function RecommendedTutorRow({
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="flex items-start gap-3">
-        <TutorInitial name={tutor.name} />
+        <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={44} />
         <div className="grid min-w-0 flex-1 gap-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h3 className="min-w-0 text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">

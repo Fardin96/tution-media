@@ -2,8 +2,9 @@ import Link from "next/link";
 import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
 import { secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
-import { RatingInline, TutorInitial } from "@/components/browse/browse-ui";
+import { RatingInline } from "@/components/browse/browse-ui";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Rows, Section } from "@/components/applications/detail-sections";
 import { TonePill } from "@/components/applications/status-pill";
 import {
@@ -34,7 +35,7 @@ export function TutorProfileSection({
   return (
     <Section title="Tutor">
       <div className="flex items-start gap-4">
-        <TutorInitial name={profile.name} />
+        <UserAvatar src={profile.avatarUrl} name={profile.name} size={44} />
         <div className="grid min-w-0 gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-pretty text-[var(--color-neutral-charcoal)]">

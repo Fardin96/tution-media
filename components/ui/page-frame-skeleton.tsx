@@ -26,7 +26,7 @@ export function PageFrameSkeleton({
       style={{ backgroundImage: WASH }}
     >
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 pt-6 sm:px-6">
-        <Skeleton className="h-10 w-40 sm:h-12 sm:w-48" />
+        <Skeleton className="aspect-[860/220] h-10 sm:h-12" />
         <div className="flex flex-wrap items-center justify-end gap-3">
           <Skeleton className="size-10 rounded-full" />
           {hasAction && <Skeleton className="h-10 w-32 rounded-full" />}

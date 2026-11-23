@@ -22,6 +22,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDateTime, useAdminMe } from "@/lib/admin";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
@@ -134,6 +135,15 @@ export function AccountDetailPage({ id }: { id: string }) {
   return (
     <AdminPage
       back={{ href: "/dashboard/admin/accounts", label: "Accounts" }}
+      leading={
+        account && (
+          <UserAvatar
+            src={account.avatarUrl}
+            name={displayName(account)}
+            size={56}
+          />
+        )
+      }
       title={account ? displayName(account) : "Account"}
       actions={actions}
     >

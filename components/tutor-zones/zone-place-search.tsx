@@ -8,6 +8,7 @@ import {
   fetchPlaceDetails,
   fetchPlacePredictions,
   makeSessionToken,
+  pickedPlaceLabel,
   type PlacePrediction,
 } from "@/lib/places";
 import { toastError } from "@/lib/toast";
@@ -140,14 +141,16 @@ export function ZonePlaceSearch({
         prediction.placeId,
         sessionToken(),
       );
+      const label = pickedPlaceLabel(prediction, details.formattedAddress);
       onSelect({
         placeId: prediction.placeId,
-        addressText: details.formattedAddress,
+        addressText: label,
         lat: details.location.latitude,
         lng: details.location.longitude,
       });
-      setQuery(details.formattedAddress);
-      setSyncedAddress(details.formattedAddress);
+      // Set both here so the render-time sync sees the parent's address as already synced.
+      setQuery(label);
+      setSyncedAddress(label);
     } catch (err) {
       toastError("Couldn't load that place. Try another.", err);
     } finally {

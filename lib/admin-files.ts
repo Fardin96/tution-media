@@ -45,6 +45,7 @@ export const PURPOSE_LABEL: Record<FilePurpose, string> = {
   SITE_VIDEO: "Site video",
   STORY_IMAGE: "Story photo",
   STORY_VIDEO: "Story video",
+  AVATAR: "Profile picture",
 };
 
 export const FILE_PURPOSES: readonly FilePurpose[] = [
@@ -208,6 +209,10 @@ export function useRemoveFile() {
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.filesAll }),
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.fileStats }),
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.uploadsAll }),
+        // Account pages show the photo, so a removed avatar must drop off them too.
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.accountsAll,
+        }),
       ]),
   });
 }

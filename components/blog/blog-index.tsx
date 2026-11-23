@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { canOptimizeImage } from "@/lib/media";
 import { card, focusRing, secondaryButton } from "@/components/profile/styles";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -143,14 +145,17 @@ function PostCard({ post }: { post: BlogPostSummary }) {
       )}
     >
       {post.coverUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- R2 URLs are not configured for next/image.
-        <img
-          src={post.coverUrl}
-          onError={refreshExpired}
-          alt=""
-          loading="lazy"
-          className="aspect-[16/9] w-full rounded-[16px] object-cover outline outline-1 -outline-offset-1 outline-black/10"
-        />
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[16px] outline outline-1 -outline-offset-1 outline-black/10">
+          <Image
+            src={post.coverUrl}
+            alt=""
+            fill
+            {...(!canOptimizeImage(post.coverUrl) && { unoptimized: true })}
+            sizes="(min-width: 1024px) 330px, (min-width: 640px) 50vw, 100vw"
+            onError={refreshExpired}
+            className="object-cover"
+          />
+        </div>
       ) : (
         <div
           aria-hidden="true"

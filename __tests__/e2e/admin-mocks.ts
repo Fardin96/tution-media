@@ -49,6 +49,7 @@ function adminMe(adminRole: AdminRole) {
       id: "acc_admin",
       role: "ADMIN",
       email: "admin@example.com",
+      avatarUrl: null,
       status: "ACTIVE",
       consentVersion: null,
       consentAcceptedAt: null,

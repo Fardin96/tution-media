@@ -24,7 +24,7 @@ export function useUploadStatus(enabled = true) {
 
 /**
  * The static line for a paused category, or null when that category is open.
- * Videos: "An admin paused your video uploads." Documents: IDs and certificates.
+ * Videos: "An admin paused your video uploads." Documents: IDs, certificates and photos.
  */
 export function pausedText(
   status: UploadStatus | null | undefined,
@@ -35,6 +35,6 @@ export function pausedText(
     return status.blocksVideos ? "An admin paused your video uploads." : null;
   }
   return status.blocksDocuments
-    ? "An admin paused your ID and certificate uploads."
+    ? "An admin paused your ID, certificate and photo uploads."
     : null;
 }

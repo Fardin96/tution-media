@@ -1,10 +1,14 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   ACTION_META,
   APPLICATION_ACTIONS,
   APPLICATION_STATUSES,
   STATUS_META,
+  applicationApi,
+  useMyApplications,
 } from "@/lib/applications";
 import { invalidateApplications, queryKeys } from "@/lib/query-keys";
 
@@ -81,11 +85,11 @@ describe("ACTION_META", () => {
 });
 
 describe("application query keys", () => {
-  it("list defaults the status to ALL", () => {
+  it("list defaults the status and initiatedBy to ALL", () => {
     expect(queryKeys.applications.list()).toEqual([
       "applications",
       "list",
-      { status: "ALL" },
+      { status: "ALL", initiatedBy: "ALL" },
     ]);
   });
 
@@ -93,7 +97,18 @@ describe("application query keys", () => {
     expect(queryKeys.applications.list("PENDING")).toEqual([
       "applications",
       "list",
-      { status: "PENDING" },
+      { status: "PENDING", initiatedBy: "ALL" },
+    ]);
+  });
+
+  it("list keys each initiatedBy apart, so the filters never share cached pages", () => {
+    expect(queryKeys.applications.list(undefined, "TUTOR")).not.toEqual(
+      queryKeys.applications.list(undefined, "STUDENT"),
+    );
+    expect(queryKeys.applications.list(undefined, "TUTOR")).toEqual([
+      "applications",
+      "list",
+      { status: "ALL", initiatedBy: "TUTOR" },
     ]);
   });
 
@@ -120,7 +135,7 @@ describe("application query keys", () => {
 });
 
 describe("invalidateApplications", () => {
-  it("invalidates applications, browse, me and notifications", async () => {
+  it("invalidates applications, browse, me, dashboard counts and notifications", async () => {
     const client = new QueryClient();
     const spy = vi.spyOn(client, "invalidateQueries");
 
@@ -129,8 +144,41 @@ describe("invalidateApplications", () => {
     expect(spy.mock.calls).toEqual([
       [{ queryKey: ["applications"] }],
       [{ queryKey: ["browse"] }],
+      // The me key covers the dashboard counts (["me", "stats"]).
       [{ queryKey: ["me"] }],
       [{ queryKey: ["notifications"] }],
     ]);
+  });
+});
+
+describe("useMyApplications", () => {
+  it("sends initiatedBy with every page, so Load more keeps the filter", async () => {
+    const list = vi
+      .spyOn(applicationApi, "list")
+      .mockResolvedValueOnce({ applications: [], nextCursor: "c2" } as never)
+      .mockResolvedValueOnce({ applications: [], nextCursor: null } as never);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client }, children);
+
+    const { result } = renderHook(() => useMyApplications("PENDING", "TUTOR"), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await result.current.fetchNextPage();
+
+    expect(list).toHaveBeenNthCalledWith(1, {
+      status: "PENDING",
+      initiatedBy: "TUTOR",
+      cursor: undefined,
+    });
+    expect(list).toHaveBeenNthCalledWith(2, {
+      status: "PENDING",
+      initiatedBy: "TUTOR",
+      cursor: "c2",
+    });
+    list.mockRestore();
   });
 });

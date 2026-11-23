@@ -33,10 +33,10 @@ describe("pausedText", () => {
     expect(pausedText(s, "documents")).toBeNull();
   });
 
-  it("names ID and certificate uploads when documents are paused", () => {
+  it("names ID, certificate and photo uploads when documents are paused", () => {
     const s = status({ blocksDocuments: true });
     expect(pausedText(s, "documents")).toBe(
-      "An admin paused your ID and certificate uploads.",
+      "An admin paused your ID, certificate and photo uploads.",
     );
     expect(pausedText(s, "videos")).toBeNull();
   });
@@ -45,7 +45,7 @@ describe("pausedText", () => {
     const s = status({ blocksVideos: true, blocksDocuments: true });
     expect(pausedText(s, "videos")).toBe("An admin paused your video uploads.");
     expect(pausedText(s, "documents")).toBe(
-      "An admin paused your ID and certificate uploads.",
+      "An admin paused your ID, certificate and photo uploads.",
     );
   });
 });

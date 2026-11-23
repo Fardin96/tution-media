@@ -835,6 +835,170 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/me/avatar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set my profile photo
+     * @description Uses an uploaded AVATAR file (JPEG, PNG or WebP, 2 MB) as the profile photo. The previous photo is deleted. Students and tutors only.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 10/hour per account.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SetAvatarInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Avatar"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    post?: never;
+    /**
+     * Remove my profile photo
+     * @description Deletes the uploaded profile photo. The Google picture from the last sign-in shows again, if there is one. Students and tutors only.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** 30/hour per account.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Avatar"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/me/stories": {
     parameters: {
       query?: never;
@@ -1091,6 +1255,85 @@ export interface paths {
         };
       };
     };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/me/stats": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * My dashboard counts
+     * @description Counts for the dashboard's At a glance row, by role. A tutor gets applicationsSent (applications the tutor sent, any status), activeStudents (distinct students with a CONFIRMED application) and invitesReceived (invites to OPEN requirements from ACTIVE students). A student gets openRequirements (its OPEN requirements), applicationsReceived (tutor applications on its requirements, any status) and tutorsHired (distinct tutors with a CONFIRMED or COMPLETED application). The tutor's rating is on /me.
+     *
+     *     **Who:** STUDENT, TUTOR.
+     *
+     *     **Rate limit:** global 100/min.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["MyStats"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -2446,7 +2689,7 @@ export interface paths {
     };
     /**
      * List a tutor's reviews
-     * @description Visible reviews written by students, newest first, cursor-paginated (limit 1 to 100, default 25). summary has the average, the count and the 1 to 5 star breakdown. 404 when the tutor does not exist.
+     * @description Visible reviews written by students, newest first, cursor-paginated (limit 1 to 100, default 25). summary has the average, the count and the 1 to 5 star breakdown. Student authors' avatarUrl is always null (students may be minors). 404 when the tutor does not exist.
      *
      *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
      *
@@ -5843,6 +6086,7 @@ export interface paths {
             | "WITHDRAWN"
             | "CANCELLED"
             | "EXPIRED";
+          initiatedBy?: "TUTOR" | "STUDENT";
           cursor?: string;
           limit?: number;
         };
@@ -6045,6 +6289,7 @@ export interface paths {
             | "WITHDRAWN"
             | "CANCELLED"
             | "EXPIRED";
+          initiatedBy?: "TUTOR" | "STUDENT";
           cursor?: string;
           limit?: number;
         };
@@ -6230,7 +6475,7 @@ export interface paths {
     };
     /**
      * List my applications
-     * @description Newest first, cursor-paginated. Filter by status.
+     * @description Newest first, cursor-paginated. Filter by status and by initiatedBy (TUTOR: applications the tutor sent; STUDENT: requests the student sent). initiatedBy=TUTOR lists the rows behind the dashboard's applications sent and applications received counts.
      *
      *     **Who:** TUTOR, STUDENT.
      *
@@ -6247,6 +6492,7 @@ export interface paths {
             | "WITHDRAWN"
             | "CANCELLED"
             | "EXPIRED";
+          initiatedBy?: "TUTOR" | "STUDENT";
           cursor?: string;
           limit?: number;
         };
@@ -11392,7 +11638,7 @@ export interface paths {
     get?: never;
     /**
      * Pause uploads for an account
-     * @description Blocks video uploads, document uploads (IDs and certificates) or both, with a note. Creates the active block or updates it. The account is told, and the note shows to them only when noteVisible is true. Admin accounts cannot be blocked. Audited.
+     * @description Blocks video uploads, document uploads (IDs, certificates and photos) or both, with a note. Creates the active block or updates it. The account is told, and the note shows to them only when noteVisible is true. Admin accounts cannot be blocked. Audited.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -16793,7 +17039,8 @@ export interface paths {
             | "SITE_IMAGE"
             | "SITE_VIDEO"
             | "STORY_IMAGE"
-            | "STORY_VIDEO";
+            | "STORY_VIDEO"
+            | "AVATAR";
           status?: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
           ownerAccountId?: string;
           unattached?: "true" | "false";
@@ -16960,7 +17207,7 @@ export interface paths {
     put?: never;
     /**
      * Remove an uploaded file and tell its owner
-     * @description Takes a file down with a note for the owner (required). What changes depends on the file. An ID (tutor or student) that is pending is rejected; an approved ID is rejected only when unverify is true. Only a tutor's latest submission changes. A credential or video that uses the file is deleted. Files no record uses are just removed. The stored copies are deleted. noteVisible false keeps the note between admins: the owner sees a generic message. Each removal is audited, kept in the upload history and sent to the owner as an alert. Blog covers are removed from their post instead (400). 404 when the file is missing or already removed. Replies with the file.
+     * @description Takes a file down with a note for the owner (required). What changes depends on the file. An ID (tutor or student) that is pending is rejected; an approved ID is rejected only when unverify is true. Only a tutor's latest submission changes. A credential or video that uses the file is deleted. A profile photo is cleared from the account (the Google picture shows again). Files no record uses are just removed. The stored copies are deleted. noteVisible false keeps the note between admins: the owner sees a generic message. Each removal is audited, kept in the upload history and sent to the owner as an alert. Blog covers are removed from their post instead (400). 404 when the file is missing or already removed. Replies with the file.
      *
      *     **Who:** ADMIN with an ACTIVE admin_user row.
      *
@@ -18826,6 +19073,7 @@ export interface components {
       name: string | null;
       phoneNumber: string | null;
       phoneVerifiedAt: string | null;
+      avatarUrl: string | null;
       /** Format: date-time */
       createdAt: string;
       lastLoginAt: string | null;
@@ -18864,6 +19112,7 @@ export interface components {
       name: string | null;
       phoneNumber: string | null;
       phoneVerifiedAt: string | null;
+      avatarUrl: string | null;
       /** Format: date-time */
       createdAt: string;
       lastLoginAt: string | null;
@@ -19195,7 +19444,8 @@ export interface components {
         | "SITE_IMAGE"
         | "SITE_VIDEO"
         | "STORY_IMAGE"
-        | "STORY_VIDEO";
+        | "STORY_VIDEO"
+        | "AVATAR";
       contentType: string;
       sizeBytes: number;
       /** @enum {string} */
@@ -19225,7 +19475,8 @@ export interface components {
           | "SITE_IMAGE"
           | "SITE_VIDEO"
           | "STORY_IMAGE"
-          | "STORY_VIDEO";
+          | "STORY_VIDEO"
+          | "AVATAR";
         /** @enum {string} */
         status: "PENDING_UPLOAD" | "UPLOADED" | "DELETED";
         count: number;
@@ -19241,6 +19492,7 @@ export interface components {
         gender: "MALE" | "FEMALE" | "OTHER";
         ratingAvg: number;
         ratingCount: number;
+        avatarUrl: string | null;
         /** @enum {string} */
         verificationStatus:
           "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
@@ -19960,6 +20212,7 @@ export interface components {
             | "SITE_VIDEO"
             | "STORY_IMAGE"
             | "STORY_VIDEO"
+            | "AVATAR"
           )
         | null;
       blocksVideos: boolean | null;
@@ -20041,6 +20294,7 @@ export interface components {
       id: string;
       name: string;
       areaId: number;
+      avatarUrl: string | null;
     };
     ApplicationTarget: {
       /** @enum {string} */
@@ -20078,6 +20332,7 @@ export interface components {
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
       instituteName: string | null;
+      avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
     };
@@ -20087,6 +20342,7 @@ export interface components {
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
       instituteName: string | null;
+      avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
       /** @enum {string} */
@@ -20188,6 +20444,9 @@ export interface components {
     AuditLogPage: {
       entries: components["schemas"]["AuditLogEntry"][];
       nextCursor: string | null;
+    };
+    Avatar: {
+      avatarUrl: string | null;
     };
     BlockAccountInput: {
       reason: string;
@@ -20800,7 +21059,8 @@ export interface components {
         | "SITE_IMAGE"
         | "SITE_VIDEO"
         | "STORY_IMAGE"
-        | "STORY_VIDEO";
+        | "STORY_VIDEO"
+        | "AVATAR";
       contentType: string;
       sizeBytes: number;
       fileName?: string;
@@ -21021,7 +21281,8 @@ export interface components {
         | "SITE_IMAGE"
         | "SITE_VIDEO"
         | "STORY_IMAGE"
-        | "STORY_VIDEO";
+        | "STORY_VIDEO"
+        | "AVATAR";
       contentType: string;
       sizeBytes: number;
       /** @enum {string} */
@@ -21332,6 +21593,7 @@ export interface components {
       createdAt: string;
       lastLoginAt: string | null;
       deletedAt: string | null;
+      avatarUrl: string | null;
       adminUser: components["schemas"]["MeAdminUser"] | null;
       student?: components["schemas"]["MeStudent"];
       tutor?: components["schemas"]["MeTutor"];
@@ -21393,6 +21655,7 @@ export interface components {
         lng: number | null;
         addressText: string;
         districtCode: string;
+        districtName: string | null;
         placeId: string | null;
         needsReaddress: boolean;
       } | null;
@@ -21433,6 +21696,7 @@ export interface components {
         lng: number | null;
         addressText: string;
         districtCode: string;
+        districtName: string | null;
         placeId: string | null;
         needsReaddress: boolean;
       } | null;
@@ -21506,6 +21770,7 @@ export interface components {
         gender: "MALE" | "FEMALE" | "OTHER";
         ratingAvg: number;
         ratingCount: number;
+        avatarUrl: string | null;
       };
       title: string;
       description: string;
@@ -21620,6 +21885,9 @@ export interface components {
       reviews: components["schemas"]["MyReview"][];
       nextCursor: string | null;
     };
+    MyStats:
+      | components["schemas"]["TutorStats"]
+      | components["schemas"]["StudentStats"];
     NotificationPage: {
       notifications: components["schemas"]["AppNotification"][];
       nextCursor: string | null;
@@ -21634,6 +21902,7 @@ export interface components {
         gender: "MALE" | "FEMALE" | "OTHER";
         ratingAvg: number;
         ratingCount: number;
+        avatarUrl: string | null;
       };
       title: string;
       description: string;
@@ -21768,6 +22037,7 @@ export interface components {
           /** @enum {string} */
           verificationStatus:
             "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+          avatarUrl: string | null;
           areas: {
             id: number;
             name: string;
@@ -21946,6 +22216,10 @@ export interface components {
     };
     SessionList: {
       sessions: components["schemas"]["Session"][];
+    };
+    SetAvatarInput: {
+      /** Format: uuid */
+      fileId: string;
     };
     SetVideoHomePageInput: {
       showOnHomePage: boolean;
@@ -22155,6 +22429,7 @@ export interface components {
         lng: number | null;
         addressText: string;
         districtCode: string;
+        districtName: string | null;
         placeId: string | null;
         needsReaddress: boolean;
       } | null;
@@ -22179,12 +22454,20 @@ export interface components {
       tutor: {
         id: string;
         name: string;
+        avatarUrl: string | null;
       };
     };
     StudentReviewList: {
       reviews: components["schemas"]["StudentReview"][];
       nextCursor: string | null;
       summary: components["schemas"]["ReviewSummary"];
+    };
+    StudentStats: {
+      /** @constant */
+      role: "STUDENT";
+      openRequirements: number;
+      applicationsReceived: number;
+      tutorsHired: number;
     };
     Subject: {
       id: number;
@@ -22235,6 +22518,7 @@ export interface components {
         lng: number | null;
         addressText: string;
         districtCode: string;
+        districtName: string | null;
         placeId: string | null;
         needsReaddress: boolean;
       } | null;
@@ -22357,6 +22641,7 @@ export interface components {
       ratingAvg: number;
       ratingCount: number;
       distanceMeters: number;
+      avatarUrl: string | null;
       areas: {
         id: number;
         name: string;
@@ -22372,6 +22657,7 @@ export interface components {
       instituteName: string | null;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
+      avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
       /** @enum {string} */
@@ -22494,6 +22780,7 @@ export interface components {
       student: {
         id: string;
         name: string;
+        avatarUrl: string | null;
       };
     };
     TutorReviewList: {
@@ -22510,6 +22797,7 @@ export interface components {
       instituteName: string | null;
       /** @enum {string} */
       gender: "MALE" | "FEMALE" | "OTHER";
+      avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
       areas: {
@@ -22520,6 +22808,13 @@ export interface components {
         id: number;
         name: string;
       }[];
+    };
+    TutorStats: {
+      /** @constant */
+      role: "TUTOR";
+      applicationsSent: number;
+      activeStudents: number;
+      invitesReceived: number;
     };
     TutorSubjects: {
       subjects: {
@@ -22835,6 +23130,7 @@ export interface components {
             | "SITE_VIDEO"
             | "STORY_IMAGE"
             | "STORY_VIDEO"
+            | "AVATAR"
           )
         | null;
       fileName: string | null;

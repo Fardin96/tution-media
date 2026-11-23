@@ -7,9 +7,12 @@ export type ZoneRequestStatus = "PENDING" | "APPROVED" | "DENIED";
 
 export const queryKeys = {
   me: ["me"] as const,
+  /** GET /me/stats: the dashboard's at-a-glance counts. Under `me`, so a /me refresh covers it too. */
+  myStats: ["me", "stats"] as const,
   match: ["match"] as const,
   /** The signed-in student's own requirements. */
   requirements: {
+    all: ["requirements"] as const,
     mine: ["requirements", "mine"] as const,
     detail: (id: string) => ["requirements", "detail", id] as const,
   },
@@ -133,8 +136,12 @@ export const queryKeys = {
   },
   applications: {
     all: ["applications"] as const,
-    list: (status?: string) =>
-      ["applications", "list", { status: status ?? "ALL" }] as const,
+    list: (status?: string, initiatedBy?: string) =>
+      [
+        "applications",
+        "list",
+        { status: status ?? "ALL", initiatedBy: initiatedBy ?? "ALL" },
+      ] as const,
     detail: (id: string) => ["applications", "detail", id] as const,
     forRequirement: (id: string) =>
       ["applications", "requirement", id] as const,
@@ -204,8 +211,19 @@ export function invalidateApplications(
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.applications.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.browse.all }),
+    // `me` also covers `myStats` (["me", "stats"]), so the counts refresh with it.
     queryClient.invalidateQueries({ queryKey: queryKeys.me }),
     invalidateNotifications(queryClient),
+  ]).then(() => undefined);
+}
+
+/** Creating, editing, closing or reposting a requirement moves the student's list and its open count. */
+export function invalidateRequirements(
+  queryClient: QueryClient,
+): Promise<void> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.requirements.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.myStats }),
   ]).then(() => undefined);
 }
 

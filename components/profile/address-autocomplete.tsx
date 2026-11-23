@@ -8,6 +8,7 @@ import {
   fetchPlaceDetails,
   fetchPlacePredictions,
   makeSessionToken,
+  pickedPlaceLabel,
   type PlacePrediction,
 } from "@/lib/places";
 
@@ -23,6 +24,8 @@ export interface AddressValue {
   latitude: number | null;
   longitude: number | null;
   district: string | null;
+  /** The name of the saved district code, shown instead of the code. */
+  districtName?: string | null;
 }
 
 const isDhaka = (district: string) =>
@@ -69,6 +72,7 @@ export function AddressAutocomplete({
   const districtHintId = `${id}-district-hint`;
   const districtLineId = `${id}-district-line`;
   const warningId = `${id}-warning`;
+  const pickHintId = `${id}-pick-hint`;
 
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +91,8 @@ export function AddressAutocomplete({
     !!value.placeId && (districtPrompt || value.district === null);
   const showDistrictLine = !!value.placeId && !!district;
   const showWarning = !!value.placeId && !!district && !isDhaka(district);
+  // Stays up while the list is open: hiding it made the listbox jump up under the input.
+  const showPickHint = !!value.address.trim() && !value.placeId;
   const inputDescribedBy =
     [
       hint && hintId,
@@ -95,6 +101,7 @@ export function AddressAutocomplete({
       showDistrictLine && districtLineId,
       showDistrict && districtHintId,
       showWarning && warningId,
+      showPickHint && pickHintId,
     ]
       .filter(Boolean)
       .join(" ") || undefined;
@@ -148,15 +155,16 @@ export function AddressAutocomplete({
       const token = ensureSessionToken();
       try {
         const details = await fetchPlaceDetails(prediction.placeId, token);
+        const label = pickedPlaceLabel(prediction, details.formattedAddress);
         onChange({
-          address: details.formattedAddress,
+          address: label,
           placeId: prediction.placeId,
           latitude: details.location.latitude,
           longitude: details.location.longitude,
           district: details.district,
         });
         setDistrictPrompt(details.district === null);
-        setAnnouncement(`${details.formattedAddress} selected.`);
+        setAnnouncement(`${label} selected.`);
       } catch (err) {
         const message =
           err instanceof Error
@@ -342,13 +350,12 @@ export function AddressAutocomplete({
           {error}
         </p>
       )}
-
       {showDistrictLine && (
         <p
           id={districtLineId}
           className="text-sm text-[var(--color-text-secondary)]"
         >
-          District: {district}
+          District: {value.districtName?.trim() || district}
         </p>
       )}
 
@@ -383,6 +390,15 @@ export function AddressAutocomplete({
             </li>
           ))}
         </ul>
+      )}
+
+      {showPickHint && (
+        <p
+          id={pickHintId}
+          className="text-sm text-[var(--color-text-secondary)]"
+        >
+          Pick a suggestion to set the location.
+        </p>
       )}
 
       {showDistrict && (

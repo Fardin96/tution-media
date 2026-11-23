@@ -56,9 +56,13 @@ function ControlledWrapper({
   );
 }
 
+const FORMATTED = "Dhanmondi, Dhaka, Bangladesh";
+const PICK_HINT = "Pick a suggestion to set the location.";
+
 async function pickPlace(
   user: ReturnType<typeof userEvent.setup>,
   district: string | null,
+  overrides: Partial<PlacePrediction> = {},
 ) {
   vi.mocked(fetchPlacePredictions).mockResolvedValue([
     {
@@ -66,10 +70,11 @@ async function pickPlace(
       description: "Dhanmondi, Dhaka",
       mainText: "Dhanmondi",
       secondaryText: "Dhaka",
+      ...overrides,
     },
   ]);
   vi.mocked(fetchPlaceDetails).mockResolvedValue({
-    formattedAddress: "Dhanmondi, Dhaka, Bangladesh",
+    formattedAddress: FORMATTED,
     location: { latitude: 23.7465, longitude: 90.376 },
     district,
   });
@@ -169,13 +174,134 @@ describe("AddressAutocomplete", () => {
 
     await waitFor(() => {
       expect(onChange).toHaveBeenLastCalledWith({
-        address: "Dhanmondi, Dhaka, Bangladesh",
+        address: "Dhanmondi, Dhaka",
         placeId: "ChIJ123",
         latitude: 23.7465,
         longitude: 90.376,
         district: "Dhaka",
       });
     });
+  });
+
+  it("keeps the suggestion text, not Google's formatted address", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ControlledWrapper onChange={onChange} />);
+    await pickPlace(user, "Dhaka");
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Address")).toHaveValue("Dhanmondi, Dhaka");
+    });
+    expect(screen.getByText("Dhanmondi, Dhaka selected.")).toBeInTheDocument();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ address: "Dhanmondi, Dhaka" }),
+    );
+  });
+
+  it("falls back to mainText and secondaryText when the description is empty", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ControlledWrapper onChange={onChange} />);
+    await pickPlace(user, "Dhaka", { description: "", mainText: "Mirpur 10" });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ address: "Mirpur 10, Dhaka" }),
+      );
+    });
+  });
+
+  it("falls back to the formatted address when the suggestion has no text", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ControlledWrapper onChange={onChange} />);
+    await pickPlace(user, "Dhaka", {
+      description: "",
+      mainText: "",
+      secondaryText: "",
+    });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ address: FORMATTED }),
+      );
+    });
+  });
+
+  it("selects the active suggestion with Enter using the same label", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ControlledWrapper onChange={onChange} />);
+    vi.mocked(fetchPlacePredictions).mockResolvedValue([
+      {
+        placeId: "ChIJ123",
+        description: "Dhanmondi, Dhaka",
+        mainText: "Dhanmondi",
+        secondaryText: "Dhaka",
+      },
+    ]);
+    vi.mocked(fetchPlaceDetails).mockResolvedValue({
+      formattedAddress: FORMATTED,
+      location: { latitude: 23.7465, longitude: 90.376 },
+      district: "Dhaka",
+    });
+    await user.type(screen.getByLabelText("Address"), "Dhan");
+    vi.advanceTimersByTime(400);
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          address: "Dhanmondi, Dhaka",
+          placeId: "ChIJ123",
+        }),
+      );
+    });
+  });
+
+  it("asks for a pick after the text is edited, and not while suggestions are open", async () => {
+    const user = userEvent.setup();
+    render(<ControlledWrapper onChange={vi.fn()} />);
+    expect(screen.queryByText(PICK_HINT)).not.toBeInTheDocument();
+
+    await pickPlace(user, "Dhaka");
+    await waitFor(() => {
+      expect(screen.getByLabelText("Address")).toHaveValue("Dhanmondi, Dhaka");
+    });
+    expect(screen.queryByText(PICK_HINT)).not.toBeInTheDocument();
+
+    // No suggestions come back, so the list stays closed and the hint shows.
+    vi.mocked(fetchPlacePredictions).mockResolvedValue([]);
+    await user.type(screen.getByLabelText("Address"), "x");
+    const hint = await screen.findByText(PICK_HINT);
+    expect(screen.getByLabelText("Address")).toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining(hint.id),
+    );
+  });
+
+  it("keeps the pick hint below the list while suggestions are open", async () => {
+    const user = userEvent.setup();
+    render(<ControlledWrapper onChange={vi.fn()} />);
+    vi.mocked(fetchPlacePredictions).mockResolvedValue([
+      {
+        placeId: "ChIJ123",
+        description: "Dhanmondi, Dhaka",
+        mainText: "Dhanmondi",
+        secondaryText: "Dhaka",
+      },
+    ]);
+    await user.type(screen.getByLabelText("Address"), "Dhan");
+    vi.advanceTimersByTime(400);
+    const listbox = await screen.findByRole("listbox");
+    // Hiding the hint while the list opened made the list jump, so it stays and follows the list.
+    const hint = screen.getByText(PICK_HINT);
+    expect(
+      listbox.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("clears district when the address is typed again", async () => {
@@ -253,11 +379,28 @@ describe("AddressAutocomplete", () => {
     render(<ControlledWrapper onChange={vi.fn()} />);
     await pickPlace(user, "Dhaka");
     await waitFor(() => {
-      expect(screen.getByLabelText("Address")).toHaveValue(
-        "Dhanmondi, Dhaka, Bangladesh",
-      );
+      expect(screen.getByLabelText("Address")).toHaveValue("Dhanmondi, Dhaka");
     });
     expect(screen.queryByLabelText("District")).not.toBeInTheDocument();
+  });
+
+  it("shows a saved district by its name rather than its code", () => {
+    render(
+      <AddressAutocomplete
+        label="Address"
+        value={{
+          address: "House 12, Road 4",
+          placeId: "ChIJ9",
+          latitude: 23.7,
+          longitude: 90.4,
+          district: "dhaka",
+          districtName: "Dhaka",
+        }}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("District: Dhaka")).toBeInTheDocument();
+    expect(screen.queryByText("District: dhaka")).not.toBeInTheDocument();
   });
 
   it("shows the detected district read-only under the address", async () => {
@@ -289,9 +432,7 @@ describe("AddressAutocomplete", () => {
     render(<ControlledWrapper onChange={vi.fn()} />);
     await pickPlace(user, "Dhaka District");
     await waitFor(() => {
-      expect(screen.getByLabelText("Address")).toHaveValue(
-        "Dhanmondi, Dhaka, Bangladesh",
-      );
+      expect(screen.getByLabelText("Address")).toHaveValue("Dhanmondi, Dhaka");
     });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });

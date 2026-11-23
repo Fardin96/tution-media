@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "motion/react";
 import { canOptimizeImage } from "@/lib/media";
 import { useRefreshExpiredPageMedia } from "@/lib/use-refresh-expired-page-media";
 import { useSaveData } from "@/lib/use-save-data";
@@ -37,19 +37,26 @@ export function VideoCard({
   className,
 }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const boxRef = useRef<HTMLButtonElement>(null);
   const saveData = useSaveData();
   const onMediaError = useRefreshExpiredPageMedia();
+  // The <video> mounts near the viewport or once it is wanted. Until it has loaded its
+  // first frame, the thumbnail Image underneath shows through.
+  const near = useInView(boxRef, { once: true, margin: "200px" });
+  const mounted = near || playing;
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    // play() rejects if the browser blocks it; the poster simply stays.
+    // play() rejects if the browser blocks it; the thumbnail simply stays.
     if (playing) v.play().catch(() => {});
     else v.pause();
-  }, [playing, video]);
+  }, [playing, video, mounted]);
 
   return (
     <button
+      ref={boxRef}
       type="button"
       aria-pressed={playing}
       aria-label={label}
@@ -72,18 +79,22 @@ export function VideoCard({
         onError={onMediaError}
         className="object-cover"
       />
-      {video && (
+      {video && mounted && (
         <video
           key={video}
           ref={videoRef}
           src={video}
-          poster={thumbnail}
           muted
           loop
           playsInline
-          preload={saveData ? "none" : "metadata"}
+          // No poster: it would download the original a second time. play() starts the load.
+          preload="none"
+          onLoadedData={() => setLoadedSrc(video)}
           onError={onMediaError}
-          className="absolute inset-0 size-full object-cover"
+          className={cn(
+            "absolute inset-0 size-full object-cover transition-opacity duration-200 ease-out",
+            loadedSrc === video ? "opacity-100" : "opacity-0",
+          )}
         />
       )}
       {/* Scrim so white text stays readable on any frame. */}

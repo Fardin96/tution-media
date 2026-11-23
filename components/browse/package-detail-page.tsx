@@ -24,10 +24,10 @@ import {
   ErrorBlock,
   RatingInline,
   SkeletonCards,
-  TutorInitial,
 } from "./browse-ui";
 import { studentPlaceText } from "./package-card";
 import { BackLink } from "@/components/ui/back-link";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSubjects } from "@/lib/subjects";
 import { TutorReviewList } from "@/components/reviews/review-list";
 import { PageFrame } from "@/components/ui/page-frame";
@@ -188,7 +188,11 @@ export function PackageDetailPage({ id }: { id: string }) {
               Tutor
             </h2>
             <div className="flex items-center gap-3">
-              <TutorInitial name={pkg.tutor.name} />
+              <UserAvatar
+                src={pkg.tutor.avatarUrl}
+                name={pkg.tutor.name}
+                size={44}
+              />
               <div className="min-w-0">
                 <p className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
                   <Link

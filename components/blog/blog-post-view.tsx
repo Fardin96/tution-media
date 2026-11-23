@@ -1,14 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { BackLink } from "@/components/ui/back-link";
 import { BlogMarkdown } from "@/components/blog/blog-markdown";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { secondaryButton } from "@/components/profile/styles";
 import { ApiError } from "@/lib/profile";
 import { formatPostDate, useBlogPost, type BlogPost } from "@/lib/blog";
 import { useRefreshExpiredMedia } from "@/lib/files";
+import { canOptimizeImage } from "@/lib/media";
 
 export function BlogPostView({
   slug,
@@ -75,15 +76,20 @@ export function BlogPostView({
             </header>
 
             {post.coverUrl && (
-              // eslint-disable-next-line @next/next/no-img-element -- R2 URLs are not configured for next/image.
-              <img
-                src={post.coverUrl}
-                onError={refreshExpired}
-                alt=""
-                className={cn(
-                  "mt-8 aspect-[16/9] w-full rounded-[24px] object-cover outline outline-1 -outline-offset-1 outline-black/10",
-                )}
-              />
+              <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-[24px] outline outline-1 -outline-offset-1 outline-black/10">
+                <Image
+                  src={post.coverUrl}
+                  alt=""
+                  fill
+                  preload
+                  {...(!canOptimizeImage(post.coverUrl) && {
+                    unoptimized: true,
+                  })}
+                  sizes="(min-width: 768px) 768px, 100vw"
+                  onError={refreshExpired}
+                  className="object-cover"
+                />
+              </div>
             )}
 
             <div className="mt-8">

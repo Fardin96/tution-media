@@ -344,7 +344,7 @@ function PauseForm({
               className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary-core)]"
             />
             <span className="text-[var(--color-neutral-charcoal)]">
-              IDs and certificates (images and PDFs)
+              IDs, certificates and photos (images and PDFs)
             </span>
           </label>
         </fieldset>

@@ -3,7 +3,52 @@ import {
   fetchPlacePredictions,
   fetchPlaceDetails,
   makeSessionToken,
+  pickedPlaceLabel,
 } from "@/lib/places";
+
+describe("pickedPlaceLabel", () => {
+  const empty = {
+    placeId: "ChIJ1",
+    description: "",
+    mainText: "",
+    secondaryText: "",
+  };
+
+  it("uses the suggestion's description, trimmed", () => {
+    expect(
+      pickedPlaceLabel(
+        {
+          ...empty,
+          description: "  Dhanmondi, Dhaka  ",
+          mainText: "Dhanmondi",
+          secondaryText: "Dhaka",
+        },
+        "Formatted",
+      ),
+    ).toBe("Dhanmondi, Dhaka");
+  });
+
+  it("joins the main and secondary text when the description is empty", () => {
+    expect(
+      pickedPlaceLabel(
+        { ...empty, mainText: " Dhanmondi ", secondaryText: "Dhaka" },
+        "Formatted",
+      ),
+    ).toBe("Dhanmondi, Dhaka");
+  });
+
+  it("falls back to the formatted address when there is no suggestion text", () => {
+    expect(pickedPlaceLabel(empty, "  Dhanmondi, Dhaka, Bangladesh ")).toBe(
+      "Dhanmondi, Dhaka, Bangladesh",
+    );
+  });
+
+  it("caps the label at 500 characters", () => {
+    expect(
+      pickedPlaceLabel({ ...empty, description: "a".repeat(600) }, ""),
+    ).toHaveLength(500);
+  });
+});
 
 describe("makeSessionToken", () => {
   it("returns a uuid-v4-shaped string", () => {

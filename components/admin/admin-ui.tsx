@@ -29,12 +29,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** One admin page: the single BackLink, the title block, then the content. The shell supplies the chrome. */
 export function AdminPage({
   back,
+  leading,
   title,
   description,
   actions,
   children,
 }: {
   back?: { href: string; label: string };
+  /** Decorative lead-in before the title, such as a person's photo. */
+  leading?: React.ReactNode;
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -48,15 +51,18 @@ export function AdminPage({
         </div>
       )}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0 flex-1 basis-64">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-            {title}
-          </h1>
-          {description && (
-            <p className="mt-1 max-w-prose text-sm text-pretty text-[var(--color-text-secondary)]">
-              {description}
-            </p>
-          )}
+        <div className="flex min-w-0 flex-1 basis-64 items-center gap-4">
+          {leading}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-1 max-w-prose text-sm text-pretty text-[var(--color-text-secondary)]">
+                {description}
+              </p>
+            )}
+          </div>
         </div>
         {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
       </div>

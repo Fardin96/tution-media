@@ -162,6 +162,7 @@ function Field({
             latitude: form.latitude,
             longitude: form.longitude,
             district: form.district,
+            districtName: form.districtName,
           }}
           label={field.label}
           placeholder={field.placeholder}
@@ -178,6 +179,9 @@ function Field({
               latitude: value.latitude,
               longitude: value.longitude,
               district: value.district,
+              // The saved name belongs to the saved code; a new district has no name until the next reload.
+              districtName:
+                value.district === form.district ? form.districtName : null,
             })
           }
         />
@@ -195,6 +199,7 @@ function Field({
     | "latitude"
     | "longitude"
     | "district"
+    | "districtName"
   >;
   const common = {
     id,

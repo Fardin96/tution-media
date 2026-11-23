@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
 import {
   TutorProfileSection,
   TutorSetSection,
@@ -37,6 +39,7 @@ function tutorProfile(
   return {
     id: "tutor-profile-7",
     name: "Rafiq Ahmed",
+    avatarUrl: null,
     gender: "MALE",
     instituteName: "University of Dhaka",
     ratingAvg: 4.5,
@@ -74,6 +77,16 @@ function tutorSet(
     },
     ...overrides,
   };
+}
+
+/** Avatars refresh expired photo links through the query client, so each render gets one. */
+function render(ui: ReactElement) {
+  const client = new QueryClient();
+  return rtlRender(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  });
 }
 
 describe("TutorSetSection", () => {

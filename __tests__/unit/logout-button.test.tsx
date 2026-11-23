@@ -143,3 +143,29 @@ describe("LogoutButton", () => {
     expect(screen.getByRole("status")).not.toHaveTextContent("Logging out…");
   });
 });
+
+describe("LogoutButton with the trigger hidden", () => {
+  it("shows the dialog from the parent's open state, with no trigger", () => {
+    render(<LogoutButton hideTrigger open onOpenChange={vi.fn()} />);
+
+    const dialog = screen.getByRole("alertdialog");
+    // hidden: true also finds a trigger that aria-hidden would otherwise hide behind the dialog.
+    const logouts = screen.getAllByRole("button", {
+      name: "Log out",
+      hidden: true,
+    });
+    expect(logouts).toHaveLength(1);
+    expect(dialog).toContainElement(logouts[0]);
+  });
+
+  it("reports Cancel to the parent without logging out", async () => {
+    const onOpenChange = vi.fn();
+    render(<LogoutButton hideTrigger open onOpenChange={onOpenChange} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(client.POST).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+});

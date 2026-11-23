@@ -202,18 +202,6 @@ export function RatingInline({
   );
 }
 
-export function TutorInitial({ name }: { name: string }) {
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-secondary-sky)] text-base font-semibold text-[var(--color-primary-deep)]"
-    >
-      {initial}
-    </span>
-  );
-}
-
 /** Client errors other than auth and rate limits: the nearby search reads these as "no saved location". */
 export function isClientError(err: unknown): boolean {
   const status = (err as { status?: unknown } | null)?.status;

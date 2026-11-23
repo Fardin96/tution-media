@@ -53,13 +53,14 @@ function application(
     tutor: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
       ...overrides,
     },
-    student: { id: "s1", name: "Nadia Islam", areaId: 1 },
+    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
     target: {
       kind: "REQUIREMENT",
       id: REQUIREMENT_ID,
@@ -197,5 +198,28 @@ describe("RequirementApplicantsPage", () => {
     expect(
       screen.queryByRole("link", { name: "Post again" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("RequirementApplicantsPage photos", () => {
+  const PHOTO = "https://pub-test.r2.dev/avatars/rafiq.webp";
+
+  it("shows the tutor's photo on the applicant card", async () => {
+    mockApplicants([application({ avatarUrl: PHOTO })]);
+    renderPage();
+
+    const card = (
+      await screen.findByRole("heading", { name: "Rafiq Ahmed" })
+    ).closest("article");
+    if (!card) throw new Error("applicant card not rendered");
+    expect(card.querySelector("img")).toHaveAttribute("src", PHOTO);
+  });
+
+  it("shows the tutor's initial when there is no photo", async () => {
+    mockApplicants([application()]);
+    renderPage();
+
+    await screen.findByRole("heading", { name: "Rafiq Ahmed" });
+    expect(screen.getByText("R")).toBeInTheDocument();
   });
 });

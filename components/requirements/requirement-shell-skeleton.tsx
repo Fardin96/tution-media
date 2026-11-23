@@ -39,7 +39,7 @@ export function RequirementShellSkeleton({
       style={{ backgroundImage: WASH }}
     >
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 sm:px-6">
-        <Skeleton className="h-10 w-40 sm:h-12 sm:w-48" />
+        <Skeleton className="aspect-[860/220] h-10 sm:h-12" />
       </header>
 
       <div

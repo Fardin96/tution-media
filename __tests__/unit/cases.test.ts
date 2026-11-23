@@ -3,9 +3,25 @@ import {
   CASE_STATUS_META,
   DISPUTE_TYPE_LABEL,
   REPORT_CATEGORY_LABEL,
+  canReportApplication,
   isCaseActive,
   validateCaseDetails,
 } from "@/lib/cases";
+
+describe("canReportApplication", () => {
+  it("hides the report on pending, withdrawn and expired applications", () => {
+    expect(canReportApplication("PENDING")).toBe(false);
+    expect(canReportApplication("WITHDRAWN")).toBe(false);
+    expect(canReportApplication("EXPIRED")).toBe(false);
+  });
+
+  it("allows a report on confirmed and the other statuses", () => {
+    expect(canReportApplication("CONFIRMED")).toBe(true);
+    expect(canReportApplication("COMPLETED")).toBe(true);
+    expect(canReportApplication("REJECTED")).toBe(true);
+    expect(canReportApplication("CANCELLED")).toBe(true);
+  });
+});
 
 describe("validateCaseDetails", () => {
   it("asks for at least 10 characters", () => {

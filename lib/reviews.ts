@@ -23,6 +23,7 @@ export type ListedReview = {
   comment: string | null;
   createdAt: string;
   authorName: string;
+  authorAvatarUrl: string | null;
 };
 
 export type ReviewListPage = {
@@ -123,6 +124,7 @@ export function useTutorReviews(tutorId: string) {
           comment: r.comment,
           createdAt: r.createdAt,
           authorName: r.student.name,
+          authorAvatarUrl: r.student.avatarUrl,
         })),
       };
     },
@@ -148,6 +150,7 @@ export function useStudentReviews(studentId: string) {
           comment: r.comment,
           createdAt: r.createdAt,
           authorName: r.tutor.name,
+          authorAvatarUrl: r.tutor.avatarUrl,
         })),
       };
     },

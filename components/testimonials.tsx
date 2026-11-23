@@ -47,6 +47,10 @@ export function Testimonials({ content }: { content: TestimonialsBlock }) {
   const swiped = useRef(false);
   const inView = useInView(carouselRef, { amount: 0.5 });
   const reduceMotion = useReducedMotion();
+  const saveData = useSaveData();
+  // The loop mounts once the carousel is near the viewport. It only plays when autoplay is
+  // allowed; the photo underneath is what everyone else sees.
+  const nearView = useInView(carouselRef, { once: true, margin: "200px" });
   const playVideo = inView && !reduceMotion && !stopped;
 
   const running =
@@ -275,12 +279,8 @@ export function Testimonials({ content }: { content: TestimonialsBlock }) {
                     onError={onMediaError}
                     className="object-cover object-[50%_30%]"
                   />
-                  {t.video && (
-                    <SlideVideo
-                      src={t.video}
-                      poster={t.photo}
-                      play={playVideo}
-                    />
+                  {t.video && nearView && (
+                    <SlideVideo src={t.video} play={playVideo && !saveData} />
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -292,41 +292,39 @@ export function Testimonials({ content }: { content: TestimonialsBlock }) {
   );
 }
 
-// Decorative loop over the photo. The photo stays underneath as the poster,
-// the loading state, and the fallback when autoplay is blocked.
-function SlideVideo({
-  src,
-  poster,
-  play,
-}: {
-  src: string;
-  poster: string;
-  play: boolean;
-}) {
+// Decorative loop over the photo. The photo stays underneath as the loading state and the
+// fallback when autoplay is blocked. No poster: that would download the photo's original again.
+function SlideVideo({ src, play }: { src: string; play: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
-  const saveData = useSaveData();
+  // Keyed by src: a refreshed link remounts the element, and it fades in again.
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const onMediaError = useRefreshExpiredPageMedia();
+  // `src` in the deps: a refreshed URL remounts the element, and the new one must play too.
   useEffect(() => {
     const video = ref.current;
-    if (!video || !play || saveData) return;
-    // Autoplay can be refused (power saving, data saver); the poster stays.
+    if (!video || !play) return;
+    // Autoplay can be refused (power saving, data saver); the photo stays.
     Promise.resolve(video.play()).catch(() => {});
     return () => video.pause();
-  }, [play, saveData]);
+  }, [play, src]);
 
   return (
     <video
+      key={src}
       ref={ref}
       src={src}
-      poster={poster}
       muted
       loop
       playsInline
-      preload={saveData ? "none" : "metadata"}
+      preload="none"
       disablePictureInPicture
       aria-hidden
+      onLoadedData={() => setLoadedSrc(src)}
       onError={onMediaError}
-      className="absolute inset-0 size-full object-cover object-[50%_30%]"
+      className={cn(
+        "absolute inset-0 size-full object-cover object-[50%_30%] transition-opacity duration-200 ease-out",
+        loadedSrc === src ? "opacity-100" : "opacity-0",
+      )}
     />
   );
 }

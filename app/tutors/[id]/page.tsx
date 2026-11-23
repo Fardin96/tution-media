@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth.server";
 import { publicApiGet, type PublicGetResult } from "@/lib/server-fetch";
 import type { PublicTutor } from "@/lib/tutor-profile";
+import { BackToTop } from "@/components/back-to-top";
 import { HeaderLink, PageFrame } from "@/components/ui/page-frame";
 import { TutorProfilePage } from "@/components/tutor-profile/tutor-profile-page";
 
@@ -39,18 +40,23 @@ export default async function TutorPage({ params }: Params) {
   ]);
   const signedIn = session !== null;
   return (
-    <PageFrame
-      signedIn={signedIn}
-      headerAction={
-        signedIn ? undefined : <HeaderLink href="/sign-in">Sign in</HeaderLink>
-      }
-    >
-      <TutorProfilePage
-        id={id}
-        // Only a 200 body is passed on. Any other status leaves the client query to load the profile.
-        initialProfile={profile.ok ? profile.data.tutor : undefined}
+    <>
+      <PageFrame
         signedIn={signedIn}
-      />
-    </PageFrame>
+        headerAction={
+          signedIn ? undefined : (
+            <HeaderLink href="/sign-in">Sign in</HeaderLink>
+          )
+        }
+      >
+        <TutorProfilePage
+          id={id}
+          // Only a 200 body is passed on. Any other status leaves the client query to load the profile.
+          initialProfile={profile.ok ? profile.data.tutor : undefined}
+          signedIn={signedIn}
+        />
+      </PageFrame>
+      <BackToTop />
+    </>
   );
 }

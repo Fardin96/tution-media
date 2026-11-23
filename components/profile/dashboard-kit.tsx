@@ -45,39 +45,26 @@ export function Pill({
   );
 }
 
-export function SampleTag() {
-  return (
-    <span className="rounded-full bg-[var(--color-surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
-      Sample data
-    </span>
-  );
-}
-
 export function SectionHeading({
   id,
   title,
   description,
-  sample,
   action,
 }: {
   id: string;
   title: string;
   description?: string;
-  sample?: boolean;
   action?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2
-            id={id}
-            className="text-xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] sm:text-2xl"
-          >
-            {title}
-          </h2>
-          {sample && <SampleTag />}
-        </div>
+        <h2
+          id={id}
+          className="text-xl font-semibold tracking-tight text-[var(--color-neutral-charcoal)] sm:text-2xl"
+        >
+          {title}
+        </h2>
         {description && (
           <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)]">
             {description}

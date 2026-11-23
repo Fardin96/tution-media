@@ -8,6 +8,7 @@ import { card, secondaryButton } from "@/components/profile/styles";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { enterClass, enterStyle } from "@/components/motion/enter";
 import { BackLink } from "@/components/ui/back-link";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { PageFrame } from "@/components/ui/page-frame";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { RecommendedTutorsSection } from "@/components/applications/recommended-tutors-section";
@@ -38,29 +39,32 @@ function ApplicantCard({ application }: { application: Application }) {
   return (
     <article className={cn(card, "flex flex-col gap-4 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
-            <Link
-              href={`/tutors/${tutor.id}`}
-              className="rounded-sm hover:underline"
-            >
-              {tutor.name}
-            </Link>
-          </h2>
-          {tutor.instituteName && (
-            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">
-              <GraduationCap aria-hidden="true" className="size-4 shrink-0" />
-              {tutor.instituteName}
+        <div className="flex min-w-0 items-center gap-3">
+          <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={40} />
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
+              <Link
+                href={`/tutors/${tutor.id}`}
+                className="rounded-sm hover:underline"
+              >
+                {tutor.name}
+              </Link>
+            </h2>
+            {tutor.instituteName && (
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+                <GraduationCap aria-hidden="true" className="size-4 shrink-0" />
+                {tutor.instituteName}
+              </p>
+            )}
+            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
+              {[
+                tutor.ratingCount > 0
+                  ? `Rated ${ratingText(tutor.ratingAvg, tutor.ratingCount)}`
+                  : "No ratings yet",
+                genderLabel(tutor.gender),
+              ].join(" · ")}
             </p>
-          )}
-          <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
-            {[
-              tutor.ratingCount > 0
-                ? `Rated ${ratingText(tutor.ratingAvg, tutor.ratingCount)}`
-                : "No ratings yet",
-              genderLabel(tutor.gender),
-            ].join(" · ")}
-          </p>
+          </div>
         </div>
         <StatusPill status={application.status} />
       </div>

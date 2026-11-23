@@ -108,12 +108,13 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
     tutor: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
     },
-    student: { id: "s1", name: "Nadia Islam", areaId: 1 },
+    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
     target: {
       kind: "REQUIREMENT",
       id: "r1",
@@ -137,6 +138,7 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
     tutorProfile: {
       id: "t1",
       name: "Rafiq Ahmed",
+      avatarUrl: null,
       gender: "MALE",
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
