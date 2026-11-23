@@ -53,9 +53,9 @@ import {
 export const ADMIN_NAV = [
   {
     href: "/dashboard/admin",
-    label: "Overview",
+    label: "Dashboard",
     icon: LayoutGrid,
-    description: "Everything that needs an admin, in one place.",
+    description: "Where the business is stuck, and the numbers that matter.",
   },
   {
     href: "/dashboard/admin/packages",
@@ -379,7 +379,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           onOpenChange={onLogoutOpenChange}
         />
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-10">
+        <main
+          className={cn(
+            "mx-auto w-full flex-1",
+            pathname === "/dashboard/admin" ? "max-w-7xl" : "max-w-5xl",
+            "px-4 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-10",
+          )}
+        >
           {me.isPending ? (
             <div
               aria-hidden="true"
