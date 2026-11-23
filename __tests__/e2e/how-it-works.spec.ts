@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { pinFastConnection } from "./fast-connection";
+
+// Autoplay is off on slow links; keep the link fast so the result does not depend on load.
+test.beforeEach(({ context }) => pinFastConnection(context));
 
 test("How it works: switch swaps steps and video; video plays in view and toggles", async ({
   page,
