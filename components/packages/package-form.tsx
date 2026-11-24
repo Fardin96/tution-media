@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
@@ -177,8 +176,9 @@ export function PackageForm(props: PackageFormProps) {
     serverGate && serverGate.at === readiness.dataUpdatedAt
       ? serverGate.missing
       : null;
-  // Editing an open package has no profile gate, so only create shows the checklist.
-  const missing = isEdit ? [] : (gate ?? readinessMissing);
+  // Only a rejected package is resubmitted, and the API checks the profile for that. An open one has no gate.
+  const resubmit = initial?.moderationStatus === "REJECTED";
+  const missing = gate ?? (isEdit && !resubmit ? [] : readinessMissing);
   const blocked = missing.length > 0;
   const blockedId = `${idPrefix}-blocked`;
 
@@ -222,7 +222,7 @@ export function PackageForm(props: PackageFormProps) {
         at: readiness.dataUpdatedAt,
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      toast.error("Finish your profile to publish.");
+      toastError("Finish your profile to publish.", err);
       return;
     }
 

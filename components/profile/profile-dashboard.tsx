@@ -2096,8 +2096,10 @@ function RequirementItem({
       void invalidateRequirements(queryClient);
       setAnnounce("Requirement posted.");
     } catch (err: unknown) {
-      toast.error(
+      // A phone refusal gets "Verify now"; other API errors show their catalogue copy.
+      toastError(
         err instanceof Error ? err.message : "Couldn't post requirement.",
+        err,
       );
     } finally {
       setBusy(false);
