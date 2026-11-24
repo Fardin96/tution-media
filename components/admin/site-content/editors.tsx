@@ -103,7 +103,7 @@ export function HeroEditor({
         onChange={(subline) => onChange({ ...value, subline })}
       />
       <PlaceholderList
-        label="Skill placeholders"
+        label="Subject placeholders"
         items={value.skillPlaceholders}
         errors={errors}
         path="skillPlaceholders"
