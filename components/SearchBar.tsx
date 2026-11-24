@@ -360,7 +360,7 @@ export default function SearchBar({
           }
           name="q"
           type="search"
-          label="Skill or role"
+          label="Subject"
           listLabel="Subject suggestions"
           placeholders={skillPlaceholders}
           text={subjectText}

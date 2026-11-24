@@ -10,6 +10,7 @@ import {
   useApplicationAction,
   type ApplicationAction,
 } from "@/lib/applications";
+import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 
 // Forward moves get the primary style; stepping back or ending early stays secondary.
@@ -42,8 +43,16 @@ export function ApplicationActions({
           toastSuccess(ACTION_META[name].done);
           onDone?.();
         },
-        onError: (err) =>
-          toastError("Couldn't update this application. Try again.", err),
+        onError: (err) => {
+          // The confirm dialog is modal and would trap the toast's Verify button, so it closes first.
+          if (
+            err instanceof ApiError &&
+            err.code === "PHONE_VERIFICATION_REQUIRED"
+          ) {
+            setConfirming(null);
+          }
+          toastError("Couldn't update this application. Try again.", err);
+        },
       },
     );
   }

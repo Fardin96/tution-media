@@ -12,6 +12,8 @@ import { ApiError, useMeAccount } from "@/lib/profile";
 import { mapServerIssuesToFields } from "@/lib/api-errors";
 import { invalidateTutorRequirements, queryKeys } from "@/lib/query-keys";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { requestPhoneVerify } from "@/lib/phone-verify-request";
+import { usePhoneVerificationStatus } from "@/lib/phone-verification";
 import { draftKey, useRestoredDraft } from "@/lib/form-draft";
 import { DraftRestoredNotice } from "@/components/ui/draft-restored-notice";
 import { useSubjects } from "@/lib/subjects";
@@ -109,6 +111,7 @@ export function TutorRequirementForm({
   );
 
   const me = useMeAccount();
+  const phoneStatus = usePhoneVerificationStatus();
   const zonesQuery = useTutorZones();
   // null when the list failed to load: the picks are kept rather than dropped.
   const zoneIds = useMemo(
@@ -228,281 +231,315 @@ export function TutorRequirementForm({
     }
   };
 
+  const phoneNeeded =
+    !isEdit &&
+    !!phoneStatus.data?.required &&
+    me.data?.tutor?.phoneVerifiedAt === null;
+
   return (
-    <form
-      ref={formRef}
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        void handleSubmit();
-      }}
-      aria-busy={saving}
-      className={cn(card, "mt-6 p-5 sm:p-8")}
-    >
-      {restoredAt !== null && (
-        <DraftRestoredNotice savedAt={restoredAt} onStartOver={startOver} />
-      )}
-      <div className="grid gap-10">
-        {/* Group 1: About this set */}
-        <fieldset className="grid min-w-0 gap-6">
-          <legend className={legendClass}>About this set</legend>
-
-          <div className="grid gap-2">
-            <label htmlFor={`${idPrefix}-name`} className={labelClass}>
-              Set name
-            </label>
-            <input
-              id={`${idPrefix}-name`}
-              type="text"
-              value={form.name}
-              maxLength={60}
-              placeholder="Evening Math, Mirpur"
-              autoComplete="off"
-              aria-invalid={errors.name ? true : undefined}
-              aria-describedby={
-                errors.name ? `${idPrefix}-name-error` : `${idPrefix}-name-hint`
-              }
-              onChange={(e) => updateForm({ name: e.target.value })}
-              className={cn(control, "h-12")}
-            />
-            <p id={`${idPrefix}-name-hint`} className={hintClass}>
-              Only you see this name.
-            </p>
-            <FieldError id={`${idPrefix}-name-error`} message={errors.name} />
-          </div>
-
-          <SetSubjectPicker
-            idPrefix={idPrefix}
-            profileSubjects={profileSubjects}
-            value={form.subjectIds}
-            onChange={(ids) => updateForm({ subjectIds: ids })}
-            error={errors.subjectIds}
-          />
-        </fieldset>
-
-        {/* Group 2: Classes you teach */}
-        <fieldset className="grid min-w-0 gap-6">
-          <legend className={legendClass}>Classes you teach</legend>
-          <EducationRangePicker
-            idPrefix={idPrefix}
-            value={form}
-            onChange={(next) => updateForm(next)}
-            errors={errors}
-          />
-        </fieldset>
-
-        {/* Group 3: When */}
-        <fieldset className="grid min-w-0 gap-6">
-          <legend className={legendClass}>When</legend>
-
-          <div className="flex flex-wrap gap-6">
-            <div className="grid min-w-0 flex-1 basis-40 gap-2">
-              <label htmlFor={`${idPrefix}-timeFrom`} className={labelClass}>
-                Start time
-              </label>
-              <input
-                id={`${idPrefix}-timeFrom`}
-                type="time"
-                value={form.timeFrom}
-                onChange={(e) => updateForm({ timeFrom: e.target.value })}
-                className={cn(control, "h-12")}
-              />
-            </div>
-            <div className="grid min-w-0 flex-1 basis-40 gap-2">
-              <label htmlFor={`${idPrefix}-timeTo`} className={labelClass}>
-                End time
-              </label>
-              <input
-                id={`${idPrefix}-timeTo`}
-                type="time"
-                value={form.timeTo}
-                aria-invalid={errors.timeTo ? true : undefined}
-                aria-describedby={
-                  errors.timeTo ? `${idPrefix}-timeTo-error` : undefined
-                }
-                onChange={(e) => updateForm({ timeTo: e.target.value })}
-                className={cn(control, "h-12")}
-              />
-              <FieldError
-                id={`${idPrefix}-timeTo-error`}
-                message={errors.timeTo}
-              />
-            </div>
-          </div>
-
-          <DaysOfWeekField
-            idPrefix={idPrefix}
-            value={form.availableDays}
-            onChange={(availableDays) => updateForm({ availableDays })}
-            error={errors.availableDays}
-          />
-
-          <DaysPerWeekField
-            idPrefix={idPrefix}
-            value={form.daysPerWeek}
-            onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
-            error={errors.daysPerWeek}
-          />
-
-          <div className="grid gap-2">
-            <label htmlFor={`${idPrefix}-availableFrom`} className={labelClass}>
-              Available from
-            </label>
-            <input
-              id={`${idPrefix}-availableFrom`}
-              type="date"
-              value={form.availableFrom}
-              onChange={(e) => updateForm({ availableFrom: e.target.value })}
-              className={cn(control, "h-12")}
-            />
-          </div>
-        </fieldset>
-
-        {/* Group 4: Students and pay */}
-        <fieldset className="grid min-w-0 gap-6">
-          <legend className={legendClass}>Students and pay</legend>
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <label htmlFor={`${idPrefix}-maxStudents`} className={labelClass}>
-                Max students
-              </label>
-              <input
-                id={`${idPrefix}-maxStudents`}
-                type="number"
-                min={1}
-                inputMode="numeric"
-                value={form.maxStudents}
-                aria-invalid={errors.maxStudents ? true : undefined}
-                aria-describedby={
-                  errors.maxStudents
-                    ? `${idPrefix}-maxStudents-error`
-                    : undefined
-                }
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  updateForm({ maxStudents: Number.isNaN(n) ? 0 : n });
-                }}
-                className={cn(control, "h-12 tabular-nums")}
-              />
-              <FieldError
-                id={`${idPrefix}-maxStudents-error`}
-                message={errors.maxStudents}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label htmlFor={`${idPrefix}-minSalary`} className={labelClass}>
-                Minimum monthly salary (taka)
-              </label>
-              <div className="relative flex items-center">
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute start-4 text-base font-semibold text-[var(--color-text-secondary)]"
-                >
-                  ৳
-                </span>
-                <input
-                  id={`${idPrefix}-minSalary`}
-                  type="text"
-                  inputMode="numeric"
-                  value={form.minSalary}
-                  placeholder="8,000"
-                  aria-invalid={errors.minSalary ? true : undefined}
-                  aria-describedby={
-                    errors.minSalary
-                      ? `${idPrefix}-minSalary-error`
-                      : `${idPrefix}-minSalary-hint`
-                  }
-                  onChange={(e) => updateForm({ minSalary: e.target.value })}
-                  onBlur={handleSalaryBlur}
-                  className={cn(control, "h-12 ps-9 pe-20 tabular-nums")}
-                />
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute end-4 text-sm text-[var(--color-text-secondary)]"
-                >
-                  / month
-                </span>
-              </div>
-              <p id={`${idPrefix}-minSalary-hint`} className={hintClass}>
-                Leave empty for no minimum.
-              </p>
-              <FieldError
-                id={`${idPrefix}-minSalary-error`}
-                message={errors.minSalary}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Chip
-              type="checkbox"
-              name={`${idPrefix}-teachesOnline`}
-              label="I also teach online"
-              checked={form.teachesOnline}
-              onChange={() =>
-                updateForm({ teachesOnline: !form.teachesOnline })
-              }
-            />
-          </div>
-        </fieldset>
-
-        {/* Group 5: Zones */}
-        <fieldset className="grid min-w-0 gap-6">
-          <legend className={legendClass}>Zones</legend>
-          <ZonePicker
-            idPrefix={idPrefix}
-            value={form.zoneIds}
-            onChange={(ids) => updateForm({ zoneIds: ids })}
-            teachesOnline={form.teachesOnline}
-            returnTo={
-              initialData
-                ? undefined
-                : {
-                    path: "/dashboard/tutor/requirements/new",
-                    label: "new requirement set",
-                  }
-            }
-            emptyHint={
-              // The inline error says the same thing once the form is submitted.
-              errors.zoneIds ? "" : undefined
-            }
-          />
-          {errors.zoneIds && (
-            <div data-field-error tabIndex={-1} className="outline-none">
-              <FieldError
-                id={`${idPrefix}-zoneIds-error`}
-                message={errors.zoneIds}
-              />
-            </div>
-          )}
-        </fieldset>
-      </div>
-
-      {/* Action buttons */}
-      <div
-        data-sticky-actions
-        className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none"
-      >
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <Link href={LIST_HREF} className={secondaryButton}>
-            <LinkPendingLabel>Cancel</LinkPendingLabel>
-          </Link>
-
+    <>
+      {phoneNeeded && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[var(--color-semantic-warning-surface)] p-4 text-sm font-medium text-[var(--color-semantic-warning-text)]">
+          <p className="text-pretty">
+            Verify your phone number to add a set. What you&apos;ve typed stays
+            here.
+          </p>
           <button
-            type="submit"
-            disabled={saving || profileQuery.isPending}
-            aria-busy={saving || undefined}
-            className={cn(primaryButton, "sm:min-w-44")}
+            type="button"
+            onClick={requestPhoneVerify}
+            className={cn(secondaryButton, "min-h-10 px-4")}
           >
-            <PendingLabel pending={saving}>
-              {isEdit ? "Save changes" : "Create set"}
-              <Check aria-hidden="true" className="size-4" strokeWidth={2.5} />
-            </PendingLabel>
+            Verify
           </button>
         </div>
-      </div>
-    </form>
+      )}
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit();
+        }}
+        aria-busy={saving}
+        className={cn(card, "mt-6 p-5 sm:p-8")}
+      >
+        {restoredAt !== null && (
+          <DraftRestoredNotice savedAt={restoredAt} onStartOver={startOver} />
+        )}
+        <div className="grid gap-10">
+          {/* Group 1: About this set */}
+          <fieldset className="grid min-w-0 gap-6">
+            <legend className={legendClass}>About this set</legend>
+
+            <div className="grid gap-2">
+              <label htmlFor={`${idPrefix}-name`} className={labelClass}>
+                Set name
+              </label>
+              <input
+                id={`${idPrefix}-name`}
+                type="text"
+                value={form.name}
+                maxLength={60}
+                placeholder="Evening Math, Mirpur"
+                autoComplete="off"
+                aria-invalid={errors.name ? true : undefined}
+                aria-describedby={
+                  errors.name
+                    ? `${idPrefix}-name-error`
+                    : `${idPrefix}-name-hint`
+                }
+                onChange={(e) => updateForm({ name: e.target.value })}
+                className={cn(control, "h-12")}
+              />
+              <p id={`${idPrefix}-name-hint`} className={hintClass}>
+                Only you see this name.
+              </p>
+              <FieldError id={`${idPrefix}-name-error`} message={errors.name} />
+            </div>
+
+            <SetSubjectPicker
+              idPrefix={idPrefix}
+              profileSubjects={profileSubjects}
+              value={form.subjectIds}
+              onChange={(ids) => updateForm({ subjectIds: ids })}
+              error={errors.subjectIds}
+            />
+          </fieldset>
+
+          {/* Group 2: Classes you teach */}
+          <fieldset className="grid min-w-0 gap-6">
+            <legend className={legendClass}>Classes you teach</legend>
+            <EducationRangePicker
+              idPrefix={idPrefix}
+              value={form}
+              onChange={(next) => updateForm(next)}
+              errors={errors}
+            />
+          </fieldset>
+
+          {/* Group 3: When */}
+          <fieldset className="grid min-w-0 gap-6">
+            <legend className={legendClass}>When</legend>
+
+            <div className="flex flex-wrap gap-6">
+              <div className="grid min-w-0 flex-1 basis-40 gap-2">
+                <label htmlFor={`${idPrefix}-timeFrom`} className={labelClass}>
+                  Start time
+                </label>
+                <input
+                  id={`${idPrefix}-timeFrom`}
+                  type="time"
+                  value={form.timeFrom}
+                  onChange={(e) => updateForm({ timeFrom: e.target.value })}
+                  className={cn(control, "h-12")}
+                />
+              </div>
+              <div className="grid min-w-0 flex-1 basis-40 gap-2">
+                <label htmlFor={`${idPrefix}-timeTo`} className={labelClass}>
+                  End time
+                </label>
+                <input
+                  id={`${idPrefix}-timeTo`}
+                  type="time"
+                  value={form.timeTo}
+                  aria-invalid={errors.timeTo ? true : undefined}
+                  aria-describedby={
+                    errors.timeTo ? `${idPrefix}-timeTo-error` : undefined
+                  }
+                  onChange={(e) => updateForm({ timeTo: e.target.value })}
+                  className={cn(control, "h-12")}
+                />
+                <FieldError
+                  id={`${idPrefix}-timeTo-error`}
+                  message={errors.timeTo}
+                />
+              </div>
+            </div>
+
+            <DaysOfWeekField
+              idPrefix={idPrefix}
+              value={form.availableDays}
+              onChange={(availableDays) => updateForm({ availableDays })}
+              error={errors.availableDays}
+            />
+
+            <DaysPerWeekField
+              idPrefix={idPrefix}
+              value={form.daysPerWeek}
+              onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
+              error={errors.daysPerWeek}
+            />
+
+            <div className="grid gap-2">
+              <label
+                htmlFor={`${idPrefix}-availableFrom`}
+                className={labelClass}
+              >
+                Available from
+              </label>
+              <input
+                id={`${idPrefix}-availableFrom`}
+                type="date"
+                value={form.availableFrom}
+                onChange={(e) => updateForm({ availableFrom: e.target.value })}
+                className={cn(control, "h-12")}
+              />
+            </div>
+          </fieldset>
+
+          {/* Group 4: Students and pay */}
+          <fieldset className="grid min-w-0 gap-6">
+            <legend className={legendClass}>Students and pay</legend>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <label
+                  htmlFor={`${idPrefix}-maxStudents`}
+                  className={labelClass}
+                >
+                  Max students
+                </label>
+                <input
+                  id={`${idPrefix}-maxStudents`}
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={form.maxStudents}
+                  aria-invalid={errors.maxStudents ? true : undefined}
+                  aria-describedby={
+                    errors.maxStudents
+                      ? `${idPrefix}-maxStudents-error`
+                      : undefined
+                  }
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    updateForm({ maxStudents: Number.isNaN(n) ? 0 : n });
+                  }}
+                  className={cn(control, "h-12 tabular-nums")}
+                />
+                <FieldError
+                  id={`${idPrefix}-maxStudents-error`}
+                  message={errors.maxStudents}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label htmlFor={`${idPrefix}-minSalary`} className={labelClass}>
+                  Minimum monthly salary (taka)
+                </label>
+                <div className="relative flex items-center">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute start-4 text-base font-semibold text-[var(--color-text-secondary)]"
+                  >
+                    ৳
+                  </span>
+                  <input
+                    id={`${idPrefix}-minSalary`}
+                    type="text"
+                    inputMode="numeric"
+                    value={form.minSalary}
+                    placeholder="8,000"
+                    aria-invalid={errors.minSalary ? true : undefined}
+                    aria-describedby={
+                      errors.minSalary
+                        ? `${idPrefix}-minSalary-error`
+                        : `${idPrefix}-minSalary-hint`
+                    }
+                    onChange={(e) => updateForm({ minSalary: e.target.value })}
+                    onBlur={handleSalaryBlur}
+                    className={cn(control, "h-12 ps-9 pe-20 tabular-nums")}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute end-4 text-sm text-[var(--color-text-secondary)]"
+                  >
+                    / month
+                  </span>
+                </div>
+                <p id={`${idPrefix}-minSalary-hint`} className={hintClass}>
+                  Leave empty for no minimum.
+                </p>
+                <FieldError
+                  id={`${idPrefix}-minSalary-error`}
+                  message={errors.minSalary}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Chip
+                type="checkbox"
+                name={`${idPrefix}-teachesOnline`}
+                label="I also teach online"
+                checked={form.teachesOnline}
+                onChange={() =>
+                  updateForm({ teachesOnline: !form.teachesOnline })
+                }
+              />
+            </div>
+          </fieldset>
+
+          {/* Group 5: Zones */}
+          <fieldset className="grid min-w-0 gap-6">
+            <legend className={legendClass}>Zones</legend>
+            <ZonePicker
+              idPrefix={idPrefix}
+              value={form.zoneIds}
+              onChange={(ids) => updateForm({ zoneIds: ids })}
+              teachesOnline={form.teachesOnline}
+              returnTo={
+                initialData
+                  ? undefined
+                  : {
+                      path: "/dashboard/tutor/requirements/new",
+                      label: "new requirement set",
+                    }
+              }
+              emptyHint={
+                // The inline error says the same thing once the form is submitted.
+                errors.zoneIds ? "" : undefined
+              }
+            />
+            {errors.zoneIds && (
+              <div data-field-error tabIndex={-1} className="outline-none">
+                <FieldError
+                  id={`${idPrefix}-zoneIds-error`}
+                  message={errors.zoneIds}
+                />
+              </div>
+            )}
+          </fieldset>
+        </div>
+
+        {/* Action buttons */}
+        <div
+          data-sticky-actions
+          className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+        >
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <Link href={LIST_HREF} className={secondaryButton}>
+              <LinkPendingLabel>Cancel</LinkPendingLabel>
+            </Link>
+
+            <button
+              type="submit"
+              disabled={saving || profileQuery.isPending}
+              aria-busy={saving || undefined}
+              className={cn(primaryButton, "sm:min-w-44")}
+            >
+              <PendingLabel pending={saving}>
+                {isEdit ? "Save changes" : "Create set"}
+                <Check
+                  aria-hidden="true"
+                  className="size-4"
+                  strokeWidth={2.5}
+                />
+              </PendingLabel>
+            </button>
+          </div>
+        </div>
+      </form>
+    </>
   );
 }

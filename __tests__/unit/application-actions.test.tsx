@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { ApplicationActions } from "@/components/applications/application-actions";
+import { ApiError } from "@/lib/profile";
+import { PHONE_VERIFY_EVENT } from "@/lib/phone-verify-request";
 import {
   ACTION_META,
   useApplicationAction,
@@ -118,6 +120,44 @@ describe("ApplicationActions", () => {
     );
 
     expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("closes the confirm dialog on a phone refusal and the toast's Verify now opens the dialog", async () => {
+    const user = userEvent.setup();
+    mutate.mockImplementation((_vars, opts) =>
+      opts?.onError?.(
+        new ApiError("Verify your phone number before accepting.", 403, {
+          code: "PHONE_VERIFICATION_REQUIRED",
+        }),
+      ),
+    );
+    const meta = ACTION_META.reject.confirm;
+    if (!meta) throw new Error("reject should have a confirm step");
+    render(
+      <ApplicationActions applicationId="app-1" allowedActions={["reject"]} />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: ACTION_META.reject.label }),
+    );
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: meta.confirmLabel,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
+    const [message, options] = vi.mocked(toast.error).mock.calls[0];
+    expect(message).toBe("Verify your phone number before accepting.");
+    const listener = vi.fn();
+    window.addEventListener(PHONE_VERIFY_EVENT, listener);
+    (
+      options as unknown as { action: { onClick: () => void } }
+    ).action.onClick();
+    window.removeEventListener(PHONE_VERIFY_EVENT, listener);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it("disables every action while a mutation is pending", () => {

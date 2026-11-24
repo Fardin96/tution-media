@@ -17,6 +17,8 @@ import {
   type Option,
 } from "@/lib/profile";
 import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
+import { usePhoneVerificationStatus } from "@/lib/phone-verification";
+import { PHONE_VERIFY_EVENT } from "@/lib/phone-verify-request";
 
 const push = vi.fn();
 
@@ -67,6 +69,11 @@ vi.mock("@/lib/subjects", async (importOriginal) => ({
     isSuccess: true,
     isFetched: true,
   }),
+}));
+
+vi.mock("@/lib/phone-verification", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/phone-verification")>()),
+  usePhoneVerificationStatus: vi.fn(() => ({ data: undefined })),
 }));
 
 vi.mock("@/lib/tutor-zones", async (importOriginal) => ({
@@ -528,5 +535,53 @@ describe("TutorRequirementForm drafts", () => {
     seedSet(DRAFT, "acc-1");
     renderForm();
     expect(screen.queryByText(/Restored your draft/)).toBeNull();
+  });
+});
+
+describe("TutorRequirementForm phone notice", () => {
+  const NOTICE = "Verify your phone number to add a set.";
+
+  function setPhone(required: boolean, phoneVerifiedAt: string | null) {
+    vi.mocked(usePhoneVerificationStatus).mockReturnValue({
+      data: { required },
+    } as unknown as ReturnType<typeof usePhoneVerificationStatus>);
+    vi.mocked(useMeAccount).mockReturnValue({
+      data: { id: "acc-1", tutor: { phoneVerifiedAt } },
+    } as unknown as ReturnType<typeof useMeAccount>);
+  }
+
+  it("shows on create when the switch is on and the tutor's phone is unverified", () => {
+    setPhone(true, null);
+    renderForm();
+    expect(screen.getByText(NOTICE, { exact: false })).toBeInTheDocument();
+  });
+
+  it("stays hidden when the switch is off", () => {
+    setPhone(false, null);
+    renderForm();
+    expect(screen.queryByText(NOTICE, { exact: false })).toBeNull();
+  });
+
+  it("stays hidden when the phone is verified", () => {
+    setPhone(true, "2026-11-20T10:00:00Z");
+    renderForm();
+    expect(screen.queryByText(NOTICE, { exact: false })).toBeNull();
+  });
+
+  it("stays hidden when editing", () => {
+    setPhone(true, null);
+    renderForm(SET);
+    expect(screen.queryByText(NOTICE, { exact: false })).toBeNull();
+  });
+
+  it("the Verify button asks the host to open the dialog", async () => {
+    setPhone(true, null);
+    const user = userEvent.setup();
+    const listener = vi.fn();
+    window.addEventListener(PHONE_VERIFY_EVENT, listener);
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+    window.removeEventListener(PHONE_VERIFY_EVENT, listener);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

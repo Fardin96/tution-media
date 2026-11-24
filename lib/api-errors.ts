@@ -206,8 +206,8 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
   ZONE_REQUEST_DECIDED: "This request was already decided.",
   PROFILE_INCOMPLETE: (err) => {
     const missing = missingRequirements(err.details);
-    if (missing.length === 0) return "Complete your profile before applying.";
-    return `Finish your profile before applying: ${missing.join(", ")}.`;
+    if (missing.length === 0) return "Complete your profile first.";
+    return `Finish your profile first: ${missing.join(", ")}.`;
   },
   ALREADY_APPLIED: "You've already applied.",
   APPLICATION_CLOSED: "This tuition is no longer taking applications.",

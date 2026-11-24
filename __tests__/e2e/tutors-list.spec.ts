@@ -71,7 +71,7 @@ test("the landing search opens the tutors list for a typed skill", async ({
   await mockTutors(page);
   await page.goto("/");
 
-  const skill = page.getByRole("combobox", { name: "Skill or role" });
+  const skill = page.getByRole("combobox", { name: "Subject" });
   await skill.fill("phys");
   const popup = page.getByRole("listbox", { name: "Subject suggestions" });
   await expect(popup.getByRole("option", { name: /Physics/ })).toBeVisible();
@@ -253,7 +253,7 @@ test("the tutors list and the landing suggestions fit at 320px", async ({
   expect(listOverflow).toBe(false);
 
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Skill or role" }).fill("phys");
+  await page.getByRole("combobox", { name: "Subject" }).fill("phys");
   const popup = page.getByRole("listbox", { name: "Subject suggestions" });
   await expect(popup).toBeVisible();
   const box = await popup.boundingBox();

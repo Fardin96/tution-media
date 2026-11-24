@@ -254,7 +254,7 @@ describe("PROFILE_INCOMPLETE message", () => {
       },
     });
     expect(errorCodeMessage(err)).toBe(
-      "Finish your profile before applying: name, location pin, teaching area, phone verification, default set with a zone or online teaching.",
+      "Finish your profile first: name, location pin, teaching area, phone verification, default set with a zone or online teaching.",
     );
   });
 
@@ -264,15 +264,13 @@ describe("PROFILE_INCOMPLETE message", () => {
       details: { missing: ["phone_number", "phone_number", ""] },
     });
     expect(errorCodeMessage(err)).toBe(
-      "Finish your profile before applying: phone number.",
+      "Finish your profile first: phone number.",
     );
   });
 
   it("falls back when details.missing is absent", () => {
     const err = new ApiError("m", 403, { code: "PROFILE_INCOMPLETE" });
-    expect(errorCodeMessage(err)).toBe(
-      "Complete your profile before applying.",
-    );
+    expect(errorCodeMessage(err)).toBe("Complete your profile first.");
   });
 });
 

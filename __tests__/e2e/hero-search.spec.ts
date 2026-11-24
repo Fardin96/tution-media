@@ -10,8 +10,7 @@ async function mockLookups(page: Page) {
   );
 }
 
-const subject = (page: Page) =>
-  page.getByRole("combobox", { name: "Skill or role" });
+const subject = (page: Page) => page.getByRole("combobox", { name: "Subject" });
 const location = (page: Page) =>
   page.getByRole("combobox", { name: "Location" });
 const search = (page: Page) => page.getByRole("button", { name: "Search" });

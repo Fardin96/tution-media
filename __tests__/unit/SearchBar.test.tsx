@@ -39,7 +39,7 @@ function renderBar() {
   );
 }
 
-const subject = () => screen.getByRole("combobox", { name: "Skill or role" });
+const subject = () => screen.getByRole("combobox", { name: "Subject" });
 const location = () => screen.getByRole("combobox", { name: "Location" });
 const search = () => screen.getByRole("button", { name: /search/i });
 

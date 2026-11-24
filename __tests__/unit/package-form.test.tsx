@@ -443,7 +443,14 @@ describe("PackageForm create", () => {
       await screen.findByRole("link", { name: "Verify your phone number" }),
     ).toHaveAttribute("href", "/dashboard#phone-verification");
     expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(toast.error).toHaveBeenCalledWith("Finish your profile to publish.");
+    // Phone-only refusals use the catalogue copy and add the Verify now action.
+    expect(toast.error).toHaveBeenCalledWith(
+      "Finish your profile first: phone verification.",
+      expect.objectContaining({
+        id: "phone-verification-required",
+        action: expect.objectContaining({ label: "Verify now" }),
+      }),
+    );
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -549,6 +556,72 @@ describe("PackageForm edit", () => {
       expect(toast.success).toHaveBeenCalledWith("Changes saved."),
     );
     expect(sentBody("PATCH")).toEqual({ price: 16000 });
+  });
+
+  it("shows the checklist with the phone action when a rejected package is edited", () => {
+    setReadiness(["phone_verification"]);
+    asAccount("acc-1", "+8801711111111");
+    renderForm({
+      ...PACKAGE,
+      moderationStatus: "REJECTED",
+      moderationNote: "Add the class range.",
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Finish your profile to publish" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Verify your phone number" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save changes" }),
+    ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("shows no checklist when an approved package is edited", () => {
+    setReadiness(["phone_verification", "verification"]);
+    renderForm(PACKAGE);
+
+    expect(
+      screen.queryByRole("heading", { name: "Finish your profile to publish" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save changes" }),
+    ).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("shows the checklist from a 403 when a rejected package is resubmitted", async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiFetch).mockResolvedValueOnce(
+      json(
+        {
+          code: "PROFILE_INCOMPLETE",
+          message: "Profile incomplete",
+          details: { missing: ["phone_verification"] },
+        },
+        403,
+      ),
+    );
+    renderForm({
+      ...PACKAGE,
+      moderationStatus: "REJECTED",
+      moderationNote: "Add the class range.",
+    });
+
+    const price = screen.getByLabelText("Price for the whole package (taka)");
+    await user.clear(price);
+    await user.type(price, "16000");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Finish your profile to publish",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Verify your phone number" }),
+    ).toHaveAttribute("href", "/dashboard#phone-verification");
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("says the package is sent for review again when a rejected package is saved", async () => {
