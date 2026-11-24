@@ -259,11 +259,14 @@ describe("PublicTutorsPage sort", () => {
 });
 
 describe("PublicTutorsPage cards", () => {
-  it("links signed-out visitors through sign-in", async () => {
+  it("links signed-out visitors through sign-up as a student", async () => {
     renderPage(false);
 
     const link = await screen.findByRole("link", { name: /Nusrat Jahan/ });
-    expect(link).toHaveAttribute("href", "/sign-in?next=%2Ftutors%2Ftutor-1");
+    expect(link).toHaveAttribute(
+      "href",
+      "/sign-up?role=student&next=%2Ftutors%2Ftutor-1",
+    );
   });
 
   it("links signed-in viewers straight to the profile", async () => {

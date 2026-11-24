@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Minus, Plus } from "lucide-react";
@@ -40,13 +40,20 @@ import {
   SubjectPicker,
 } from "@/components/profile/profile-fields";
 import { errorCodeMessage, mapServerIssuesToFields } from "@/lib/api-errors";
-import { ApiError } from "@/lib/profile";
+import { ApiError, useMeAccount } from "@/lib/profile";
 import {
   card,
   ghostButton,
   primaryButton,
   secondaryButton,
 } from "@/components/profile/styles";
+import { PhoneVerifyInPlace } from "@/components/profile/phone-verify-in-place";
+import { usePhoneVerificationStatus } from "@/lib/phone-verification";
+import { useAreas } from "@/lib/areas";
+import { useSubjects } from "@/lib/subjects";
+import { InstitutionPicker } from "@/components/profile/institution-picker";
+import { draftKey, useRestoredDraft } from "@/lib/form-draft";
+import { DraftRestoredNotice } from "@/components/ui/draft-restored-notice";
 
 const GENDER_OPTIONS: { value: TutorGenderPref; label: string }[] = [
   { value: "ANY", label: "Any" },
@@ -60,6 +67,33 @@ interface RequirementFormProps {
   /** Form state copied from an earlier requirement ("Post again"). Creates a new one. */
   template?: FormState;
   templateNotes?: RequirementTemplateNotes;
+  /** The requirement the template copies, so its draft is kept apart from a blank one. */
+  fromId?: string;
+}
+
+/** Drops picks that are no longer offered, and dates that have passed, from a saved draft. */
+function sanitizeDraft(
+  value: FormState,
+  subjectIds: number[] | null,
+  areaIds: number[] | null,
+): FormState {
+  // A list that failed to load can't check its picks, so they are kept (null means not checked).
+  const kept = (ids: number[] | null, id: number) =>
+    ids === null || ids.includes(id);
+  return {
+    ...value,
+    // Drafts saved before the picker existed have no id.
+    institutionId: value.institutionId ?? null,
+    subjectIds: value.subjectIds.filter((id) => kept(subjectIds, id)),
+    areaId:
+      value.areaId !== null && kept(areaIds, value.areaId)
+        ? value.areaId
+        : null,
+    hireByDate:
+      value.hireByDate < getLocalIsoDate()
+        ? emptyRequirementForm().hireByDate
+        : value.hireByDate,
+  };
 }
 
 export function RequirementForm({
@@ -67,23 +101,65 @@ export function RequirementForm({
   defaultAreaId,
   template,
   templateNotes,
+  fromId,
 }: RequirementFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
   const isDraft = initialData?.status === "DRAFT";
 
-  const [form, setForm] = useState<FormState>(() => {
+  const [start] = useState<FormState>(() => {
     if (initialData) return fromRequirement(initialData);
     if (template) return template;
     return emptyRequirementForm(defaultAreaId);
   });
+  const [form, setForm] = useState<FormState>(start);
+  // What the form looks like before anyone types. Prefill moves it, so a prefilled form is not "typed".
+  const [baseline, setBaseline] = useState<FormState>(start);
   const [errors, setErrors] = useState<RequirementFormErrors>({});
   const [savingAction, setSavingAction] = useState<
     "OPEN" | "DRAFT" | "UPDATE" | null
   >(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+
+  const me = useMeAccount();
+  const phoneStatus = usePhoneVerificationStatus();
+  const subjectsQuery = useSubjects();
+  const areasQuery = useAreas();
+  // null when the list failed to load: the picks are kept rather than dropped.
+  const subjectIds = useMemo(
+    () =>
+      subjectsQuery.isSuccess ? subjectsQuery.subjects.map((s) => s.id) : null,
+    [subjectsQuery.isSuccess, subjectsQuery.subjects],
+  );
+  const areaIds = useMemo(
+    () => (areasQuery.isSuccess ? areasQuery.areas.map((a) => a.id) : null),
+    [areasQuery.isSuccess, areasQuery.areas],
+  );
+
+  // Post again keeps its copy on "Start over", so the fresh state is the template, not a blank form.
+  const { restoredAt, startOver, clear } = useRestoredDraft<FormState>({
+    key: isEdit
+      ? null
+      : draftKey(
+          me.data?.id,
+          "requirement",
+          fromId ? `from:${fromId}` : undefined,
+        ),
+    form,
+    setForm,
+    baseline,
+    // Settled means fetched, failed or not: a list that never loads must not hold saving forever.
+    ready: subjectsQuery.isFetched && areasQuery.isFetched,
+    sanitize: (saved) => sanitizeDraft(saved, subjectIds, areaIds),
+    // The untouched form, prefill included, so Start over never reads as an edit.
+    fresh: baseline,
+    focusId: "requirement-form-title",
+  });
 
   const formRef = useRef<HTMLFormElement>(null);
   const idPrefix = useId();
+  // A server rule on the picked school shows on the same field as the name.
+  const instituteError = errors.instituteName ?? errors.institutionId;
 
   const todayIso = getLocalIsoDate();
 
@@ -94,7 +170,7 @@ export function RequirementForm({
 
   const queryClient = useQueryClient();
   // Prefill class and curriculum from the newest requirement, create only. A copied
-  // requirement already has its own class, so it skips this.
+  // requirement already has its own class, so it skips this, and so does a restored draft.
   const mineQuery = useQuery({
     queryKey: queryKeys.requirements.mine,
     queryFn: requirementApi.mine,
@@ -102,7 +178,7 @@ export function RequirementForm({
   });
   // Runs once, during render, when the first data arrives (no effect needed).
   const [prefillChecked, setPrefillChecked] = useState(false);
-  if (!prefillChecked && !template && mineQuery.data) {
+  if (!prefillChecked && !template && restoredAt === null && mineQuery.data) {
     setPrefillChecked(true);
     const newest = [...mineQuery.data].sort((a, b) =>
       b.createdAt.localeCompare(a.createdAt),
@@ -111,12 +187,14 @@ export function RequirementForm({
     const levelCode = newest?.levelCode ?? null;
     // Only fill when the user has not picked a level yet.
     if (curriculum !== null && levelCode !== null && form.levelCode === null) {
-      setForm((f) => ({
-        ...f,
+      const next = {
+        ...form,
         curriculum,
         levelCode,
         academicGroup: newest?.academicGroup ?? null,
-      }));
+      };
+      setForm(next);
+      setBaseline(next);
     }
   }
 
@@ -192,6 +270,7 @@ export function RequirementForm({
       } else {
         // Validated above; a DRAFT or OPEN payload is a create body.
         await requirementApi.create(payload as CreateRequirementBody);
+        clear();
         await invalidateRequirements(queryClient);
         const queryParam = targetStatus === "DRAFT" ? "draft=1" : "posted=1";
         router.push(`/dashboard?${queryParam}#requirements`);
@@ -229,14 +308,7 @@ export function RequirementForm({
       ) {
         toast.error("Verify your phone number before posting.", {
           id: "requirement-phone-verification",
-          description: (
-            <Link
-              href="/dashboard#phone-verification"
-              className="font-semibold underline"
-            >
-              Go to your profile to verify it
-            </Link>
-          ),
+          action: { label: "Verify now", onClick: () => setVerifyOpen(true) },
         });
       } else if (status === 400) {
         toast.error(
@@ -277,373 +349,446 @@ export function RequirementForm({
     levelNote: errors.levelNote,
   };
 
+  const phoneNeeded =
+    !!phoneStatus.data?.required && me.data?.student?.phoneVerifiedAt === null;
+
   return (
-    <form
-      ref={formRef}
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        void handleSubmit(isEdit && !isDraft ? undefined : "OPEN");
-      }}
-      aria-busy={!!savingAction}
-      className={cn(card, "mt-6 p-5 sm:p-8")}
-    >
-      {templateNotes && <TemplateNotice notes={templateNotes} />}
+    <>
+      {phoneNeeded && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-[var(--color-semantic-warning-surface)] p-4 text-sm font-medium text-[var(--color-semantic-warning-text)]">
+          <p className="text-pretty">
+            Verify your phone number before you post. What you&apos;ve typed
+            stays here.
+          </p>
+          <button
+            type="button"
+            onClick={() => setVerifyOpen(true)}
+            className={cn(secondaryButton, "min-h-10 px-4")}
+          >
+            Verify
+          </button>
+        </div>
+      )}
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit(isEdit && !isDraft ? undefined : "OPEN");
+        }}
+        aria-busy={!!savingAction}
+        className={cn(card, "mt-6 p-5 sm:p-8")}
+      >
+        {restoredAt !== null && (
+          <DraftRestoredNotice savedAt={restoredAt} onStartOver={startOver} />
+        )}
+        {templateNotes && <TemplateNotice notes={templateNotes} />}
 
-      <div className="grid gap-10">
-        {/* Group 1: What you need */}
-        <fieldset className="grid gap-6">
-          <div>
-            <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
-              What you need
-            </legend>
-            <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
-              Tutors search by these.
-            </p>
-          </div>
-
-          {/* Subject */}
-          <div className="grid gap-2">
-            <span
-              id={`${idPrefix}-subject-label`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Subject
-            </span>
-            <SubjectPicker
-              invalid={!!errors.subjectIds}
-              multiple={true}
-              value={form.subjectIds}
-              onChange={(ids) => updateForm({ subjectIds: ids })}
-            />
-            <FieldError
-              id={`${idPrefix}-subject-error`}
-              message={errors.subjectIds}
-            />
-          </div>
-
-          {/* Class, curriculum and extras */}
-          <EducationLevelPicker
-            idPrefix={idPrefix}
-            value={educationValue}
-            onChange={(next) => updateForm(next)}
-            errors={educationErrors}
-            classHint={
-              templateNotes?.checkClass
-                ? "Posted over 6 months ago. Check the class."
-                : undefined
-            }
-          />
-
-          {/* School or college */}
-          <div className="grid gap-2">
-            <label
-              htmlFor={`${idPrefix}-instituteName`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              School or college
-            </label>
-            <input
-              id={`${idPrefix}-instituteName`}
-              type="text"
-              value={form.instituteName}
-              maxLength={200}
-              placeholder="Viqarunnisa Noon School"
-              aria-invalid={errors.instituteName ? true : undefined}
-              aria-describedby={
-                errors.instituteName
-                  ? `${idPrefix}-instituteName-error`
-                  : `${idPrefix}-instituteName-hint`
-              }
-              onChange={(e) => updateForm({ instituteName: e.target.value })}
-              className={cn(control, "h-12")}
-            />
-            <p
-              id={`${idPrefix}-instituteName-hint`}
-              className="text-sm text-[var(--color-text-secondary)]"
-            >
-              Helps tutors who know the syllabus.
-            </p>
-            <FieldError
-              id={`${idPrefix}-instituteName-error`}
-              message={errors.instituteName}
-            />
-          </div>
-        </fieldset>
-
-        {/* Group 2: Where and when */}
-        <fieldset className="grid gap-6">
-          <div>
-            <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
-              Where and when
-            </legend>
-            <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
-              Your exact address stays private until you confirm a tutor.
-            </p>
-          </div>
-
-          {/* Area */}
-          <div className="grid gap-2">
-            <span
-              id={`${idPrefix}-area-label`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Area
-            </span>
-            <AreaPicker
-              invalid={!!errors.areaId}
-              multiple={false}
-              value={form.areaId ? [form.areaId] : []}
-              onChange={(ids) => updateForm({ areaId: ids[0] ?? null })}
-            />
-            <FieldError id={`${idPrefix}-area-error`} message={errors.areaId} />
-          </div>
-
-          {/* Tuition type */}
-          <div className="grid gap-2">
-            <span
-              id={`${idPrefix}-tuitionType-label`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Tuition type
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {TUITION_TYPES.map((type) => (
-                <Chip
-                  key={type}
-                  type="radio"
-                  name={`${idPrefix}-tuitionType`}
-                  label={type}
-                  checked={form.tuitionType === type}
-                  onChange={() => updateForm({ tuitionType: type })}
-                />
-              ))}
-            </div>
-            <FieldError
-              id={`${idPrefix}-tuitionType-error`}
-              message={errors.tuitionType}
-            />
-          </div>
-
-          {/* Days available, then days per week & Preferred time pair */}
-          <DaysOfWeekField
-            idPrefix={idPrefix}
-            label="Days available"
-            value={form.availableDays}
-            onChange={(availableDays) => updateForm({ availableDays })}
-            error={errors.availableDays}
-          />
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            <DaysPerWeekField
-              idPrefix={idPrefix}
-              value={form.daysPerWeek}
-              onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
-              error={errors.daysPerWeek}
-            />
-
-            <div className="grid gap-2">
-              <label
-                htmlFor={`${idPrefix}-timeOfDay`}
-                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-              >
-                Preferred time
-              </label>
-              <input
-                id={`${idPrefix}-timeOfDay`}
-                type="time"
-                step="900"
-                value={form.timeOfDay}
-                aria-invalid={errors.timeOfDay ? true : undefined}
-                aria-describedby={
-                  errors.timeOfDay ? `${idPrefix}-timeOfDay-error` : undefined
-                }
-                onChange={(e) => updateForm({ timeOfDay: e.target.value })}
-                className={cn(control, "h-12")}
-              />
-              <FieldError
-                id={`${idPrefix}-timeOfDay-error`}
-                message={errors.timeOfDay}
-              />
-            </div>
-          </div>
-
-          {/* Hire by date */}
-          <div className="grid gap-2">
-            <label
-              htmlFor={`${idPrefix}-hireByDate`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Hire by date
-            </label>
-            <input
-              id={`${idPrefix}-hireByDate`}
-              type="date"
-              min={todayIso}
-              value={form.hireByDate}
-              aria-invalid={errors.hireByDate ? true : undefined}
-              aria-describedby={
-                errors.hireByDate
-                  ? `${idPrefix}-hireByDate-error`
-                  : `${idPrefix}-hireByDate-hint`
-              }
-              onChange={(e) => updateForm({ hireByDate: e.target.value })}
-              className={cn(control, "h-12")}
-            />
-            <p
-              id={`${idPrefix}-hireByDate-hint`}
-              className="text-sm text-[var(--color-text-secondary)]"
-            >
-              When you want to start.
-            </p>
-            <FieldError
-              id={`${idPrefix}-hireByDate-error`}
-              message={errors.hireByDate}
-            />
-          </div>
-        </fieldset>
-
-        {/* Group 3: Budget and preferences */}
-        <fieldset className="grid gap-6">
-          <div>
-            <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
-              Budget and preferences
-            </legend>
-          </div>
-
-          {/* Salary & Students pair */}
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <label
-                htmlFor={`${idPrefix}-salary`}
-                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-              >
-                Monthly salary (taka)
-              </label>
-              <div className="relative flex items-center">
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute start-4 text-base font-semibold text-[var(--color-text-secondary)]"
-                >
-                  ৳
-                </span>
-                <input
-                  id={`${idPrefix}-salary`}
-                  type="text"
-                  inputMode="numeric"
-                  value={form.salary}
-                  placeholder="8,000"
-                  aria-invalid={errors.salary ? true : undefined}
-                  aria-describedby={
-                    errors.salary ? `${idPrefix}-salary-error` : undefined
-                  }
-                  onChange={(e) => updateForm({ salary: e.target.value })}
-                  onBlur={handleSalaryBlur}
-                  className={cn(control, "h-12 ps-9 pe-20 tabular-nums")}
-                />
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute end-4 text-sm text-[var(--color-text-secondary)]"
-                >
-                  / month
-                </span>
-              </div>
-              <FieldError
-                id={`${idPrefix}-salary-error`}
-                message={errors.salary}
-              />
+        <div className="grid gap-10">
+          {/* Group 1: What you need */}
+          <fieldset className="grid gap-6">
+            <div>
+              <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
+                What you need
+              </legend>
+              <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+                Tutors search by these.
+              </p>
             </div>
 
+            {/* Subject */}
             <div className="grid gap-2">
               <span
-                id={`${idPrefix}-students-label`}
+                id={`${idPrefix}-subject-label`}
                 className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
               >
-                Students
+                Subject
               </span>
-              <div className="flex h-12 items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Decrease student count"
-                  disabled={form.studentCount <= 1}
-                  onClick={() =>
-                    updateForm({
-                      studentCount: Math.max(1, form.studentCount - 1),
-                    })
-                  }
-                  className={cn(
-                    secondaryButton,
-                    "size-11 min-h-0 rounded-full p-0",
-                  )}
-                >
-                  <Minus aria-hidden="true" className="size-4" />
-                </button>
-                <span
-                  aria-live="polite"
-                  className="w-8 text-center text-lg font-semibold text-[var(--color-neutral-charcoal)] tabular-nums"
-                >
-                  {form.studentCount}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Increase student count"
-                  disabled={form.studentCount >= 10}
-                  onClick={() =>
-                    updateForm({
-                      studentCount: Math.min(10, form.studentCount + 1),
-                    })
-                  }
-                  className={cn(
-                    secondaryButton,
-                    "size-11 min-h-0 rounded-full p-0",
-                  )}
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                </button>
-              </div>
+              <SubjectPicker
+                invalid={!!errors.subjectIds}
+                multiple={true}
+                value={form.subjectIds}
+                onChange={(ids) => updateForm({ subjectIds: ids })}
+              />
               <FieldError
-                id={`${idPrefix}-students-error`}
-                message={errors.studentCount}
+                id={`${idPrefix}-subject-error`}
+                message={errors.subjectIds}
               />
             </div>
-          </div>
 
-          {/* Preferred tutor gender */}
-          <div className="grid gap-2">
-            <span
-              id={`${idPrefix}-gender-label`}
-              className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
-            >
-              Preferred tutor
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {GENDER_OPTIONS.map((g) => (
-                <Chip
-                  key={g.value}
-                  type="radio"
-                  name={`${idPrefix}-tutorGenderPref`}
-                  label={g.label}
-                  checked={form.tutorGenderPref === g.value}
-                  onChange={() => updateForm({ tutorGenderPref: g.value })}
-                />
-              ))}
+            {/* Class, curriculum and extras */}
+            <EducationLevelPicker
+              idPrefix={idPrefix}
+              value={educationValue}
+              onChange={(next) => updateForm(next)}
+              errors={educationErrors}
+              classHint={
+                templateNotes?.checkClass
+                  ? "Posted over 6 months ago. Check the class."
+                  : undefined
+              }
+            />
+
+            {/* School or college */}
+            <div className="grid gap-2">
+              <label
+                htmlFor={`${idPrefix}-instituteName`}
+                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+              >
+                School or college
+              </label>
+              <InstitutionPicker
+                id={`${idPrefix}-instituteName`}
+                value={{
+                  name: form.instituteName,
+                  institutionId: form.institutionId,
+                }}
+                onChange={(next) =>
+                  updateForm({
+                    instituteName: next.name,
+                    institutionId: next.institutionId,
+                  })
+                }
+                forRole="student"
+                invalid={!!instituteError}
+                describedBy={
+                  instituteError ? `${idPrefix}-instituteName-error` : undefined
+                }
+                hint="Pick it from the list, or type the full name if it isn't there."
+                placeholder="Viqarunnisa Noon School"
+                maxLength={200}
+              />
+              <FieldError
+                id={`${idPrefix}-instituteName-error`}
+                message={instituteError}
+              />
             </div>
-          </div>
-        </fieldset>
-      </div>
+          </fieldset>
 
-      {/* Action buttons */}
-      <div
-        data-sticky-actions
-        className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none"
-      >
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <Link href="/dashboard" className={cn(ghostButton, "sm:min-w-28")}>
-            <LinkPendingLabel>Cancel</LinkPendingLabel>
-          </Link>
+          {/* Group 2: Where and when */}
+          <fieldset className="grid gap-6">
+            <div>
+              <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
+                Where and when
+              </legend>
+              <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
+                Your exact address stays private until you confirm a tutor.
+              </p>
+            </div>
 
-          {isEdit ? (
-            isDraft ? (
+            {/* Area */}
+            <div className="grid gap-2">
+              <span
+                id={`${idPrefix}-area-label`}
+                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+              >
+                Area
+              </span>
+              <AreaPicker
+                invalid={!!errors.areaId}
+                multiple={false}
+                value={form.areaId ? [form.areaId] : []}
+                onChange={(ids) => updateForm({ areaId: ids[0] ?? null })}
+              />
+              <FieldError
+                id={`${idPrefix}-area-error`}
+                message={errors.areaId}
+              />
+            </div>
+
+            {/* Tuition type */}
+            <div className="grid gap-2">
+              <span
+                id={`${idPrefix}-tuitionType-label`}
+                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+              >
+                Tuition type
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {TUITION_TYPES.map((type) => (
+                  <Chip
+                    key={type}
+                    type="radio"
+                    name={`${idPrefix}-tuitionType`}
+                    label={type}
+                    checked={form.tuitionType === type}
+                    onChange={() => updateForm({ tuitionType: type })}
+                  />
+                ))}
+              </div>
+              <FieldError
+                id={`${idPrefix}-tuitionType-error`}
+                message={errors.tuitionType}
+              />
+            </div>
+
+            {/* Days available, then days per week & Preferred time pair */}
+            <DaysOfWeekField
+              idPrefix={idPrefix}
+              label="Days available"
+              value={form.availableDays}
+              onChange={(availableDays) => updateForm({ availableDays })}
+              error={errors.availableDays}
+            />
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <DaysPerWeekField
+                idPrefix={idPrefix}
+                value={form.daysPerWeek}
+                onChange={(daysPerWeek) => updateForm({ daysPerWeek })}
+                error={errors.daysPerWeek}
+              />
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor={`${idPrefix}-timeOfDay`}
+                  className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+                >
+                  Preferred time
+                </label>
+                <input
+                  id={`${idPrefix}-timeOfDay`}
+                  type="time"
+                  step="900"
+                  value={form.timeOfDay}
+                  aria-invalid={errors.timeOfDay ? true : undefined}
+                  aria-describedby={
+                    errors.timeOfDay ? `${idPrefix}-timeOfDay-error` : undefined
+                  }
+                  onChange={(e) => updateForm({ timeOfDay: e.target.value })}
+                  className={cn(control, "h-12")}
+                />
+                <FieldError
+                  id={`${idPrefix}-timeOfDay-error`}
+                  message={errors.timeOfDay}
+                />
+              </div>
+            </div>
+
+            {/* Hire by date */}
+            <div className="grid gap-2">
+              <label
+                htmlFor={`${idPrefix}-hireByDate`}
+                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+              >
+                Hire by date
+              </label>
+              <input
+                id={`${idPrefix}-hireByDate`}
+                type="date"
+                min={todayIso}
+                value={form.hireByDate}
+                aria-invalid={errors.hireByDate ? true : undefined}
+                aria-describedby={
+                  errors.hireByDate
+                    ? `${idPrefix}-hireByDate-error`
+                    : `${idPrefix}-hireByDate-hint`
+                }
+                onChange={(e) => updateForm({ hireByDate: e.target.value })}
+                className={cn(control, "h-12")}
+              />
+              <p
+                id={`${idPrefix}-hireByDate-hint`}
+                className="text-sm text-[var(--color-text-secondary)]"
+              >
+                When you want to start.
+              </p>
+              <FieldError
+                id={`${idPrefix}-hireByDate-error`}
+                message={errors.hireByDate}
+              />
+            </div>
+          </fieldset>
+
+          {/* Group 3: Budget and preferences */}
+          <fieldset className="grid gap-6">
+            <div>
+              <legend className="text-base font-semibold text-[var(--color-neutral-charcoal)] sm:text-lg">
+                Budget and preferences
+              </legend>
+            </div>
+
+            {/* Salary & Students pair */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <label
+                  htmlFor={`${idPrefix}-salary`}
+                  className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+                >
+                  Monthly salary (taka)
+                </label>
+                <div className="relative flex items-center">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute start-4 text-base font-semibold text-[var(--color-text-secondary)]"
+                  >
+                    ৳
+                  </span>
+                  <input
+                    id={`${idPrefix}-salary`}
+                    type="text"
+                    inputMode="numeric"
+                    value={form.salary}
+                    placeholder="8,000"
+                    aria-invalid={errors.salary ? true : undefined}
+                    aria-describedby={
+                      errors.salary ? `${idPrefix}-salary-error` : undefined
+                    }
+                    onChange={(e) => updateForm({ salary: e.target.value })}
+                    onBlur={handleSalaryBlur}
+                    className={cn(control, "h-12 ps-9 pe-20 tabular-nums")}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute end-4 text-sm text-[var(--color-text-secondary)]"
+                  >
+                    / month
+                  </span>
+                </div>
+                <FieldError
+                  id={`${idPrefix}-salary-error`}
+                  message={errors.salary}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <span
+                  id={`${idPrefix}-students-label`}
+                  className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+                >
+                  Students
+                </span>
+                <div className="flex h-12 items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Decrease student count"
+                    disabled={form.studentCount <= 1}
+                    onClick={() =>
+                      updateForm({
+                        studentCount: Math.max(1, form.studentCount - 1),
+                      })
+                    }
+                    className={cn(
+                      secondaryButton,
+                      "size-11 min-h-0 rounded-full p-0",
+                    )}
+                  >
+                    <Minus aria-hidden="true" className="size-4" />
+                  </button>
+                  <span
+                    aria-live="polite"
+                    className="w-8 text-center text-lg font-semibold text-[var(--color-neutral-charcoal)] tabular-nums"
+                  >
+                    {form.studentCount}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Increase student count"
+                    disabled={form.studentCount >= 10}
+                    onClick={() =>
+                      updateForm({
+                        studentCount: Math.min(10, form.studentCount + 1),
+                      })
+                    }
+                    className={cn(
+                      secondaryButton,
+                      "size-11 min-h-0 rounded-full p-0",
+                    )}
+                  >
+                    <Plus aria-hidden="true" className="size-4" />
+                  </button>
+                </div>
+                <FieldError
+                  id={`${idPrefix}-students-error`}
+                  message={errors.studentCount}
+                />
+              </div>
+            </div>
+
+            {/* Preferred tutor gender */}
+            <div className="grid gap-2">
+              <span
+                id={`${idPrefix}-gender-label`}
+                className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+              >
+                Preferred tutor
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {GENDER_OPTIONS.map((g) => (
+                  <Chip
+                    key={g.value}
+                    type="radio"
+                    name={`${idPrefix}-tutorGenderPref`}
+                    label={g.label}
+                    checked={form.tutorGenderPref === g.value}
+                    onChange={() => updateForm({ tutorGenderPref: g.value })}
+                  />
+                ))}
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        {/* Action buttons */}
+        <div
+          data-sticky-actions
+          className="sticky bottom-0 -mx-5 mt-10 bg-white/90 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md sm:relative sm:bottom-auto sm:mx-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+        >
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <Link href="/dashboard" className={cn(ghostButton, "sm:min-w-28")}>
+              <LinkPendingLabel>Cancel</LinkPendingLabel>
+            </Link>
+
+            {isEdit ? (
+              isDraft ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={!!savingAction}
+                    aria-busy={savingAction === "DRAFT" || undefined}
+                    onClick={() => handleSubmit("DRAFT")}
+                    className={secondaryButton}
+                  >
+                    <PendingLabel pending={savingAction === "DRAFT"}>
+                      Save changes
+                    </PendingLabel>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!!savingAction}
+                    aria-busy={savingAction === "OPEN" || undefined}
+                    onClick={() => handleSubmit("OPEN")}
+                    className={cn(primaryButton, "sm:min-w-40")}
+                  >
+                    <PendingLabel pending={savingAction === "OPEN"}>
+                      Save and post
+                      <Check
+                        aria-hidden="true"
+                        className="size-4"
+                        strokeWidth={2.5}
+                      />
+                    </PendingLabel>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!!savingAction}
+                  aria-busy={savingAction === "UPDATE" || undefined}
+                  className={cn(primaryButton, "sm:min-w-40")}
+                >
+                  <PendingLabel pending={savingAction === "UPDATE"}>
+                    Save changes
+                    <Check
+                      aria-hidden="true"
+                      className="size-4"
+                      strokeWidth={2.5}
+                    />
+                  </PendingLabel>
+                </button>
+              )
+            ) : (
               <>
                 <button
                   type="button"
@@ -653,7 +798,7 @@ export function RequirementForm({
                   className={secondaryButton}
                 >
                   <PendingLabel pending={savingAction === "DRAFT"}>
-                    Save changes
+                    Save as draft
                   </PendingLabel>
                 </button>
 
@@ -662,10 +807,10 @@ export function RequirementForm({
                   disabled={!!savingAction}
                   aria-busy={savingAction === "OPEN" || undefined}
                   onClick={() => handleSubmit("OPEN")}
-                  className={cn(primaryButton, "sm:min-w-40")}
+                  className={cn(primaryButton, "sm:min-w-44")}
                 >
                   <PendingLabel pending={savingAction === "OPEN"}>
-                    Save and post
+                    Post requirement
                     <Check
                       aria-hidden="true"
                       className="size-4"
@@ -674,58 +819,12 @@ export function RequirementForm({
                   </PendingLabel>
                 </button>
               </>
-            ) : (
-              <button
-                type="submit"
-                disabled={!!savingAction}
-                aria-busy={savingAction === "UPDATE" || undefined}
-                className={cn(primaryButton, "sm:min-w-40")}
-              >
-                <PendingLabel pending={savingAction === "UPDATE"}>
-                  Save changes
-                  <Check
-                    aria-hidden="true"
-                    className="size-4"
-                    strokeWidth={2.5}
-                  />
-                </PendingLabel>
-              </button>
-            )
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled={!!savingAction}
-                aria-busy={savingAction === "DRAFT" || undefined}
-                onClick={() => handleSubmit("DRAFT")}
-                className={secondaryButton}
-              >
-                <PendingLabel pending={savingAction === "DRAFT"}>
-                  Save as draft
-                </PendingLabel>
-              </button>
-
-              <button
-                type="button"
-                disabled={!!savingAction}
-                aria-busy={savingAction === "OPEN" || undefined}
-                onClick={() => handleSubmit("OPEN")}
-                className={cn(primaryButton, "sm:min-w-44")}
-              >
-                <PendingLabel pending={savingAction === "OPEN"}>
-                  Post requirement
-                  <Check
-                    aria-hidden="true"
-                    className="size-4"
-                    strokeWidth={2.5}
-                  />
-                </PendingLabel>
-              </button>
-            </>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+      <PhoneVerifyInPlace open={verifyOpen} onOpenChange={setVerifyOpen} />
+    </>
   );
 }
 

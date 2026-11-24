@@ -14,6 +14,7 @@ const tutor: TutorResult = {
   instituteName: "University of Dhaka",
   ratingAvg: 4.5,
   ratingCount: 12,
+  verifiedBadge: false,
   areas: [
     { id: 1, name: "Dhanmondi" },
     { id: 2, name: "Banani" },
@@ -71,7 +72,23 @@ describe("TutorResultCard", () => {
     renderCard(tutor);
 
     const name = screen.getByRole("heading", { name: "Nusrat Jahan" });
-    expect(name.parentElement).toContainElement(screen.getByText("4.5"));
+    expect(name.closest(".justify-between")).toContainElement(
+      screen.getByText("4.5"),
+    );
+  });
+
+  it("shows the verified badge after the name only when the tutor has it", () => {
+    const { unmount } = renderCard({ ...tutor, verifiedBadge: true });
+    const name = screen.getByRole("heading", { name: /Nusrat Jahan/ });
+    expect(name).toContainElement(
+      screen.getByRole("img", { name: "Verified" }),
+    );
+    unmount();
+
+    renderCard(tutor);
+    expect(
+      screen.queryByRole("img", { name: "Verified" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the institute with a decorative icon", () => {
@@ -120,6 +137,22 @@ describe("TutorResultCard", () => {
     ).toEqual(["Physics", "Chemistry"]);
   });
 
+  it("keeps the badge outside the truncating name, so a long name never hides it", () => {
+    renderCard({
+      ...tutor,
+      name: "Nusrat Jahan Choudhury Begum of the Long Name",
+      verifiedBadge: true,
+    });
+
+    const link = screen.getByRole("link", {
+      name: /Nusrat Jahan Choudhury/,
+    });
+    expect(link).toHaveClass("truncate");
+    expect(
+      screen.getByRole("img", { name: "Verified" }).closest(".truncate"),
+    ).toBeNull();
+  });
+
   it("links the name to the tutor's profile page", () => {
     renderCard(tutor);
 
@@ -137,6 +170,7 @@ describe("TutorResultCard", () => {
       instituteName: null,
       ratingAvg: 0,
       ratingCount: 0,
+      verifiedBadge: false,
       areas: [],
       subjects: [],
     });

@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import {
   isPastRequirement,
@@ -49,6 +50,9 @@ function ApplicantCard({ application }: { application: Application }) {
               >
                 {tutor.name}
               </Link>
+              {tutor.verifiedBadge && (
+                <VerifiedBadge size={16} className="ms-1.5" />
+              )}
             </h2>
             {tutor.instituteName && (
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">

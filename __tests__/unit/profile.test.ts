@@ -450,6 +450,7 @@ describe("tutor institute", () => {
     accountId: "6f1c2a4e-0b7d-4c1a-9a31-2d5e8f7b9c02",
     name: "Nusrat Jahan",
     instituteName: "University of Dhaka",
+    institutionId: null,
     address: "House 7, Road 2",
     emergencyContact: null,
     phoneNumber: "+8801811111111",
@@ -485,11 +486,11 @@ describe("tutor institute", () => {
     expect(validate(identity, tutorForm)).toEqual({});
   });
 
-  it("keeps the institute under 120 characters", () =>
+  it("keeps the institute under 150 characters", () =>
     expect(
-      validate(identity, { ...tutorForm, instituteName: "a".repeat(121) })
+      validate(identity, { ...tutorForm, instituteName: "a".repeat(151) })
         .instituteName,
-    ).toBe("Keep it under 120 characters."));
+    ).toBe("Keep it under 150 characters."));
 
   it("sends the trimmed institute for tutors", () =>
     expect(
@@ -498,7 +499,7 @@ describe("tutor institute", () => {
         { ...tutorForm, instituteName: "  University of Dhaka " },
         ["instituteName"],
       ),
-    ).toEqual({ instituteName: "University of Dhaka" }));
+    ).toEqual({ instituteName: "University of Dhaka", institutionId: null }));
 
   it("never sends the institute for students", () =>
     expect(

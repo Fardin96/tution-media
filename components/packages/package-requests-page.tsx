@@ -14,6 +14,7 @@ import { StatusPill, TonePill } from "@/components/applications/status-pill";
 import { areaName, formatDay } from "@/components/applications/format";
 import { EmptyCard, ErrorBlock } from "@/components/browse/browse-ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { useAreas } from "@/lib/areas";
 import { useEducationLookup } from "@/lib/education";
 import { applicationQueryOptions, type Application } from "@/lib/applications";
@@ -47,6 +48,9 @@ function RequestCard({
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
             {student.name}
+            {student.verifiedBadge && (
+              <VerifiedBadge size={16} className="ms-1.5" />
+            )}
           </h2>
           <p className="text-sm text-[var(--color-text-secondary)]">
             {areaName(student.areaId, areas)}

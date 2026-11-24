@@ -33,6 +33,7 @@ const ENTITY_FILTERS: { value: string; label: string }[] = [
   { value: "admin_user", label: "Admins" },
   { value: "tuition_package", label: "Packages" },
   { value: "subject", label: "Subjects" },
+  { value: "institution", label: "Schools and universities" },
   { value: "platform_setting", label: "Settings" },
   { value: "zone_limit_request", label: "Zone requests" },
 ];

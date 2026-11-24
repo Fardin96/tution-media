@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   card,
@@ -27,6 +26,7 @@ import {
   type TuitionApplyState,
 } from "@/components/browse/tuition-card";
 import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
+import { PhoneVerifyInPlace } from "@/components/profile/phone-verify-in-place";
 import { useApplyToRequirement } from "@/lib/applications";
 import {
   dedupeById,
@@ -44,8 +44,7 @@ import {
   levelOptionsFor,
   useEducationLookup,
 } from "@/lib/education";
-import { queryKeys } from "@/lib/query-keys";
-import { optionName, profileApi } from "@/lib/profile";
+import { optionName, profileOf, useMeAccount } from "@/lib/profile";
 import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -120,20 +119,14 @@ function gapText(gap: TutorGap): string {
   }
 }
 
-/** Reads /me for the tutor's apply readiness. Shares the `me` key with the rest of the app. */
-function useMeAccount() {
-  return useQuery({
-    queryKey: queryKeys.me,
-    queryFn: () => profileApi.me(),
-  });
-}
-
 export function FindTuitionsPage() {
   const router = useRouter();
   const { subjects } = useSubjects();
   const { areas } = useAreas();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const query = searchParams.toString();
 
   const filters = useMemo(
     () => requirementFiltersFromSearchParams(searchParams),
@@ -304,6 +297,15 @@ export function FindTuitionsPage() {
           defaultSet={defaultSet}
           title="Finish your profile to apply"
           description="Applications stay off until these are done."
+          actions={
+            me.data && profileOf(me.data)?.phoneNumber
+              ? { phone_verification: () => setVerifyOpen(true) }
+              : undefined
+          }
+          returnTo={{
+            path: query ? `${pathname}?${query}` : pathname,
+            label: "search",
+          }}
         />
       )}
 
@@ -568,6 +570,7 @@ export function FindTuitionsPage() {
           <EmptyCard title="No open tuitions right now." />
         )}
       </div>
+      <PhoneVerifyInPlace open={verifyOpen} onOpenChange={setVerifyOpen} />
     </PageFrame>
   );
 }

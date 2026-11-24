@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,10 +8,15 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
-import { ApiError } from "@/lib/profile";
+import { ApiError, useMeAccount } from "@/lib/profile";
 import { mapServerIssuesToFields } from "@/lib/api-errors";
 import { invalidateTutorRequirements, queryKeys } from "@/lib/query-keys";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { draftKey, useRestoredDraft } from "@/lib/form-draft";
+import { DraftRestoredNotice } from "@/components/ui/draft-restored-notice";
+import { useSubjects } from "@/lib/subjects";
+import { getLocalIsoDate } from "@/lib/requirements";
+import { useTutorZones } from "@/lib/tutor-zones";
 import {
   emptyTutorRequirementForm,
   fromTutorRequirement,
@@ -50,6 +55,25 @@ interface TutorRequirementFormProps {
   initialData?: TutorRequirement;
 }
 
+/** Drops subjects and zones that are no longer on the profile, and a start date that has passed. */
+function sanitizeDraft(
+  value: FormState,
+  subjectIds: number[] | null,
+  zoneIds: string[] | null,
+): FormState {
+  // A list that failed to load can't check its picks, so they are kept (null means not checked).
+  const kept = <T,>(ids: T[] | null, id: T) => ids === null || ids.includes(id);
+  return {
+    ...value,
+    subjectIds: value.subjectIds.filter((id) => kept(subjectIds, id)),
+    zoneIds: value.zoneIds.filter((id) => kept(zoneIds, id)),
+    availableFrom:
+      value.availableFrom < getLocalIsoDate()
+        ? emptyTutorRequirementForm().availableFrom
+        : value.availableFrom,
+  };
+}
+
 export function TutorRequirementForm({
   initialData,
 }: TutorRequirementFormProps) {
@@ -57,11 +81,13 @@ export function TutorRequirementForm({
   const queryClient = useQueryClient();
   const isEdit = !!initialData;
 
-  const [form, setForm] = useState<FormState>(() =>
+  const [start] = useState<FormState>(() =>
     initialData
       ? fromTutorRequirement(initialData)
       : emptyTutorRequirementForm(),
   );
+  const [form, setForm] = useState<FormState>(start);
+  const [baseline] = useState<FormState>(start);
   // An existing set that breaks the zone rule shows why straight away.
   const [errors, setErrors] = useState<TutorRequirementFormErrors>(() =>
     initialData &&
@@ -77,7 +103,39 @@ export function TutorRequirementForm({
 
   const profileQuery = useProfileSubjects();
   const profileSubjects = profileQuery.data ?? [];
-  const profileIds = profileSubjects.map((o) => o.id);
+  const profileIds = useMemo(
+    () => (profileQuery.data ?? []).map((o) => o.id),
+    [profileQuery.data],
+  );
+
+  const me = useMeAccount();
+  const zonesQuery = useTutorZones();
+  // null when the list failed to load: the picks are kept rather than dropped.
+  const zoneIds = useMemo(
+    () =>
+      zonesQuery.isSuccess
+        ? (zonesQuery.data?.zones ?? []).map((z) => z.id)
+        : null,
+    [zonesQuery.isSuccess, zonesQuery.data],
+  );
+  // The full active subject list, not the profile's: a subject picked from search is a valid pick.
+  const subjectsQuery = useSubjects();
+  const allSubjectIds = useMemo(
+    () =>
+      subjectsQuery.isSuccess ? subjectsQuery.subjects.map((s) => s.id) : null,
+    [subjectsQuery.isSuccess, subjectsQuery.subjects],
+  );
+  const { restoredAt, startOver, clear } = useRestoredDraft<FormState>({
+    key: initialData ? null : draftKey(me.data?.id, "tutor-requirement"),
+    form,
+    setForm,
+    baseline,
+    // Settled means fetched, failed or not: a list that never loads must not hold saving forever.
+    ready: subjectsQuery.isFetched && zonesQuery.isFetched,
+    sanitize: (saved) => sanitizeDraft(saved, allSubjectIds, zoneIds),
+    fresh: emptyTutorRequirementForm(),
+    focusId: "requirement-form-title",
+  });
 
   useEffect(() => {
     // Focus page h1 title on mount
@@ -149,6 +207,7 @@ export function TutorRequirementForm({
           queryKey: queryKeys.tutor.profileSubjects,
         });
       }
+      if (!initialData) clear();
       toastSuccess(initialData ? "Set saved." : "Set created.");
       router.push(LIST_HREF);
     } catch (err: unknown) {
@@ -180,6 +239,9 @@ export function TutorRequirementForm({
       aria-busy={saving}
       className={cn(card, "mt-6 p-5 sm:p-8")}
     >
+      {restoredAt !== null && (
+        <DraftRestoredNotice savedAt={restoredAt} onStartOver={startOver} />
+      )}
       <div className="grid gap-10">
         {/* Group 1: About this set */}
         <fieldset className="grid min-w-0 gap-6">
@@ -394,6 +456,14 @@ export function TutorRequirementForm({
             value={form.zoneIds}
             onChange={(ids) => updateForm({ zoneIds: ids })}
             teachesOnline={form.teachesOnline}
+            returnTo={
+              initialData
+                ? undefined
+                : {
+                    path: "/dashboard/tutor/requirements/new",
+                    label: "new requirement set",
+                  }
+            }
             emptyHint={
               // The inline error says the same thing once the form is submitted.
               errors.zoneIds ? "" : undefined

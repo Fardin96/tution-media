@@ -133,8 +133,15 @@ function application(
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
+      verifiedBadge: false,
     },
-    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
+    student: {
+      id: "s1",
+      name: "Nadia Islam",
+      avatarUrl: null,
+      areaId: 1,
+      verifiedBadge: false,
+    },
     target,
     allowedActions: [],
     ...overrides,
@@ -236,6 +243,28 @@ function withPhotos(tutorPhoto: string | null, studentPhoto: string | null) {
     student: { ...base.student, avatarUrl: studentPhoto },
   };
 }
+
+describe("ApplicationCard verified badge", () => {
+  it("shows the student's badge beside their name to a tutor", () => {
+    const app = withPhotos(null, null);
+    renderCard(
+      { ...app, student: { ...app.student, verifiedBadge: true } },
+      "TUTOR",
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Verified" }).parentElement,
+    ).toHaveTextContent("Nadia Islam");
+  });
+
+  it("shows no badge when the student has none", () => {
+    renderCard(withPhotos(null, null), "TUTOR");
+
+    expect(
+      screen.queryByRole("img", { name: "Verified" }),
+    ).not.toBeInTheDocument();
+  });
+});
 
 describe("ApplicationCard photos", () => {
   it("shows the tutor's photo to a student", () => {

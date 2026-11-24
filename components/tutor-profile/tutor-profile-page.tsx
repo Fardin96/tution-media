@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
+import { GraduationCap, MapPin } from "lucide-react";
 import { ErrorBlock, RatingInline } from "@/components/browse/browse-ui";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { VerifiedBadgeTip } from "@/components/ui/verified-badge";
 import { TutorReviewList } from "@/components/reviews/review-list";
 import {
   ProfileBack,
@@ -123,7 +124,6 @@ export function TutorProfileSkeleton() {
 }
 
 function TutorDetails({ tutor, id }: { tutor: PublicTutor; id: string }) {
-  const verified = tutor.verificationStatus === "APPROVED";
   const videos = tutor.videos.filter(
     (video): video is PublicTutorVideo & { url: string } => video.url !== null,
   );
@@ -133,16 +133,11 @@ function TutorDetails({ tutor, id }: { tutor: PublicTutor; id: string }) {
       <header className={cn(card, "flex items-start gap-4 p-6")}>
         <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={44} />
         <div className="grid min-w-0 gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center">
             <h1 className="text-2xl font-semibold tracking-tight text-pretty break-words text-[var(--color-neutral-charcoal)]">
               {tutor.name}
             </h1>
-            {verified && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-semantic-success-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--color-semantic-success-text)]">
-                <BadgeCheck aria-hidden="true" className="size-3.5" />
-                Verified
-              </span>
-            )}
+            {tutor.verifiedBadge && <VerifiedBadgeTip size={22} withLabel />}
           </div>
           {tutor.instituteName && (
             <p className="flex items-start gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">

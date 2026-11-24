@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BadgeCheck, GraduationCap, MapPin } from "lucide-react";
+import { GraduationCap, MapPin } from "lucide-react";
+import { VerifiedBadgeTip } from "@/components/ui/verified-badge";
 import { secondaryButton } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
 import { RatingInline } from "@/components/browse/browse-ui";
@@ -30,24 +31,15 @@ export function TutorProfileSection({
 }: {
   profile: ApplicationTutorProfile;
 }) {
-  const verified = profile.verificationStatus === "APPROVED";
-
   return (
     <Section title="Tutor">
       <div className="flex items-start gap-4">
         <UserAvatar src={profile.avatarUrl} name={profile.name} size={44} />
         <div className="grid min-w-0 gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
-              {profile.name}
-            </p>
-            {verified && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-semantic-success-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--color-semantic-success-text)]">
-                <BadgeCheck aria-hidden="true" className="size-3.5" />
-                Verified
-              </span>
-            )}
-          </div>
+          <p className="font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
+            {profile.name}
+            {profile.verifiedBadge && <VerifiedBadgeTip size={18} />}
+          </p>
           {profile.instituteName && (
             <p className="flex items-start gap-1.5 text-sm text-pretty text-[var(--color-text-secondary)]">
               <GraduationCap

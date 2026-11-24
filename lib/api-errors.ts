@@ -82,6 +82,8 @@ export const ERROR_CODES = {
   AccountExists: "ACCOUNT_EXISTS",
   SuperAdminEmail: "SUPER_ADMIN_EMAIL",
   RequirementDuplicate: "REQUIREMENT_DUPLICATE",
+  DailyLimitReached: "DAILY_LIMIT_REACHED",
+  InstitutionExists: "INSTITUTION_EXISTS",
 } as const satisfies Record<string, ErrorCode>;
 
 // Fails if the generated ErrorCode union has a code that ERROR_CODES does not list.
@@ -130,6 +132,34 @@ function countOf(details: ApiError["details"], key: string): number | null {
 
 function countPhrase(count: number, singular: string, plural: string): string {
   return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
+}
+
+const DHAKA_TIME = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "Asia/Dhaka",
+});
+const DHAKA_DAY = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "Asia/Dhaka",
+});
+const DHAKA_SHORT_DATE = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Asia/Dhaka",
+});
+
+/** "4:15 pm" in Dhaka time, with the date ("25 Nov") when it is not today. Empty when resetsAt is not a date. */
+function resetText(value: unknown, now = new Date()): string {
+  if (typeof value !== "string") return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  // Intl puts a narrow no-break space before am/pm on some engines.
+  const time = DHAKA_TIME.format(date).replace(/\s/g, " ").toLowerCase();
+  if (DHAKA_DAY.format(date) === DHAKA_DAY.format(now)) return time;
+  return `${time} on ${DHAKA_SHORT_DATE.format(date)}`;
 }
 
 // Keyed by the generated ErrorCode union: a new backend code needs a message or typecheck fails.
@@ -281,6 +311,13 @@ const MESSAGES: Record<ErrorCode, string | ((err: ApiError) => string)> = {
     "This email belongs to a super admin. They can sign in without an invite.",
   REQUIREMENT_DUPLICATE:
     "You already have an open requirement like this one. Edit it instead.",
+  // The server's message names the limit; resetsAt says when the count next drops below the limit.
+  DAILY_LIMIT_REACHED: (err) => {
+    const base = err.message || "You've reached your daily limit.";
+    const when = resetText(err.details?.resetsAt);
+    return when ? `${base} You can try again after ${when}.` : base;
+  },
+  INSTITUTION_EXISTS: "This school or university is already on the list.",
 };
 
 /** User-facing copy for a known API error code, or undefined when there is none. */

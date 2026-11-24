@@ -424,6 +424,7 @@ function requirement(
   createdAt = REQUIREMENT_DATE,
 ): Requirement {
   return {
+    institutionId: null,
     id,
     studentId: "stu-1",
     areaId: null,
@@ -458,6 +459,7 @@ function matchedTutor(id: string, name: string): RecommendedTutor {
       gender: "FEMALE",
       ratingAvg: 4.5,
       ratingCount: 3,
+      verifiedBadge: false,
       verificationStatus: "APPROVED",
       avatarUrl: null,
       areas: [],

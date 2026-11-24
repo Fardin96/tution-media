@@ -21,6 +21,7 @@ const TUTORS = [
     avatarUrl: null,
     ratingAvg: 4.5,
     ratingCount: 12,
+    verifiedBadge: true,
     areas: [{ id: 1, name: "Dhanmondi" }],
     subjects: [{ id: PHYSICS_ID, name: "Physics" }],
   },
@@ -32,6 +33,7 @@ const TUTORS = [
     avatarUrl: null,
     ratingAvg: 0,
     ratingCount: 0,
+    verifiedBadge: false,
     areas: [{ id: 2, name: "Gulshan" }],
     subjects: [{ id: 7, name: "Biology" }],
   },
@@ -101,7 +103,7 @@ test("View All on the landing opens the emerging masters list", async ({
     .toBe(true);
 });
 
-test("a signed-out visitor who opens a tutor is asked to sign in first", async ({
+test("a signed-out visitor who opens a tutor is asked to sign up as a student", async ({
   page,
 }) => {
   await mockLookups(page);
@@ -110,7 +112,13 @@ test("a signed-out visitor who opens a tutor is asked to sign in first", async (
 
   await page.getByRole("link", { name: /Nusrat Jahan/ }).click();
 
-  await expect(page).toHaveURL(/\/sign-in\?next=%2Ftutors%2Ftutor-public-1$/);
+  await expect(page).toHaveURL(
+    /\/sign-up\?role=student&next=%2Ftutors%2Ftutor-public-1$/,
+  );
+  await expect(page.getByRole("button", { name: /Student/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 });
 
 /**
@@ -127,6 +135,7 @@ async function mockSlowProfile(page: Page, delayMs: number) {
     ratingAvg: 4.5,
     ratingCount: 12,
     verificationStatus: "APPROVED",
+    verifiedBadge: true,
     isListed: true,
     needsReaddress: false,
     createdAt: "2026-09-01T00:00:00.000Z",

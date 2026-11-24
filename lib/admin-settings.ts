@@ -57,6 +57,15 @@ export function validateDays(text: string, max: number): string | undefined {
   return undefined;
 }
 
+/** Whole numbers from 1 to `max` (a count of actions). Decimals, signs and blanks are refused. */
+export function validateCount(text: string, max: number): string | undefined {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return "Enter a whole number.";
+  const value = Number(trimmed);
+  if (value < 1 || value > max) return `Use 1 to ${max}.`;
+  return undefined;
+}
+
 /** Commission is a percent from 0 to 100. */
 export function validateCommission(text: string): string | undefined {
   return validatePercent(text, 100);

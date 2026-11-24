@@ -16,6 +16,7 @@ import {
   ApiError,
   searchAreas,
   searchSubjects,
+  useMeAccount,
   type Option,
 } from "@/lib/profile";
 
@@ -57,9 +58,35 @@ vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   searchSubjects: vi.fn(),
   searchAreas: vi.fn(),
+  useMeAccount: vi.fn(() => ({ data: undefined })),
 }));
 
-const SUBJECTS: Option[] = [{ id: 1, name: "Math" }];
+vi.mock("@/lib/phone-verification", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/phone-verification")>()),
+  usePhoneVerificationStatus: () => ({ data: undefined }),
+}));
+
+// The lookup lists report loaded, so a draft is checked against them straight away.
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({ subjects: SUBJECTS, isSuccess: true, isFetched: true }),
+}));
+
+vi.mock("@/lib/areas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/areas")>()),
+  useAreas: () => ({ areas: AREAS, isSuccess: true, isFetched: true }),
+}));
+
+// The in-place dialog has its own tests; here it only shows what it was given.
+vi.mock("@/components/profile/phone-verify-in-place", () => ({
+  PhoneVerifyInPlace: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">Verify your phone</div> : null,
+}));
+
+const SUBJECTS: Option[] = [
+  { id: 1, name: "Math" },
+  { id: 2, name: "English" },
+];
 const AREAS: Option[] = [{ id: 3, name: "Dhanmondi" }];
 
 const LOOKUP: EducationLookup = {
@@ -110,6 +137,7 @@ const PREVIOUS: Requirement = {
   id: "req-prev",
   studentId: "stu-1",
   areaId: 3,
+  institutionId: null,
   subjectIds: [1],
   curriculum: "BANGLA_MEDIUM",
   levelCode: 5,
@@ -153,6 +181,10 @@ beforeEach(() => {
   vi.mocked(searchAreas).mockResolvedValue(AREAS);
   vi.mocked(requirementApi.mine).mockResolvedValue([]);
   vi.mocked(requirementApi.create).mockResolvedValue({} as Requirement);
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: undefined,
+  } as unknown as ReturnType<typeof useMeAccount>);
+  window.localStorage.clear();
 });
 
 describe("RequirementForm with a copied requirement", () => {
@@ -245,5 +277,158 @@ describe("RequirementForm with a copied requirement", () => {
     expect(
       screen.getByRole("link", { name: "Edit the open requirement" }),
     ).toHaveAttribute("href", "/dashboard/requirements/req-open-9/edit");
+  });
+});
+
+const ACCOUNT_KEY = "draft:v1:acc-1:requirement";
+const COPY_KEY = "draft:v1:acc-1:requirement:from:req-prev";
+
+function asAccount(id: string) {
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: { id },
+  } as unknown as ReturnType<typeof useMeAccount>);
+}
+
+function seed(key: string, value: unknown) {
+  window.localStorage.setItem(
+    key,
+    JSON.stringify({ v: 1, savedAt: Date.now() - 60_000, value }),
+  );
+}
+
+function renderBlank() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <RequirementForm />
+    </QueryClientProvider>,
+  );
+}
+
+describe("RequirementForm drafts", () => {
+  it("restores a draft, drops a pick that is gone and resets a past hire-by date", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seed(
+      ACCOUNT_KEY,
+      template({ subjectIds: [1, 999], hireByDate: "2020-01-01" }),
+    );
+    renderBlank();
+
+    expect(
+      await screen.findByText(/Restored your draft from 1 minute ago/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Hire by date")).toHaveValue(
+      emptyRequirementForm().hireByDate,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Post requirement" }));
+    await waitFor(() => expect(requirementApi.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(requirementApi.create).mock.calls[0][0]).toMatchObject({
+      subjectIds: [1],
+    });
+  });
+
+  it("Post again: Start over goes back to the copied requirement, not a blank form", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seed(COPY_KEY, template({ instituteName: "Changed school" }));
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <RequirementForm
+          template={template()}
+          templateNotes={NOTES}
+          fromId="req-prev"
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Start over" }));
+    expect(screen.getByLabelText("School or college")).toHaveValue(
+      "Viqarunnisa Noon School",
+    );
+    expect(window.localStorage.getItem(COPY_KEY)).toBeNull();
+  });
+
+  it("Start over after the class prefill keeps the prefill and writes no draft", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    vi.mocked(requirementApi.mine).mockResolvedValue([PREVIOUS]);
+    seed(ACCOUNT_KEY, template({ instituteName: "Draft school" }));
+    renderBlank();
+
+    await user.click(await screen.findByRole("button", { name: "Start over" }));
+    expect(window.localStorage.getItem(ACCOUNT_KEY)).toBeNull();
+    // Past the 500 ms save delay: an untouched form must not come back as a draft.
+    await new Promise((r) => setTimeout(r, 700));
+    expect(window.localStorage.getItem(ACCOUNT_KEY)).toBeNull();
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+  });
+
+  it("clears the draft after a successful post", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seed(ACCOUNT_KEY, template());
+    renderBlank();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Post requirement" }),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(window.localStorage.getItem(ACCOUNT_KEY)).toBeNull();
+  });
+
+  it("keeps the draft after a failed post", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seed(ACCOUNT_KEY, template());
+    vi.mocked(requirementApi.create).mockRejectedValue(
+      new ApiError("Server", 500, { code: "INTERNAL_ERROR" }),
+    );
+    renderBlank();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Post requirement" }),
+    );
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(window.localStorage.getItem(ACCOUNT_KEY)).not.toBeNull();
+  });
+
+  it("does not restore another account's draft", () => {
+    asAccount("acc-2");
+    seed(ACCOUNT_KEY, template());
+    renderBlank();
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+  });
+
+  it("a phone verification refusal opens the in-place verify and keeps what was typed", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requirementApi.create).mockRejectedValue(
+      new ApiError("Verify", 403, { code: "PHONE_VERIFICATION_REQUIRED" }),
+    );
+    renderForm(template());
+
+    await user.clear(screen.getByLabelText("School or college"));
+    await user.type(screen.getByLabelText("School or college"), "Kept school");
+    await user.click(screen.getByRole("button", { name: "Post requirement" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    const [, options] = vi.mocked(toast.error).mock.calls[0];
+    (
+      options as unknown as { action: { onClick: () => void } }
+    ).action.onClick();
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("School or college")).toHaveValue(
+      "Kept school",
+    );
   });
 });

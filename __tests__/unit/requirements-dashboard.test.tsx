@@ -40,6 +40,7 @@ vi.mock("@/lib/education", async (importOriginal) => ({
 
 function requirement(id: string, status: Requirement["status"]): Requirement {
   return {
+    institutionId: null,
     id,
     studentId: "stu-1",
     areaId: null,

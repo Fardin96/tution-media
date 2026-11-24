@@ -67,6 +67,7 @@ const SUBJECTS: Option[] = [{ id: 1, name: "Math" }];
 const AREAS: Option[] = [{ id: 3, name: "Dhanmondi" }];
 
 const SOURCE: Requirement = {
+  institutionId: null,
   id: "req-old",
   studentId: "stu-1",
   areaId: 3,
@@ -135,7 +136,7 @@ describe("PostAgainView", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("textbox", { name: "School or college" }),
+      screen.getByRole("combobox", { name: "School or college" }),
     ).toHaveValue("Viqarunnisa Noon School");
     expect(requirementApi.get).toHaveBeenCalledWith("req-old");
   });
@@ -155,7 +156,7 @@ describe("PostAgainView", () => {
       screen.getByRole("button", { name: "Post requirement" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("textbox", { name: "School or college" }),
+      screen.getByRole("combobox", { name: "School or college" }),
     ).toHaveValue("");
     expect(requirementApi.get).toHaveBeenCalledTimes(1);
   });

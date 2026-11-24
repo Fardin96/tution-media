@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AddressAutocomplete } from "./address-autocomplete";
+import { InstitutionPicker } from "./institution-picker";
 import { Check, Circle, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
@@ -198,6 +199,40 @@ function Field({
     );
   }
 
+  if (field.kind === "institution") {
+    return (
+      <div className="grid gap-2">
+        <label
+          htmlFor={id}
+          className="text-sm font-semibold text-[var(--color-neutral-charcoal)]"
+        >
+          {field.label}
+        </label>
+        <InstitutionPicker
+          id={id}
+          name={field.key}
+          value={{
+            name: form.instituteName,
+            institutionId: form.institutionId,
+          }}
+          onChange={(next) =>
+            onChange({
+              instituteName: next.name,
+              institutionId: next.institutionId,
+            })
+          }
+          forRole="tutor"
+          invalid={!!error}
+          describedBy={shownError ? errorId : undefined}
+          hint={field.hint ?? ""}
+          placeholder={field.placeholder}
+          maxLength={field.maxLength}
+        />
+        <FieldError id={errorId} message={shownError} />
+      </div>
+    );
+  }
+
   const key = field.key as Exclude<
     keyof ProfileForm,
     | "gender"
@@ -209,6 +244,7 @@ function Field({
     | "longitude"
     | "district"
     | "districtName"
+    | "institutionId"
   >;
   const common = {
     id,

@@ -43,6 +43,7 @@ const TUTOR: PublicTutor = {
   ratingAvg: 4.5,
   ratingCount: 12,
   verificationStatus: "APPROVED",
+  verifiedBadge: false,
   isListed: true,
   needsReaddress: false,
   createdAt: "2026-10-31T19:00:00.000Z",
@@ -132,6 +133,21 @@ describe("formatMemberSince", () => {
 });
 
 describe("TutorProfilePage", () => {
+  // The badge's popover sizes itself with ResizeObserver, which jsdom lacks.
+  beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("shows the loaded profile: name, institute, subjects, areas and credentials", () => {
     mockQuery({ data: TUTOR });
     renderPage();
@@ -157,15 +173,44 @@ describe("TutorProfilePage", () => {
     expect(within(credentials).getByText("SSC — A+")).toBeInTheDocument();
   });
 
-  it("shows the Verified badge only when the tutor is approved", () => {
-    mockQuery({ data: TUTOR });
+  it("shows the verified badge with a visible label only when the profile has it", () => {
+    mockQuery({ data: { ...TUTOR, verifiedBadge: true } });
     const { unmount } = renderPage();
-    expect(screen.getByText("Verified")).toBeInTheDocument();
+    const badge = screen.getByRole("button", { name: "Verified" });
+    expect(badge).toHaveTextContent("Verified");
     unmount();
 
-    mockQuery({ data: { ...TUTOR, verificationStatus: "PENDING" } });
+    mockQuery({ data: { ...TUTOR, verifiedBadge: false } });
     renderPage();
-    expect(screen.queryByText("Verified")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Verified" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the heading's name to the person's name, with the badge after it", () => {
+    mockQuery({ data: { ...TUTOR, verifiedBadge: true } });
+    renderPage();
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveAccessibleName("Nusrat Jahan");
+    expect(heading).not.toContainElement(
+      screen.getByRole("button", { name: "Verified" }),
+    );
+  });
+
+  it("opens the meaning when the badge is clicked", async () => {
+    mockQuery({ data: { ...TUTOR, verifiedBadge: true } });
+    renderPage();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Verified" }));
+
+    expect(
+      await screen.findByText(
+        "Verified: ID checked, phone verified and a strong profile.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("plays only the videos that have a url, with the title as the label", () => {

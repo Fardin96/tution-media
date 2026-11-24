@@ -40,6 +40,22 @@ describe("AuthSplit", () => {
     );
   });
 
+  it("starts sign-up with the default role picked", () => {
+    render(<AuthSplit mode="sign-up" clientId="id" defaultRole="STUDENT" />);
+    expect(screen.queryByText("Pick a role above to continue.")).toBeNull();
+    expect(screen.getByRole("button", { name: /Student/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("asks for a role on sign-up without a default", () => {
+    render(<AuthSplit mode="sign-up" clientId="id" />);
+    expect(
+      screen.getByText("Pick a role above to continue."),
+    ).toBeInTheDocument();
+  });
+
   it("leaves the switch links plain without next", () => {
     render(<AuthSplit mode="sign-in" clientId="id" />);
     expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute(

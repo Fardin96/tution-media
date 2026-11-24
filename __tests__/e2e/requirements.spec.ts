@@ -101,6 +101,7 @@ const EDUCATION_LOOKUP: EducationLookup = {
 
 const INITIAL_REQUIREMENTS: Requirement[] = [
   {
+    institutionId: null,
     id: "req-1",
     studentId: "student-id-456",
     areaId: 1, // Dhanmondi
@@ -187,6 +188,7 @@ test.describe("Student tuition requirements flow", () => {
       if (path === "/requirements" && method === "POST") {
         const body = (req.postDataJSON() || {}) as Partial<Requirement>;
         const newReq: Requirement = {
+          institutionId: null,
           id: `req-new-${Date.now()}`,
           studentId: "student-id-456",
           areaId: body.areaId ?? null,
@@ -434,6 +436,7 @@ function dhakaDateInDays(days: number): string {
 // Past requirements, as GET /requirements/mine returns them. Class, area and days are set
 // away from the form defaults so the test can see them copied.
 const PAST_CLOSED = {
+  institutionId: null,
   id: "req-closed-1",
   studentId: "student-id-456",
   areaId: 1, // Dhanmondi

@@ -68,6 +68,7 @@ export function PostAgainView({ fromId }: { fromId: string }) {
   return (
     <RequirementForm
       key={fromId}
+      fromId={fromId}
       template={template.form}
       templateNotes={template.notes}
     />

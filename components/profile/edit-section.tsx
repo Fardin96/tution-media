@@ -11,6 +11,7 @@ import { useAreas } from "@/lib/areas";
 import { useSubjects } from "@/lib/subjects";
 import { cn } from "@/lib/utils";
 import {
+  ApiError,
   conflictField,
   formatBdPhone,
   normalizeBdPhone,
@@ -22,6 +23,8 @@ import {
   type Section,
 } from "@/lib/profile";
 import { ProfileFields } from "./profile-fields";
+
+const INSTITUTION_PICK_ERROR = "Pick a school or university from the list.";
 import { card, ghostButton, primaryButton, secondaryButton } from "./styles";
 
 const GENDER_LABEL = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
@@ -102,6 +105,14 @@ export function EditSection({
       close();
     } catch (err) {
       if (err instanceof SaveCancelled) return;
+      // A picked school the server no longer accepts: the message belongs on the field, not in a toast.
+      if (
+        err instanceof ApiError &&
+        err.issues?.some((issue) => issue.path.includes("institutionId"))
+      ) {
+        setErrors({ instituteName: INSTITUTION_PICK_ERROR });
+        return;
+      }
       const field = conflictField(err);
       if (field) setErrors({ [field]: (err as Error).message });
       toast.error(err instanceof Error ? err.message : "Couldn't save.");

@@ -23,6 +23,8 @@ export type UpdateRequirementBody = Schemas["UpdateRequirementInput"];
 export type RequirementForm = EducationFields & {
   subjectIds: number[];
   instituteName: string;
+  /** The picked school or college, or null when the name is typed. */
+  institutionId: number | null;
   areaId: number | null;
   tuitionType: TuitionType;
   daysPerWeek: number;
@@ -125,6 +127,7 @@ export function emptyRequirementForm(
     admissionTargets: [],
     subjectIds: [],
     instituteName: "",
+    institutionId: null,
     areaId: defaultAreaId ?? null,
     tuitionType: "Home Tutoring Solo",
     daysPerWeek: 3,
@@ -147,6 +150,7 @@ export function fromRequirement(r: Requirement): RequirementForm {
     isRetaker: r.isRetaker ?? false,
     levelNote: r.levelNote ?? "",
     instituteName: r.instituteName ?? "",
+    institutionId: r.institutionId ?? null,
     areaId: r.areaId ?? null,
     tuitionType: r.tuitionType ?? "Home Tutoring Solo",
     daysPerWeek: r.daysPerWeek ?? 3,
@@ -194,8 +198,10 @@ export function toPayload(
     payload.admissionTargets = form.admissionTargets;
     payload.isRetaker = form.isRetaker;
     payload.levelNote = levelNote;
-    if (form.instituteName.trim())
-      payload.instituteName = form.instituteName.trim();
+    // A cleared school sends null, so the saved name and its link are removed.
+    payload.instituteName = (form.instituteName.trim() || null) as
+      string | undefined;
+    payload.institutionId = form.institutionId;
     if (form.areaId !== null) payload.areaId = form.areaId;
     if (form.tuitionType) payload.tuitionType = form.tuitionType;
     if (form.daysPerWeek) payload.daysPerWeek = form.daysPerWeek;
@@ -216,7 +222,8 @@ export function toPayload(
     admissionTargets: form.admissionTargets,
     isRetaker: form.isRetaker,
     levelNote,
-    instituteName: form.instituteName.trim() || undefined,
+    instituteName: form.instituteName.trim() || null,
+    institutionId: form.institutionId,
     areaId: form.areaId as number,
     tuitionType: form.tuitionType,
     daysPerWeek: form.daysPerWeek,
