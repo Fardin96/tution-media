@@ -15,6 +15,7 @@ import { formatDateTime, useAdminMe } from "@/lib/admin";
 import {
   useAdminSettings,
   useUpdateSetting,
+  validateCount,
   validateDays,
   validatePercent,
   type PlatformSetting,
@@ -24,7 +25,14 @@ import { ApiError } from "@/lib/profile";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { PendingLabel } from "@/components/ui/pending-label";
 
-type NumberInput = { unit: "percent" | "days"; max: number; hint?: string };
+type NumberInput = {
+  unit: "percent" | "days" | "count";
+  max: number;
+  hint?: string;
+};
+
+const SEND_HINT = "Withdrawn or declined ones still count. 1 to 1000.";
+const ACCEPT_HINT = "Cancelled placements still count. 1 to 1000.";
 
 /** Display order and copy for each platform setting. `input` marks a number setting and its limits. */
 const SETTINGS: {
@@ -63,6 +71,27 @@ const SETTINGS: {
       max: 90,
       hint: "Days after an online payment that a tutor can ask for a refund. 0 turns tutor requests off.",
     },
+  },
+  {
+    key: "daily_application_limit",
+    title: "Daily applications",
+    description:
+      "Applications one tutor can send in any 24 hours, reopened ones included.",
+    input: { unit: "count", max: 1000, hint: SEND_HINT },
+  },
+  {
+    key: "daily_package_request_limit",
+    title: "Daily package requests",
+    description:
+      "Package requests one student can send in any 24 hours, reopened ones included.",
+    input: { unit: "count", max: 1000, hint: SEND_HINT },
+  },
+  {
+    key: "daily_accept_limit",
+    title: "Daily accepts",
+    description:
+      "Applications or package requests one person can accept in any 24 hours.",
+    input: { unit: "count", max: 1000, hint: ACCEPT_HINT },
   },
   {
     key: "require_tutor_verification",
@@ -204,6 +233,15 @@ const UNITS: Record<
     step: 1,
     validate: validateDays,
     show: (value) => `${value} ${value === 1 ? "day" : "days"}`,
+  },
+  count: {
+    label: "Limit",
+    suffix: "per 24 hours",
+    suffixPadding: "pe-28",
+    inputMode: "numeric",
+    step: 1,
+    validate: validateCount,
+    show: (value) => `${value} per 24 hours`,
   },
 };
 

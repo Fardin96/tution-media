@@ -20,6 +20,7 @@ import {
 import { enterClass, enterStyle } from "@/components/motion/enter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { dedupeBy } from "@/lib/browse";
@@ -122,6 +123,9 @@ function RecommendedTutorRow({
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h3 className="min-w-0 text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
               {tutor.name}
+              {tutor.verifiedBadge && (
+                <VerifiedBadge size={16} className="ms-1.5" />
+              )}
             </h3>
             <RatingInline
               ratingAvg={tutor.ratingAvg}

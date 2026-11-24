@@ -33,6 +33,7 @@ type Row = {
     ratingAvg: number;
     ratingCount: number;
     verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+    verifiedBadge: boolean;
     areas: { id: number; name: string }[];
     subjects: { id: number; name: string }[];
   };
@@ -51,6 +52,7 @@ function row(id: string, name: string, over: Partial<Row> = {}): Row {
       ratingAvg: 4.5,
       ratingCount: 12,
       verificationStatus: "APPROVED",
+      verifiedBadge: false,
       areas: [],
       subjects: [{ id: 2, name: "Physics" }],
     },
@@ -173,6 +175,18 @@ beforeEach(() => {
 });
 
 describe("RecommendedTutorsSection", () => {
+  it("shows the verified badge after a recommended tutor's name when they have it", async () => {
+    const verified = row("t1", "Rafiq Ahmed");
+    verified.tutor.verifiedBadge = true;
+    mockApi({ pages: { 1: page([verified]) } });
+    renderSection();
+
+    const heading = await screen.findByRole("heading", { name: /Rafiq Ahmed/ });
+    expect(
+      within(heading).getByRole("img", { name: "Verified" }),
+    ).toBeInTheDocument();
+  });
+
   it("invites a tutor, shows Invited, and confirms with a toast", async () => {
     mockApi({ pages: { 1: page([row("t1", "Rafiq Ahmed")]) } });
     const user = userEvent.setup();

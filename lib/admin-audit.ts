@@ -49,6 +49,8 @@ const ACTION_LABELS: Record<string, string> = {
   "package.moderate": "Reviewed a package",
   "subject.create": "Added a subject",
   "subject.update": "Changed a subject",
+  "institution.create": "Added a school or university",
+  "institution.update": "Changed a school or university",
   "setting.update": "Changed a setting",
   "zone_limit_request.decide": "Decided a zone request",
   "payment.check": "Checked a payment with the gateway",

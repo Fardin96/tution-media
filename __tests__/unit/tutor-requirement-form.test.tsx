@@ -10,7 +10,12 @@ import {
   type TutorRequirement,
 } from "@/lib/tutor-requirements";
 import { useEducationLookup, type EducationLookup } from "@/lib/education";
-import { ApiError, searchSubjects, type Option } from "@/lib/profile";
+import {
+  ApiError,
+  searchSubjects,
+  useMeAccount,
+  type Option,
+} from "@/lib/profile";
 import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
 
 const push = vi.fn();
@@ -51,6 +56,17 @@ vi.mock("@/lib/education", async (importOriginal) => ({
 vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   searchSubjects: vi.fn(),
+  useMeAccount: vi.fn(() => ({ data: undefined })),
+}));
+
+// The full subject list reports loaded, so a restored draft is checked against it.
+vi.mock("@/lib/subjects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/subjects")>()),
+  useSubjects: () => ({
+    subjects: ALL_SUBJECTS,
+    isSuccess: true,
+    isFetched: true,
+  }),
 }));
 
 vi.mock("@/lib/tutor-zones", async (importOriginal) => ({
@@ -155,6 +171,7 @@ beforeEach(() => {
     data: PROFILE_SUBJECTS,
     isPending: false,
     isSuccess: true,
+    isFetched: true,
   } as unknown as ReturnType<typeof useProfileSubjects>);
 
   vi.mocked(searchSubjects).mockImplementation(async (query: string) => {
@@ -167,12 +184,18 @@ beforeEach(() => {
   vi.mocked(useTutorZones).mockReturnValue({
     data: { zones: ZONES, limit: 5, used: 2, pendingRequest: null },
     isPending: false,
+    isSuccess: true,
+    isFetched: true,
     isError: false,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useTutorZones>);
 
   vi.mocked(tutorRequirementApi.create).mockResolvedValue(SET);
   vi.mocked(tutorRequirementApi.update).mockResolvedValue(SET);
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: undefined,
+  } as unknown as ReturnType<typeof useMeAccount>);
+  window.localStorage.clear();
 });
 
 describe("TutorRequirementForm", () => {
@@ -392,5 +415,118 @@ describe("TutorRequirementForm", () => {
       screen.getByRole("checkbox", { name: "I also teach online" }),
     );
     expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  });
+});
+
+const SET_KEY = "draft:v1:acc-1:tutor-requirement";
+
+function asAccount(id: string) {
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: { id },
+  } as unknown as ReturnType<typeof useMeAccount>);
+}
+
+function seedSet(value: unknown, accountId = "acc-1") {
+  window.localStorage.setItem(
+    `draft:v1:${accountId}:tutor-requirement`,
+    JSON.stringify({ v: 1, savedAt: Date.now() - 60_000, value }),
+  );
+}
+
+/** A valid set draft. The subject 10 is not on the profile but is on the list, so it stays. */
+const DRAFT = {
+  name: "Evening Math",
+  levelMin: 1,
+  levelMax: 8,
+  curricula: ["BANGLA_MEDIUM"],
+  academicGroups: [],
+  admissionTargets: [],
+  timeFrom: "16:00",
+  timeTo: "18:00",
+  availableDays: 127,
+  daysPerWeek: 3,
+  minSalary: "8000",
+  maxStudents: 1,
+  availableFrom: "2020-01-01",
+  teachesOnline: false,
+  subjectIds: [1, 10, 999],
+  zoneIds: ["z1", "gone"],
+};
+
+describe("TutorRequirementForm drafts", () => {
+  it("restores a draft, keeps a subject from search, drops gone zones and resets a past start date", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedSet(DRAFT);
+    renderForm();
+
+    expect(
+      await screen.findByText(/Restored your draft from 1 minute ago/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create set" }));
+    await waitFor(() =>
+      expect(tutorRequirementApi.create).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      vi.mocked(tutorRequirementApi.create).mock.calls[0][0],
+    ).toMatchObject({
+      subjectIds: [1, 10],
+      zoneIds: ["z1"],
+      availableFrom: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    });
+    expect(
+      vi.mocked(tutorRequirementApi.create).mock.calls[0][0].availableFrom,
+    ).not.toBe("2020-01-01");
+  });
+
+  it("Start over resets the name and removes the draft", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedSet(DRAFT);
+    renderForm();
+
+    await user.click(await screen.findByRole("button", { name: "Start over" }));
+    expect(screen.getByLabelText("Set name")).toHaveValue("");
+    expect(window.localStorage.getItem(SET_KEY)).toBeNull();
+  });
+
+  it("clears the draft after a successful create", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedSet(DRAFT);
+    renderForm();
+
+    await user.click(await screen.findByRole("button", { name: "Create set" }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(window.localStorage.getItem(SET_KEY)).toBeNull();
+  });
+
+  it("keeps the draft after a failed create", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedSet(DRAFT);
+    vi.mocked(tutorRequirementApi.create).mockRejectedValue(
+      new ApiError("Server", 500, { code: "INTERNAL_ERROR" }),
+    );
+    renderForm();
+
+    await user.click(await screen.findByRole("button", { name: "Create set" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(window.localStorage.getItem(SET_KEY)).not.toBeNull();
+  });
+
+  it("edit mode never reads a draft", () => {
+    asAccount("acc-1");
+    seedSet(DRAFT);
+    renderForm(SET);
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+    expect(screen.getByLabelText("Set name")).toHaveValue("Evening Math");
+  });
+
+  it("does not restore another account's draft", () => {
+    asAccount("acc-2");
+    seedSet(DRAFT, "acc-1");
+    renderForm();
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
   });
 });

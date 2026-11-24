@@ -12,6 +12,7 @@ import {
 } from "@/lib/tutor-requirements";
 import { card, focusRing } from "@/components/profile/styles";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
+import { setReturnTo } from "@/lib/return-to";
 
 const PROFILE_HREF = "/dashboard#profile";
 const SETS_HREF = "/dashboard/tutor/requirements";
@@ -95,13 +96,19 @@ export function readinessFix(
   );
 }
 
-/** The profile gaps that block an action, one row per item with a link to where it is fixed. */
+/**
+ * The profile gaps that block an action, one row per item with a link to where it is fixed.
+ * `actions` fixes a row in place (a button) instead of linking away. `returnTo` is saved before a
+ * link leaves the page, so the dashboard can offer the way back.
+ */
 export function ReadinessChecklist({
   missing,
   defaultSet,
   title = "Finish your profile to publish",
   description,
   className,
+  actions,
+  returnTo,
 }: {
   missing: string[];
   /** The tutor's default set, so its row can say what the set lacks. */
@@ -109,6 +116,8 @@ export function ReadinessChecklist({
   title?: string;
   description?: string;
   className?: string;
+  actions?: Partial<Record<string, () => void>>;
+  returnTo?: { path: string; label: string };
 }) {
   const id = useId();
   const intent = useIntentPrefetch();
@@ -155,6 +164,55 @@ export function ReadinessChecklist({
               />
             </>
           );
+          const rowClass = cn(
+            "group flex min-h-11 w-full items-center justify-between gap-3 rounded-[12px] bg-[var(--color-semantic-warning-surface)] px-3 py-2.5 text-start shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-semantic-warning)_35%,transparent)] transition-[background-color] duration-150 ease-out hover:bg-[color-mix(in_oklab,var(--color-semantic-warning)_16%,var(--color-neutral-white))] motion-reduce:transition-none",
+            focusRing,
+          );
+          const content = (
+            <>
+              <span className="flex min-w-0 items-start gap-3">
+                <AlertCircle
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0 text-[var(--color-semantic-warning-text)]"
+                />
+                <span className="grid min-w-0 gap-0.5">
+                  <span
+                    id={labelId}
+                    className="text-sm font-semibold text-pretty text-[var(--color-neutral-charcoal)]"
+                  >
+                    {item.label}
+                  </span>
+                  {item.detail && (
+                    <span
+                      id={detailId}
+                      className="text-sm text-pretty text-[var(--color-text-secondary)]"
+                    >
+                      {item.detail}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </>
+          );
+          const action = actions?.[item.key];
+          if (action) {
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  onClick={action}
+                  aria-labelledby={labelId}
+                  aria-describedby={item.detail ? detailId : undefined}
+                  className={rowClass}
+                >
+                  {content}
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--color-primary-core)]">
+                    {fixLabel}
+                  </span>
+                </button>
+              </li>
+            );
+          }
           return (
             <li key={item.key}>
               <Link
@@ -162,35 +220,16 @@ export function ReadinessChecklist({
                 {...(item.setId
                   ? intent(tutorRequirementQueryOptions(item.setId))
                   : {})}
+                onClick={
+                  returnTo
+                    ? () => setReturnTo(returnTo.path, returnTo.label)
+                    : undefined
+                }
                 aria-labelledby={labelId}
                 aria-describedby={item.detail ? detailId : undefined}
-                className={cn(
-                  "group flex min-h-11 items-center justify-between gap-3 rounded-[12px] bg-[var(--color-semantic-warning-surface)] px-3 py-2.5 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-semantic-warning)_35%,transparent)] transition-[background-color] duration-150 ease-out hover:bg-[color-mix(in_oklab,var(--color-semantic-warning)_16%,var(--color-neutral-white))] motion-reduce:transition-none",
-                  focusRing,
-                )}
+                className={rowClass}
               >
-                <span className="flex min-w-0 items-start gap-3">
-                  <AlertCircle
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0 text-[var(--color-semantic-warning-text)]"
-                  />
-                  <span className="grid min-w-0 gap-0.5">
-                    <span
-                      id={labelId}
-                      className="text-sm font-semibold text-pretty text-[var(--color-neutral-charcoal)]"
-                    >
-                      {item.label}
-                    </span>
-                    {item.detail && (
-                      <span
-                        id={detailId}
-                        className="text-sm text-pretty text-[var(--color-text-secondary)]"
-                      >
-                        {item.detail}
-                      </span>
-                    )}
-                  </span>
-                </span>
+                {content}
                 <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--color-primary-core)]">
                   {item.href.includes("#") ? (
                     fixLabel

@@ -2541,7 +2541,7 @@ export interface paths {
     };
     /**
      * Search tutors
-     * @description Listed tutors only (isListed). Filters: area, subject, gender, rating (minimum), name (contains, case-insensitive), district (name, case-insensitive; a tutor with any area in it), recent=true (joined in the last 90 days). Order: rating, then review count, then newest, then id. Without limit every match is returned. With limit (1 to 50) one page is returned and nextCursor is a keyset cursor for the next page (null on the last page); it carries the last row's rating, review count, join time and id, and the recent cutoff. Rows that don't change are never repeated or skipped; a tutor whose rating changes mid-walk can appear twice or not at all, so dedupe by id. nextCursor is always present.
+     * @description Listed tutors only (isListed). Filters: area, subject, gender, rating (minimum), name (contains, case-insensitive), district (name, case-insensitive; a tutor with any area in it), recent=true (joined in the last 90 days). Order: rating, then review count, then newest, then id. Without limit the first 500 matches are returned (nextCursor null). With limit (1 to 50) one page is returned and nextCursor is a keyset cursor for the next page (null on the last page); it carries the last row's rating, review count, join time and id, and the recent cutoff. Rows that don't change are never repeated or skipped; a tutor whose rating changes mid-walk can appear twice or not at all, so dedupe by id. nextCursor is always present.
      *
      *     **Who:** Public; signed-in callers get Cache-Control: private, no-store.
      *
@@ -6179,7 +6179,7 @@ export interface paths {
     put?: never;
     /**
      * Apply to a requirement
-     * @description #57. A tutor applies to an open requirement. Fails with 403 PROFILE_INCOMPLETE until the profile passes the apply gate, 409 ALREADY_APPLIED for a repeat, and 409 APPLICATION_CLOSED once the tuition has a confirmed application.
+     * @description #57. A tutor applies to an open requirement. Fails with 403 PROFILE_INCOMPLETE until the profile passes the apply gate, 409 ALREADY_APPLIED for a repeat, and 409 APPLICATION_CLOSED once the tuition has a confirmed application, and 429 DAILY_LIMIT_REACHED once the tutor has used the daily application limit (rolling 24 hours, withdrawn ones included).
      *
      *     **Who:** TUTOR.
      *
@@ -6382,7 +6382,7 @@ export interface paths {
     put?: never;
     /**
      * Request a package
-     * @description #58. A student asks to take an approved, open package from a listed tutor. Fails with 409 ALREADY_APPLIED for a repeat and 409 APPLICATION_CLOSED once the package has a confirmed application.
+     * @description #58. A student asks to take an approved, open package from a listed tutor. Fails with 409 ALREADY_APPLIED for a repeat, 409 APPLICATION_CLOSED once the package has a confirmed application, and 429 DAILY_LIMIT_REACHED once the student has used the daily request limit (rolling 24 hours).
      *
      *     **Who:** STUDENT.
      *
@@ -6680,7 +6680,7 @@ export interface paths {
     put?: never;
     /**
      * Confirm an application
-     * @description #63. The counterparty accepts. Other pending applications on the same listing are rejected, and a placement fee is created at commission_percent (40% unless an admin sets another rate; an explicit 0 creates none).
+     * @description #63. The counterparty accepts. Other pending applications on the same listing are rejected, and a placement fee is created at commission_percent (40% unless an admin sets another rate; an explicit 0 creates none). 429 DAILY_LIMIT_REACHED once the account has confirmed the daily accept limit in 24 hours.
      *
      *     **Who:** TUTOR, STUDENT.
      *
@@ -7004,7 +7004,7 @@ export interface paths {
     put?: never;
     /**
      * Reopen an application
-     * @description #66. The initiator sends a withdrawn, rejected or expired application again. The listing must still be open and not closed. A tutor reopening re-checks profile completeness (403 PROFILE_INCOMPLETE).
+     * @description #66. The initiator sends a withdrawn, rejected or expired application again. The listing must still be open and not closed. A tutor reopening re-checks profile completeness (403 PROFILE_INCOMPLETE). 429 DAILY_LIMIT_REACHED once the initiator has used its daily limit in 24 hours; a reopen counts as another send.
      *
      *     **Who:** TUTOR, STUDENT.
      *
@@ -10375,6 +10375,80 @@ export interface paths {
           };
           content: {
             "application/json": components["schemas"]["SubjectList"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/institutions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search schools and universities
+     * @description Active institutions whose name or alias matches q (2 to 60 characters, spelling variants folded). for=tutor ranks universities and colleges first; for=student ranks schools first. matchedAlias is set when q matches an alias. The same body for every caller. Cached for 5 minutes by shared caches; signed-in callers cache it in the browser only.
+     *
+     *     **Who:** Public; signed-in callers get Cache-Control: private, max-age=300.
+     *
+     *     **Rate limit:** 240/min per IP.
+     */
+    get: {
+      parameters: {
+        query: {
+          q: string;
+          for?: "tutor" | "student";
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["InstitutionList"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
           };
         };
         /** @description Rate limit hit */
@@ -15703,6 +15777,297 @@ export interface paths {
     };
     trace?: never;
   };
+  "/api/v1/admin/institutions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List schools and universities
+     * @description Super admin only. Every institution, inactive ones included, ordered by name then id. q matches the search text, an alias or the EIIN. status is active, inactive or all (default all). total counts the rows that match the filters.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 300/min per account.
+     */
+    get: {
+      parameters: {
+        query?: {
+          q?: string;
+          kind?: "SCHOOL" | "COLLEGE" | "SCHOOL_AND_COLLEGE" | "UNIVERSITY";
+          status?: "active" | "inactive" | "all";
+          offset?: number;
+          limit?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminInstitutionList"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Add a school or university
+     * @description Super admin only. 409 INSTITUTION_EXISTS when another row has the same name in the same area (the area is compared case-insensitively; no area counts as one).
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["CreateInstitutionInput"];
+        };
+      };
+      responses: {
+        /** @description Created */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminInstitution"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/institutions/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update a school or university
+     * @description Super admin only. Renames, re-kinds, re-areas, replaces the aliases or sets isActive. A rename also sets the name on every tutor and requirement linked to the row. isActive false hides the row from search; links keep their text. 404 when it does not exist, 409 INSTITUTION_EXISTS on a duplicate.
+     *
+     *     **Who:** ADMIN with an ACTIVE admin_user row.
+     *
+     *     **Rate limit:** 60/min per account.
+     */
+    patch: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: number;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["UpdateInstitutionInput"];
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["AdminInstitution"];
+          };
+        };
+        /** @description Validation failed (VALIDATION_ERROR with `issues`) or the request breaks a business rule */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Missing, invalid or expired access token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description The account's role cannot call this route */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Not found */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Conflict with the current state */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Rate limit hit */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+        /** @description Unexpected error. In production the message is masked */
+        500: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ErrorResponse"];
+          };
+        };
+      };
+    };
+    trace?: never;
+  };
   "/api/v1/admin/settings": {
     parameters: {
       query?: never;
@@ -15808,6 +16173,9 @@ export interface paths {
             | "gateway_charge_percent"
             | "online_payments_enabled"
             | "refund_window_days"
+            | "daily_application_limit"
+            | "daily_package_request_limit"
+            | "daily_accept_limit"
             | "require_tutor_verification"
             | "require_tutor_phone_verification"
             | "require_student_phone_verification";
@@ -20251,6 +20619,26 @@ export interface components {
         totalBytes: number;
       }[];
     };
+    AdminInstitution: {
+      id: number;
+      name: string;
+      /** @enum {string} */
+      kind: "SCHOOL" | "COLLEGE" | "SCHOOL_AND_COLLEGE" | "UNIVERSITY";
+      district: string | null;
+      area: string | null;
+      eiin: string | null;
+      aliases: string[];
+      isActive: boolean;
+      popularity: number;
+      tutorCount: number;
+      requirementCount: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+    AdminInstitutionList: {
+      institutions: components["schemas"]["AdminInstitution"][];
+      total: number;
+    };
     AdminInvite: {
       /** Format: uuid */
       id: string;
@@ -21079,6 +21467,7 @@ export interface components {
       name: string;
       areaId: number;
       avatarUrl: string | null;
+      verifiedBadge: boolean;
     };
     ApplicationStudentLocation: {
       address: string;
@@ -21125,6 +21514,7 @@ export interface components {
       avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
+      verifiedBadge: boolean;
     };
     ApplicationTutorProfile: {
       id: string;
@@ -21137,6 +21527,7 @@ export interface components {
       ratingCount: number;
       /** @enum {string} */
       verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+      verifiedBadge: boolean;
       areas: {
         id: number;
         name: string;
@@ -21546,6 +21937,14 @@ export interface components {
       dueDate: string;
       note?: string;
     };
+    CreateInstitutionInput: {
+      name: string;
+      /** @enum {string} */
+      kind: "SCHOOL" | "COLLEGE" | "SCHOOL_AND_COLLEGE" | "UNIVERSITY";
+      district?: string | null;
+      area?: string | null;
+      aliases?: string[];
+    };
     CreatePackageInput: {
       title: string;
       description: string;
@@ -21676,7 +22075,8 @@ export interface components {
            * @enum {string}
            */
           tutorGenderPref?: "ANY" | "MALE" | "FEMALE";
-          instituteName?: string;
+          instituteName?: string | null;
+          institutionId?: number | null;
           /** @enum {string} */
           tuitionType:
             | "Home Tutoring Solo"
@@ -21731,7 +22131,8 @@ export interface components {
            * @enum {string}
            */
           tutorGenderPref?: "ANY" | "MALE" | "FEMALE";
-          instituteName?: string;
+          instituteName?: string | null;
+          institutionId?: number | null;
           /** @enum {string} */
           tuitionType?:
             | "Home Tutoring Solo"
@@ -21782,6 +22183,7 @@ export interface components {
     CreateTutorProfileInput: {
       name: string;
       instituteName?: string;
+      institutionId?: number | null;
       address: string;
       emergencyContact: string;
       phoneNumber: string;
@@ -22028,7 +22430,9 @@ export interface components {
       | "REQUIREMENT_DUPLICATE"
       | "STORY_LIMIT_REACHED"
       | "STORY_PENDING"
-      | "STORY_ALREADY_MODERATED";
+      | "STORY_ALREADY_MODERATED"
+      | "DAILY_LIMIT_REACHED"
+      | "INSTITUTION_EXISTS";
     ErrorIssue: {
       path: (string | number)[];
       message: string;
@@ -22100,6 +22504,18 @@ export interface components {
       /** @enum {string} */
       db: "ok" | "unavailable";
       timestamp: string;
+    };
+    InstitutionList: {
+      institutions: components["schemas"]["InstitutionOption"][];
+    };
+    InstitutionOption: {
+      id: number;
+      name: string;
+      /** @enum {string} */
+      kind: "SCHOOL" | "COLLEGE" | "SCHOOL_AND_COLLEGE" | "UNIVERSITY";
+      district: string | null;
+      area: string | null;
+      matchedAlias: string | null;
     };
     LogoutInput: {
       refreshToken?: string;
@@ -22398,6 +22814,7 @@ export interface components {
         missing: string[];
         verificationRequired: boolean;
       };
+      profileStrength?: components["schemas"]["ProfileStrength"];
     };
     MeAdminUser: {
       /** Format: uuid */
@@ -22466,6 +22883,7 @@ export interface components {
       role: "STUDENT" | "TUTOR" | "ADMIN";
       name: string;
       instituteName: string | null;
+      institutionId: number | null;
       address: string;
       emergencyContact: string | null;
       whatsappNumber: string | null;
@@ -22810,6 +23228,9 @@ export interface components {
         | "gateway_charge_percent"
         | "online_payments_enabled"
         | "refund_window_days"
+        | "daily_application_limit"
+        | "daily_package_request_limit"
+        | "daily_accept_limit"
         | "require_tutor_verification"
         | "require_tutor_phone_verification"
         | "require_student_phone_verification";
@@ -22819,6 +23240,30 @@ export interface components {
     };
     PlatformSettingList: {
       settings: components["schemas"]["PlatformSettingItem"][];
+    };
+    ProfileStrength: {
+      percent: number;
+      complete: boolean;
+      completeAt: number;
+      verifiedBadge: boolean;
+      badgeAt: number;
+      items: {
+        /** @enum {string} */
+        key:
+          | "basics"
+          | "phone_verified"
+          | "photo"
+          | "institute"
+          | "subjects"
+          | "location_pin"
+          | "default_set"
+          | "id_verified"
+          | "credential"
+          | "video"
+          | "whatsapp";
+        weight: number;
+        done: boolean;
+      }[];
     };
     RecommendedTutorPage: {
       tutors: {
@@ -22833,6 +23278,7 @@ export interface components {
           /** @enum {string} */
           verificationStatus:
             "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
+          verifiedBadge: boolean;
           avatarUrl: string | null;
           areas: {
             id: number;
@@ -22940,6 +23386,7 @@ export interface components {
       /** @enum {string} */
       tutorGenderPref: "ANY" | "MALE" | "FEMALE";
       instituteName: string | null;
+      institutionId: number | null;
       tuitionType:
         | (
             | "Home Tutoring Solo"
@@ -23309,6 +23756,7 @@ export interface components {
       accountId: string;
       name: string;
       instituteName: string | null;
+      institutionId: number | null;
       address: string;
       emergencyContact: string | null;
       phoneNumber: string;
@@ -23452,6 +23900,7 @@ export interface components {
       ratingAvg: number;
       ratingCount: number;
       distanceMeters: number;
+      verifiedBadge: boolean;
       avatarUrl: string | null;
       areas: {
         id: number;
@@ -23475,6 +23924,7 @@ export interface components {
       verificationStatus: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
       isListed: boolean;
       needsReaddress: boolean;
+      verifiedBadge: boolean;
       createdAt: string;
       updatedAt: string;
       areas: {
@@ -23612,6 +24062,7 @@ export interface components {
       avatarUrl: string | null;
       ratingAvg: number;
       ratingCount: number;
+      verifiedBadge: boolean;
       areas: {
         id: number;
         name: string;
@@ -23692,6 +24143,15 @@ export interface components {
       note?: string | null;
       /** @enum {string} */
       status?: "WAIVED" | "VOID";
+    };
+    UpdateInstitutionInput: {
+      name?: string;
+      /** @enum {string} */
+      kind?: "SCHOOL" | "COLLEGE" | "SCHOOL_AND_COLLEGE" | "UNIVERSITY";
+      district?: string | null;
+      area?: string | null;
+      aliases?: string[];
+      isActive?: boolean;
     };
     UpdatePackageInput: {
       title?: string;
@@ -23781,7 +24241,8 @@ export interface components {
       hireByDate?: string;
       /** @enum {string} */
       tutorGenderPref?: "ANY" | "MALE" | "FEMALE";
-      instituteName?: string;
+      instituteName?: string | null;
+      institutionId?: number | null;
       /** @enum {string} */
       tuitionType?:
         | "Home Tutoring Solo"
@@ -23827,6 +24288,7 @@ export interface components {
     UpdateTutorProfileInput: {
       name?: string;
       instituteName?: string;
+      institutionId?: number | null;
       address?: string;
       emergencyContact?: string;
       phoneNumber?: string;

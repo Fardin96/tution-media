@@ -113,8 +113,15 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
+      verifiedBadge: false,
     },
-    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
+    student: {
+      id: "s1",
+      name: "Nadia Islam",
+      avatarUrl: null,
+      areaId: 1,
+      verifiedBadge: false,
+    },
     target: {
       kind: "REQUIREMENT",
       id: "r1",
@@ -145,6 +152,7 @@ function detail(overrides: Partial<ApplicationDetail> = {}): ApplicationDetail {
       ratingAvg: 4.5,
       ratingCount: 12,
       verificationStatus: "APPROVED",
+      verifiedBadge: true,
       areas: [
         { id: 2, name: "Dhanmondi" },
         { id: 5, name: "Banani" },
@@ -238,7 +246,9 @@ describe("ApplicationDetailPage for a student", () => {
     const tutor = await screen.findByRole("region", { name: "Tutor" });
     expect(within(tutor).getByText("Rafiq Ahmed")).toBeInTheDocument();
     expect(within(tutor).getByText("University of Dhaka")).toBeInTheDocument();
-    expect(within(tutor).getByText("Verified")).toBeInTheDocument();
+    expect(
+      within(tutor).getByRole("button", { name: "Verified" }),
+    ).toBeInTheDocument();
     expect(within(tutor).getByText("4.5")).toBeInTheDocument();
     expect(within(tutor).getByText("English")).toBeInTheDocument();
     expect(within(tutor).getByText("Dhanmondi, Banani")).toBeInTheDocument();
@@ -320,7 +330,7 @@ describe("ApplicationDetailPage for a package", () => {
       level: 1,
       name: "SSC Physics crash course",
     });
-    expect(heading.parentElement).toHaveTextContent("Rafiq Ahmed");
+    expect(heading.closest("header")).toHaveTextContent("Rafiq Ahmed");
 
     const tuition = screen.getByRole("region", { name: "Tuition" });
     expect(within(tuition).getByText("Price")).toBeInTheDocument();

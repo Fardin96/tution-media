@@ -15,7 +15,6 @@ import {
   Briefcase,
   CalendarDays,
   Camera,
-  Check,
   Eye,
   FileText,
   Flag,
@@ -43,6 +42,7 @@ import {
   invalidateRequirements,
   invalidateTutorProfile,
   invalidateTutorRequirements,
+  refreshOwnPublicProfile,
 } from "@/lib/query-keys";
 import {
   blockedFromServerError,
@@ -119,6 +119,7 @@ import { revealMotion } from "@/components/motion/swap";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import {
   EmptyCard,
   ErrorBlock,
@@ -138,6 +139,7 @@ import { StoriesSection } from "@/components/stories/stories-section";
 import { TutorRequirementsSection } from "@/components/tutor-requirements/dashboard-section";
 import { StudentReviewList } from "@/components/reviews/review-list";
 import { EditSection, SaveCancelled } from "./edit-section";
+import { ProfileStrengthCard } from "./profile-strength-card";
 import type { SubmittedVerification } from "./verification-upload-dialog";
 import {
   AddButton,
@@ -194,9 +196,9 @@ const WASH = [
 
 const VERIFICATION: Record<VerificationStatus, { tone: Tone; label: string }> =
   {
-    NOT_SUBMITTED: { tone: "neutral", label: "Not verified" },
+    NOT_SUBMITTED: { tone: "neutral", label: "ID not verified" },
     PENDING: { tone: "warning", label: "In review" },
-    APPROVED: { tone: "success", label: "Verified" },
+    APPROVED: { tone: "success", label: "ID verified" },
     REJECTED: { tone: "error", label: "Rejected" },
   };
 
@@ -318,6 +320,22 @@ export function ProfileDashboard({
   };
 
   const queryClient = useQueryClient();
+  // `me` is local state, so a fix made on this page re-reads the strength and apply checklist.
+  const refreshStrength = () => {
+    void profileApi
+      .me()
+      .then((a) =>
+        setMe(
+          (m) =>
+            m && {
+              ...m,
+              profileStrength: a.profileStrength,
+              applyReadiness: a.applyReadiness,
+            },
+        ),
+      )
+      .catch(() => undefined);
+  };
   const [dialog, setDialog] = useState<{
     title: string;
     body: string[];
@@ -524,10 +542,13 @@ export function ProfileDashboard({
       (f) =>
         f && { ...f, ...Object.fromEntries(keys.map((k) => [k, next[k]])) },
     );
+    refreshStrength();
   };
 
   const removeCredential = async (id: string) => {
     await profileApi.deleteCredential(id);
+    refreshOwnPublicProfile();
+    refreshStrength();
     setTutorData((d) => ({
       ...d,
       credentials: d.credentials?.filter((c) => c.id !== id) ?? null,
@@ -536,6 +557,7 @@ export function ProfileDashboard({
 
   const removeVideo = async (id: string) => {
     await profileApi.deleteVideo(id);
+    refreshStrength();
     setTutorData((d) => ({
       ...d,
       videos: d.videos?.filter((v) => v.id !== id) ?? null,
@@ -543,6 +565,8 @@ export function ProfileDashboard({
   };
 
   const addCredential = (credential: Credential) => {
+    refreshOwnPublicProfile();
+    refreshStrength();
     setTutorData((d) => ({
       ...d,
       credentials:
@@ -554,6 +578,7 @@ export function ProfileDashboard({
   };
 
   const addVideo = (video: Video) => {
+    refreshStrength();
     setTutorData((d) => ({
       ...d,
       videos: d.videos && [...d.videos, video],
@@ -585,6 +610,7 @@ export function ProfileDashboard({
     );
     // The edit form reads the number from here, so a changed number shows at once.
     setForm((f) => f && { ...f, phoneNumber: result.phoneNumber });
+    refreshStrength();
   };
 
   const verificationSent = (result: SubmittedVerification) => {
@@ -609,6 +635,7 @@ export function ProfileDashboard({
       }));
     }
     void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    refreshStrength();
   };
 
   const displayName = profile?.name || session.name || "there";
@@ -668,11 +695,13 @@ export function ProfileDashboard({
             name={displayName}
             picture={session.picture}
             avatarUrl={me.avatarUrl}
-            onAvatarChanged={(url) =>
-              setMe((m) => m && { ...m, avatarUrl: url })
-            }
+            onAvatarChanged={(url) => {
+              setMe((m) => m && { ...m, avatarUrl: url });
+              refreshStrength();
+            }}
             onAvatarExpired={() => refreshExpiredAvatar(me.avatarUrl)}
             profile={profile}
+            verifiedBadge={me.profileStrength?.verifiedBadge ?? false}
             areaLabel={
               me.student
                 ? optionName(areas, me.student.areaId)
@@ -680,7 +709,14 @@ export function ProfileDashboard({
                   ? `${form.areaIds.length} area${form.areaIds.length > 1 ? "s" : ""}`
                   : null
             }
-            checklist={checklist(role, me, form, tutorData)}
+            aside={
+              <ProfileStrengthCard
+                role={role}
+                strength={me.profileStrength}
+                applyReadiness={me.applyReadiness}
+                onVerifyPhone={() => openPhoneDialog()}
+              />
+            }
           />
 
           <main className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
@@ -901,52 +937,6 @@ export function TopBar({
 
 /* ───────── Hero ───────── */
 
-interface CheckItem {
-  label: string;
-  done: boolean;
-  note?: string;
-}
-
-function checklist(
-  role: ProfileRole,
-  me: Me,
-  form: ProfileForm,
-  data: TutorData,
-): CheckItem[] {
-  const profile = profileOf(me)!;
-  const items: CheckItem[] = [
-    { label: "Profile details", done: true },
-    ...(profile.whatsappNumber
-      ? [
-          {
-            label: "WhatsApp verified",
-            done: !!profile.whatsappVerifiedAt,
-            note: "Coming soon",
-          },
-        ]
-      : []),
-    {
-      label: role === "TUTOR" ? "Identity verified" : "Student ID verified",
-      done: profile.verificationStatus === "APPROVED",
-      note: profile.verificationStatus === "PENDING" ? "In review" : undefined,
-    },
-  ];
-  if (role === "TUTOR")
-    items.splice(
-      1,
-      0,
-      {
-        label: "Subjects and areas",
-        done: form.subjectIds.length > 0 && form.areaIds.length > 0,
-      },
-      {
-        label: "Exam credentials",
-        done: (data.credentials?.length ?? 0) > 0,
-      },
-    );
-  return items;
-}
-
 function Hero({
   role,
   name,
@@ -955,8 +945,9 @@ function Hero({
   onAvatarChanged,
   onAvatarExpired,
   profile,
+  verifiedBadge,
   areaLabel,
-  checklist,
+  aside,
 }: {
   role: ProfileRole;
   name: string;
@@ -967,11 +958,11 @@ function Hero({
   /** Refetches the account when the signed photo link has expired. */
   onAvatarExpired: () => void;
   profile: NonNullable<ReturnType<typeof profileOf>>;
+  verifiedBadge: boolean;
   areaLabel: string | null;
-  checklist: CheckItem[];
+  /** Sits right of the photo and name on wide screens (the profile strength card). */
+  aside?: React.ReactNode;
 }) {
-  const done = checklist.filter((c) => c.done).length;
-  const pct = Math.round((done / checklist.length) * 100);
   const v = VERIFICATION[profile.verificationStatus];
   const [photoOpen, setPhotoOpen] = useState(false);
   const photoDialogMounted = useStayMounted(photoOpen);
@@ -997,7 +988,11 @@ function Hero({
 
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 pt-8 pb-10 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
         <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="relative w-fit shrink-0">
+          <div
+            id="profile-photo"
+            data-attention-round
+            className="relative w-fit shrink-0 rounded-full"
+          >
             <UserAvatar
               src={avatarUrl ?? picture}
               name={name}
@@ -1042,6 +1037,7 @@ function Hero({
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight break-words text-[var(--color-neutral-charcoal)] sm:text-4xl">
               {name}
+              {verifiedBadge && <VerifiedBadge size={24} className="ms-2" />}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Pill tone={v.tone}>{v.label}</Pill>
@@ -1085,73 +1081,7 @@ function Hero({
             </div>
           </div>
         </div>
-
-        <div className="rounded-[24px] bg-[color-mix(in_oklab,var(--color-neutral-white)_80%,transparent)] p-5 shadow-[0_0_0_1px_rgb(0_0_0/0.05),0_12px_32px_-12px_rgb(0_0_0/0.12)] backdrop-blur-md">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-[var(--color-neutral-charcoal)]">
-              Profile strength
-            </h2>
-            <span className="text-2xl font-semibold text-[var(--color-neutral-charcoal)] tabular-nums">
-              {pct}%
-            </span>
-          </div>
-          <div
-            role="progressbar"
-            aria-label="Profile strength"
-            aria-valuenow={pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            className="mt-3 h-2 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--color-neutral-charcoal)_10%,transparent)]"
-          >
-            <div
-              className="h-full rounded-full bg-[linear-gradient(90deg_in_oklab,var(--color-primary-core),var(--color-mesh-deep))]"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <ul className="mt-4 grid gap-2">
-            {checklist.map((item) => (
-              <li
-                key={item.label}
-                className="flex items-center gap-2.5 text-sm"
-              >
-                <span
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full",
-                    item.done
-                      ? "bg-[var(--color-primary-core)] text-[var(--color-neutral-white)]"
-                      : "shadow-[inset_0_0_0_1.5px_var(--color-border-control)]",
-                  )}
-                >
-                  {item.done && (
-                    <Check
-                      aria-hidden="true"
-                      className="size-3"
-                      strokeWidth={3}
-                    />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "min-w-0 flex-1",
-                    item.done
-                      ? "text-[var(--color-neutral-charcoal)]"
-                      : "text-[var(--color-text-secondary)]",
-                  )}
-                >
-                  {item.label}
-                  <span className="sr-only">
-                    {item.done ? ": done" : ": to do"}
-                  </span>
-                </span>
-                {!item.done && item.note && (
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    {item.note}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {aside}
       </div>
     </div>
   );
@@ -2522,6 +2452,7 @@ function RecommendedTutorCard({
         >
           {tutor.name}
         </Link>
+        {tutor.verifiedBadge && <VerifiedBadge size={16} className="ms-1.5" />}
       </h3>
       {institute && (
         <p className="text-sm text-pretty text-[var(--color-text-secondary)]">
@@ -2568,7 +2499,7 @@ function VerificationCard({
 
   const copy =
     status === "APPROVED"
-      ? "You're verified. Your badge shows on your profile."
+      ? "Your ID is verified. It counts toward your verified badge."
       : status === "PENDING"
         ? `${submittedAt ? `Sent ${formatShortDate(submittedAt)}. ` : ""}We're reviewing it. This usually takes a day or two.`
         : status === "REJECTED"

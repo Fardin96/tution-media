@@ -11,6 +11,7 @@ import {
   Flag,
   CreditCard,
   FileText,
+  GraduationCap,
   HardDrive,
   IdCard,
   LayoutGrid,
@@ -163,6 +164,14 @@ export const ADMIN_NAV = [
     description: "Add, rename or retire the areas people pick.",
   },
   {
+    href: "/dashboard/admin/institutions",
+    label: "Schools and universities",
+    icon: GraduationCap,
+    description:
+      "The schools and universities people pick, and their short names.",
+    superAdminOnly: true,
+  },
+  {
     href: "/dashboard/admin/blog",
     label: "Blog",
     icon: Newspaper,
@@ -201,6 +210,14 @@ export const ADMIN_NAV = [
   },
 ] as const;
 
+/** The nav a signed-in admin sees. Super-admin pages are left out until the role is known. */
+export function visibleAdminNav(isSuperAdmin: boolean) {
+  return ADMIN_NAV.filter(
+    (item) =>
+      !("superAdminOnly" in item && item.superAdminOnly) || isSuperAdmin,
+  );
+}
+
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard/admin") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -210,6 +227,7 @@ function isActive(pathname: string, href: string) {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const me = useAdminMe();
+  const nav = visibleAdminNav(me.isSuperAdmin);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPath, setMenuPath] = useState(pathname);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -254,11 +272,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-[var(--color-neutral-off-white)] lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
-      <AdminSearch
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        pages={ADMIN_NAV}
-      />
+      <AdminSearch open={searchOpen} onOpenChange={setSearchOpen} pages={nav} />
       <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:gap-6 lg:border-e lg:border-[var(--color-neutral-border)] lg:bg-[var(--color-neutral-white)] lg:px-4 lg:py-6">
         <Link
           href="/dashboard/admin"
@@ -298,7 +312,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </button>
         <nav aria-label="Admin" className="-mx-1 flex-1 overflow-y-auto px-1">
           <ul className="grid gap-1">
-            {ADMIN_NAV.map((item) => (
+            {nav.map((item) => (
               <li key={item.href}>
                 <NavLink
                   href={item.href}
@@ -364,6 +378,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </SheetDescription>
               <MobileNav
                 pathname={pathname}
+                items={nav}
                 onNavigate={() => setMenuOpen(false)}
               />
               <div className="grid gap-3 border-t border-[var(--color-neutral-border)] px-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -478,9 +493,11 @@ function AdminIdentity({
 // Mounted only while the drawer is open, so the effect runs on each open.
 function MobileNav({
   pathname,
+  items,
   onNavigate,
 }: {
   pathname: string;
+  items: ReturnType<typeof visibleAdminNav>;
   onNavigate: () => void;
 }) {
   const navRef = useRef<HTMLElement>(null);
@@ -499,7 +516,7 @@ function MobileNav({
       className="flex-1 overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
       <ul className="grid gap-1">
-        {ADMIN_NAV.map((item) => (
+        {items.map((item) => (
           <li key={item.href}>
             <NavLink
               href={item.href}

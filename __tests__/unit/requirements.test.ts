@@ -75,6 +75,7 @@ describe("requirements helpers", () => {
       isRetaker: false,
       levelNote: null,
       instituteName: "NDC",
+      institutionId: null,
       areaId: 3,
       tuitionType: "Home Tutoring Solo",
       daysPerWeek: 3,
@@ -99,11 +100,13 @@ describe("requirements helpers", () => {
     expect(payload).toEqual({
       status: "DRAFT",
       subjectIds: [2],
+      instituteName: null,
       curriculum: "BANGLA_MEDIUM",
       academicGroup: null,
       admissionTargets: [],
       isRetaker: false,
       levelNote: null,
+      institutionId: null,
       tuitionType: "Home Tutoring Solo",
       daysPerWeek: 3,
       availableDays: 127,
@@ -262,6 +265,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-11-20T23:30:00Z");
 
 const SOURCE: Requirement = {
+  institutionId: null,
   id: "req-old",
   studentId: "stu-1",
   areaId: 3,

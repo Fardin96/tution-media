@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { ApiError, parseJson } from "@/lib/profile";
+import { errorCodeMessage } from "@/lib/api-errors";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status });
@@ -112,5 +113,47 @@ describe("parseJson", () => {
     expect(err).toBeInstanceOf(ApiError);
     expect(err.message).toBe("Request failed (418).");
     expect(err.code).toBeUndefined();
+  });
+});
+
+describe("DAILY_LIMIT_REACHED copy", () => {
+  // 25 Nov 2026, 08:00 in Asia/Dhaka (UTC+6, no DST).
+  const NOW = new Date("2026-11-25T02:00:00Z");
+  const limit = (details?: Record<string, unknown>) =>
+    errorCodeMessage(
+      new ApiError("You can send 50 applications in 24 hours.", 429, {
+        code: "DAILY_LIMIT_REACHED",
+        details,
+      }),
+    );
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows the server's message and the Dhaka time for a reset today", () => {
+    expect(limit({ limit: 50, resetsAt: "2026-11-25T10:15:00Z" })).toBe(
+      "You can send 50 applications in 24 hours. You can try again after 4:15 pm.",
+    );
+  });
+
+  it("adds the date when the reset is not today in Dhaka", () => {
+    expect(limit({ limit: 50, resetsAt: "2026-11-26T10:15:00Z" })).toBe(
+      "You can send 50 applications in 24 hours. You can try again after 4:15 pm on 26 Nov.",
+    );
+  });
+
+  it("leaves the time out when resetsAt is not a date", () => {
+    expect(limit({ limit: 50, resetsAt: "soon" })).toBe(
+      "You can send 50 applications in 24 hours.",
+    );
+    expect(limit({ limit: 50 })).toBe(
+      "You can send 50 applications in 24 hours.",
+    );
   });
 });

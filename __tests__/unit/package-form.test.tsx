@@ -7,7 +7,8 @@ import { PackageForm } from "@/components/packages/package-form";
 import { apiFetch } from "@/lib/api";
 import { usePackageReadiness, type MyPackage } from "@/lib/packages";
 import { useEducationLookup, type EducationLookup } from "@/lib/education";
-import { searchSubjects, type Option } from "@/lib/profile";
+import { searchSubjects, useMeAccount, type Option } from "@/lib/profile";
+import { emptyPackageForm } from "@/lib/package-form";
 import { useProfileSubjects } from "@/lib/tutor-requirements";
 import { useTutorZones, type TutorZone } from "@/lib/tutor-zones";
 
@@ -30,7 +31,11 @@ const SUBJECT_OPTIONS = [
 
 vi.mock("@/lib/subjects", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/subjects")>()),
-  useSubjects: () => ({ subjects: SUBJECT_OPTIONS }),
+  useSubjects: () => ({
+    subjects: SUBJECT_OPTIONS,
+    isSuccess: true,
+    isFetched: true,
+  }),
 }));
 
 const push = vi.fn();
@@ -72,6 +77,13 @@ vi.mock("@/lib/education", async (importOriginal) => ({
 vi.mock("@/lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profile")>()),
   searchSubjects: vi.fn(),
+  useMeAccount: vi.fn(() => ({ data: undefined })),
+}));
+
+// The in-place dialog has its own tests; here it only shows that it opened.
+vi.mock("@/components/profile/phone-verify-in-place", () => ({
+  PhoneVerifyInPlace: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">Verify your phone</div> : null,
 }));
 
 vi.mock("@/lib/tutor-zones", async (importOriginal) => ({
@@ -250,6 +262,7 @@ beforeEach(() => {
     data: PROFILE_SUBJECTS,
     isPending: false,
     isSuccess: true,
+    isFetched: true,
   } as unknown as ReturnType<typeof useProfileSubjects>);
 
   vi.mocked(searchSubjects).mockImplementation(async (query: string) => {
@@ -262,9 +275,16 @@ beforeEach(() => {
   vi.mocked(useTutorZones).mockReturnValue({
     data: { zones: ZONES, limit: 5, used: 2, pendingRequest: null },
     isPending: false,
+    isSuccess: true,
+    isFetched: true,
     isError: false,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useTutorZones>);
+
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: undefined,
+  } as unknown as ReturnType<typeof useMeAccount>);
+  window.localStorage.clear();
 });
 
 describe("PackageForm create", () => {
@@ -551,3 +571,177 @@ describe("PackageForm edit", () => {
     );
   });
 });
+
+const DRAFT_KEY = "draft:v1:acc-1:package";
+
+function asAccount(id: string, tutorPhone?: string) {
+  vi.mocked(useMeAccount).mockReturnValue({
+    data: {
+      id,
+      ...(tutorPhone ? { tutor: { phoneNumber: tutorPhone } } : {}),
+    },
+  } as unknown as ReturnType<typeof useMeAccount>);
+}
+
+/** A complete draft with picks that are gone (999, "gone") and a start date in the past. */
+function savedDraft() {
+  return {
+    ...emptyPackageForm(),
+    title: "Kept title",
+    description: "Full syllabus revision with weekly mock tests.",
+    durationWeeks: 12,
+    price: "15000",
+    subjectIds: [1, 999, 10],
+    levelMin: 1,
+    levelMax: 8,
+    zoneIds: ["z1", "gone"],
+    availableFrom: "2020-01-01",
+  };
+}
+
+function seedDraft(value: unknown, accountId = "acc-1") {
+  window.localStorage.setItem(
+    `draft:v1:${accountId}:package`,
+    JSON.stringify({ v: 1, savedAt: Date.now() - 60_000, value }),
+  );
+}
+
+describe("PackageForm drafts", () => {
+  it("restores a draft, drops picks that are gone, and resets a past start date", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    renderForm();
+
+    expect(
+      await screen.findByText(/Restored your draft from 1 minute ago/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("Kept title");
+
+    await user.click(screen.getByRole("button", { name: "Publish package" }));
+    await waitFor(() => expect(sentBody("POST")).toBeDefined());
+    expect(sentBody("POST")).toMatchObject({
+      subjectIds: [1, 10],
+      zoneIds: ["z1"],
+      availableFrom: emptyPackageForm().availableFrom,
+    });
+  });
+
+  it("Start over resets the form and removes the draft", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    renderForm();
+
+    await user.click(await screen.findByRole("button", { name: "Start over" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+    expect(window.localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it("clears the draft after a successful publish", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    renderForm();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Publish package" }),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith(LIST));
+    expect(window.localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it("keeps the draft after a failed publish", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    vi.mocked(apiFetch).mockResolvedValueOnce(
+      json({ code: "INTERNAL_ERROR", message: "boom" }, 500),
+    );
+    renderForm();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Publish package" }),
+    );
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(window.localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+  });
+
+  it("edit mode never reads a draft", () => {
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    renderForm(PACKAGE);
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+    expect(screen.getByLabelText("Title")).toHaveValue("SSC Math Booster");
+  });
+
+  it("does not restore another account's draft", () => {
+    asAccount("acc-2");
+    seedDraft(savedDraft(), "acc-1");
+    renderForm();
+    expect(screen.queryByText(/Restored your draft/)).toBeNull();
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+  });
+
+  it("opens the in-place verify from the checklist when the profile has a number", async () => {
+    const user = userEvent.setup();
+    setReadiness(["phone_verification"]);
+    asAccount("acc-1", "+8801711111111");
+    renderForm();
+
+    await user.click(
+      screen.getByRole("button", { name: "Verify your phone number" }),
+    );
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("keeps a subject picked from search on restore", async () => {
+    const user = userEvent.setup();
+    asAccount("acc-1");
+    seedDraft({ ...savedDraft(), subjectIds: [10] });
+    renderForm();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Publish package" }),
+    );
+    await waitFor(() => expect(sentBody("POST")).toBeDefined());
+    expect(sentBody("POST")).toMatchObject({
+      subjectIds: [10],
+      syncProfileSubjects: true,
+    });
+  });
+
+  it("a zone list that failed to load still restores, and typing still saves", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      "auth_tokens",
+      JSON.stringify({ accessToken: "a", refreshToken: "r" }),
+    );
+    vi.mocked(useTutorZones).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isSuccess: false,
+      isFetched: true,
+      isError: true,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useTutorZones>);
+    asAccount("acc-1");
+    seedDraft(savedDraft());
+    renderForm();
+
+    expect(await screen.findByText(/Restored your draft/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("Kept title");
+
+    await user.type(screen.getByLabelText("Title"), "!");
+    await waitFor(
+      () =>
+        expect(
+          JSON.parse(window.localStorage.getItem(DRAFT_KEY)!).value.title,
+        ).toBe("Kept title!"),
+      { timeout: 2000 },
+    );
+  });
+});
+
+const LIST = "/dashboard/tutor/packages";

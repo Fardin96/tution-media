@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,8 +9,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
-import { ApiError } from "@/lib/profile";
+import { ApiError, profileOf, useMeAccount } from "@/lib/profile";
 import { ERROR_CODES, mapServerIssuesToFields } from "@/lib/api-errors";
+import { draftKey, useRestoredDraft } from "@/lib/form-draft";
+import { DraftRestoredNotice } from "@/components/ui/draft-restored-notice";
+import { useSubjects } from "@/lib/subjects";
+import { getLocalIsoDate } from "@/lib/requirements";
+import { useTutorZones } from "@/lib/tutor-zones";
+import { PhoneVerifyInPlace } from "@/components/profile/phone-verify-in-place";
 import { queryKeys } from "@/lib/query-keys";
 import { toastError, toastSuccess } from "@/lib/toast";
 import {
@@ -80,17 +86,39 @@ function stringList(value: unknown): string[] {
 export type PackageFormProps =
   { mode: "create" } | { mode: "edit"; initial: MyPackage };
 
+/** Drops subjects and zones that are no longer on the profile, and a start date that has passed. */
+function sanitizeDraft(
+  value: FormState,
+  subjectIds: number[] | null,
+  zoneIds: string[] | null,
+): FormState {
+  // A list that failed to load can't check its picks, so they are kept (null means not checked).
+  const kept = <T,>(ids: T[] | null, id: T) => ids === null || ids.includes(id);
+  return {
+    ...value,
+    subjectIds: value.subjectIds.filter((id) => kept(subjectIds, id)),
+    zoneIds: value.zoneIds.filter((id) => kept(zoneIds, id)),
+    availableFrom:
+      value.availableFrom < getLocalIsoDate()
+        ? emptyPackageForm().availableFrom
+        : value.availableFrom,
+  };
+}
+
 export function PackageForm(props: PackageFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const initial = props.mode === "edit" ? props.initial : null;
   const isEdit = initial !== null;
 
-  const [form, setForm] = useState<FormState>(() =>
+  const [start] = useState<FormState>(() =>
     initial ? fromMyPackage(initial) : emptyPackageForm(),
   );
+  const [form, setForm] = useState<FormState>(start);
+  const [baseline] = useState<FormState>(start);
   const [errors, setErrors] = useState<PackageFormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
   // Gaps a 403 reported on publish. Kept only until the account data refreshes.
   const [serverGate, setServerGate] = useState<{
     missing: string[];
@@ -105,7 +133,41 @@ export function PackageForm(props: PackageFormProps) {
 
   const profileQuery = useProfileSubjects();
   const profileSubjects = profileQuery.data ?? [];
-  const profileIds = profileSubjects.map((o) => o.id);
+  const profileIds = useMemo(
+    () => (profileQuery.data ?? []).map((o) => o.id),
+    [profileQuery.data],
+  );
+
+  const me = useMeAccount();
+  const zonesQuery = useTutorZones();
+  // null when the list failed to load: the picks are kept rather than dropped.
+  const zoneIds = useMemo(
+    () =>
+      zonesQuery.isSuccess
+        ? (zonesQuery.data?.zones ?? []).map((z) => z.id)
+        : null,
+    [zonesQuery.isSuccess, zonesQuery.data],
+  );
+  // The full active subject list, not the profile's: a subject picked from search is a valid pick.
+  const subjectsQuery = useSubjects();
+  const allSubjectIds = useMemo(
+    () =>
+      subjectsQuery.isSuccess ? subjectsQuery.subjects.map((s) => s.id) : null,
+    [subjectsQuery.isSuccess, subjectsQuery.subjects],
+  );
+  const phoneNumber = me.data ? profileOf(me.data)?.phoneNumber : null;
+  const { restoredAt, startOver, clear } = useRestoredDraft<FormState>({
+    key: isEdit ? null : draftKey(me.data?.id, "package"),
+    form,
+    setForm,
+    baseline,
+    // Settled means fetched, failed or not: a list that never loads must not hold saving forever.
+    ready: subjectsQuery.isFetched && zonesQuery.isFetched,
+    sanitize: (saved) => sanitizeDraft(saved, allSubjectIds, zoneIds),
+    fresh: emptyPackageForm(),
+    // The shared page shell (RequirementPageShell) owns this heading.
+    focusId: "requirement-form-title",
+  });
 
   const readiness = usePackageReadiness();
   const readinessMissing = packageMissing(
@@ -218,6 +280,7 @@ export function PackageForm(props: PackageFormProps) {
           toCreatePackagePayload(form, profileIds),
         );
         toastSuccess("Package sent for review");
+        clear();
       }
 
       if (newProfileSubjects(form.subjectIds, profileIds).length > 0) {
@@ -237,7 +300,21 @@ export function PackageForm(props: PackageFormProps) {
 
   return (
     <div className="mt-6 grid gap-6">
-      {missing.length > 0 && <ReadinessChecklist missing={missing} />}
+      {missing.length > 0 && (
+        <ReadinessChecklist
+          missing={missing}
+          actions={
+            phoneNumber
+              ? { phone_verification: () => setVerifyOpen(true) }
+              : undefined
+          }
+          returnTo={
+            isEdit
+              ? undefined
+              : { path: "/dashboard/tutor/packages/new", label: "new package" }
+          }
+        />
+      )}
 
       <form
         ref={formRef}
@@ -249,6 +326,9 @@ export function PackageForm(props: PackageFormProps) {
         aria-busy={saving}
         className={cn(card, "p-5 sm:p-8")}
       >
+        {restoredAt !== null && (
+          <DraftRestoredNotice savedAt={restoredAt} onStartOver={startOver} />
+        )}
         <div className="grid gap-10">
           {/* Group 1: About this package */}
           <fieldset className="grid min-w-0 gap-6">
@@ -582,6 +662,14 @@ export function PackageForm(props: PackageFormProps) {
                 value={form.zoneIds}
                 onChange={(ids) => updateForm({ zoneIds: ids })}
                 teachesOnline={form.teachesOnline}
+                returnTo={
+                  isEdit
+                    ? undefined
+                    : {
+                        path: "/dashboard/tutor/packages/new",
+                        label: "new package",
+                      }
+                }
                 emptyHint={
                   // The inline error says the same thing once the form is submitted.
                   errors.zoneIds
@@ -641,6 +729,8 @@ export function PackageForm(props: PackageFormProps) {
           </div>
         </div>
       </form>
+
+      <PhoneVerifyInPlace open={verifyOpen} onOpenChange={setVerifyOpen} />
     </div>
   );
 }

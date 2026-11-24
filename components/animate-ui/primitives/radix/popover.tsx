@@ -30,6 +30,8 @@ function Popover(props: PopoverProps) {
 }
 
 const PopoverTrigger = PopoverPrimitive.Trigger;
+// Positions the content against another element than the trigger (the whole card, say).
+const PopoverAnchor = PopoverPrimitive.Anchor;
 
 function PopoverPortal(
   props: Omit<
@@ -116,6 +118,7 @@ function PopoverContent({
 export {
   Popover,
   PopoverTrigger,
+  PopoverAnchor,
   PopoverPortal,
   PopoverContent,
   type PopoverProps,

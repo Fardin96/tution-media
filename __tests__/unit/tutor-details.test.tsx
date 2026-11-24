@@ -45,6 +45,7 @@ function tutorProfile(
     ratingAvg: 4.5,
     ratingCount: 12,
     verificationStatus: "APPROVED",
+    verifiedBadge: false,
     areas: [{ id: 1, name: "Dhanmondi" }],
     subjects: [{ id: 5, name: "Physics" }],
     credentials: [],
@@ -142,5 +143,20 @@ describe("TutorSetSection", () => {
     expect(
       screen.getByRole("link", { name: "View full profile" }),
     ).toHaveAttribute("href", "/tutors/tutor-profile-7");
+  });
+
+  it("shows the verified badge after the name only when the profile has it", () => {
+    const { unmount } = render(
+      <TutorProfileSection profile={tutorProfile({ verifiedBadge: true })} />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Verified" }),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(<TutorProfileSection profile={tutorProfile()} />);
+    expect(
+      screen.queryByRole("button", { name: "Verified" }),
+    ).not.toBeInTheDocument();
   });
 });

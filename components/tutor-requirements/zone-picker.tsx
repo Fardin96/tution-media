@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Chip } from "@/components/profile/profile-fields";
 import { ghostButton } from "@/components/profile/styles";
 import { PendingLabel } from "@/components/ui/pending-label";
+import { setReturnTo } from "@/lib/return-to";
 import { formatRadius, useTutorZones } from "@/lib/tutor-zones";
 
 const ZONES_HREF = "/dashboard/tutor/zones";
@@ -19,6 +20,8 @@ interface ZonePickerProps {
   idPrefix: string;
   /** Shown when there is no zone and no online teaching; empty hides it. Defaults to the set wording. */
   emptyHint?: string;
+  /** Where the zone links return to when they leave the form. */
+  returnTo?: { path: string; label: string };
 }
 
 export function ZonePicker({
@@ -27,7 +30,11 @@ export function ZonePicker({
   teachesOnline,
   idPrefix,
   emptyHint = "To make this your default for applying, pick at least one zone or turn on online teaching.",
+  returnTo,
 }: ZonePickerProps) {
+  const remember = () => {
+    if (returnTo) setReturnTo(returnTo.path, returnTo.label);
+  };
   const zonesQuery = useTutorZones();
   const zones = zonesQuery.data?.zones;
   const hintId = `${idPrefix}-zones-hint`;
@@ -48,7 +55,7 @@ export function ZonePicker({
     );
 
   const manageLink = (
-    <Link href={ZONES_HREF} className={linkClass}>
+    <Link href={ZONES_HREF} onClick={remember} className={linkClass}>
       Manage zones
     </Link>
   );
@@ -112,7 +119,7 @@ export function ZonePicker({
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <p className={hintClass}>You haven&apos;t added any zones yet.</p>
-          <Link href={ZONES_HREF} className={linkClass}>
+          <Link href={ZONES_HREF} onClick={remember} className={linkClass}>
             Add a zone
           </Link>
         </div>

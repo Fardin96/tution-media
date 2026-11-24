@@ -108,12 +108,12 @@ describe("ProfileFields institute field", () => {
       institute.compareDocumentPosition(studentId) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(institute).toHaveAttribute("maxlength", "120");
+    expect(institute).toHaveAttribute("maxlength", "150");
     expect(institute).toHaveAttribute("placeholder", "University of Dhaka");
-    expect(institute).toHaveAttribute("autocomplete", "organization");
+    expect(institute).toHaveAttribute("role", "combobox");
     expect(institute).toHaveAttribute("name", "instituteName");
     expect(institute).toHaveAccessibleDescription(
-      "Students see this on your profile.",
+      "Pick it from the list, or type the full name if it isn't there.",
     );
   });
 

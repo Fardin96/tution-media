@@ -58,9 +58,16 @@ function application(
       instituteName: "University of Dhaka",
       ratingAvg: 4.5,
       ratingCount: 12,
+      verifiedBadge: false,
       ...overrides,
     },
-    student: { id: "s1", name: "Nadia Islam", avatarUrl: null, areaId: 1 },
+    student: {
+      id: "s1",
+      name: "Nadia Islam",
+      avatarUrl: null,
+      areaId: 1,
+      verifiedBadge: false,
+    },
     target: {
       kind: "REQUIREMENT",
       id: REQUIREMENT_ID,
@@ -147,6 +154,16 @@ describe("RequirementApplicantsPage", () => {
     expect(
       within(heading).getByRole("link", { name: "Rafiq Ahmed" }),
     ).toHaveAttribute("href", "/tutors/t1");
+  });
+
+  it("shows the verified badge after the tutor's name when the tutor has it", async () => {
+    mockApplicants([application({ verifiedBadge: true })]);
+    renderPage();
+
+    const heading = await screen.findByRole("heading", { name: /Rafiq Ahmed/ });
+    expect(
+      within(heading).getByRole("img", { name: "Verified" }),
+    ).toBeInTheDocument();
   });
 
   it("links back to the dashboard with one back control", async () => {

@@ -4,24 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowGlyph } from "@/components/arrow-link-button";
 import { focusRing } from "@/components/profile/styles";
 import { cn } from "@/lib/utils";
-
-// Bars that stick to the bottom of the screen while their form is in view.
-const STICKY_ACTIONS = "[data-sticky-actions]";
-
-// How far the button must rise to clear the sticky bars currently at the bottom of the screen.
-function stickyLift() {
-  let lift = 0;
-  for (const bar of document.querySelectorAll<HTMLElement>(STICKY_ACTIONS)) {
-    const rect = bar.getBoundingClientRect();
-    if (
-      rect.bottom >= window.innerHeight - 1 &&
-      rect.top < window.innerHeight
-    ) {
-      lift = Math.max(lift, rect.height);
-    }
-  }
-  return lift;
-}
+import { stickyLift } from "@/lib/sticky-actions";
 
 // display: none gives no client rects, so this finds the home link the reader can see.
 function isRendered(el: Element) {

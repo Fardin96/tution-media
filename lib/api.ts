@@ -1,4 +1,7 @@
 import type { components } from "./api-types";
+import { clearAllDrafts } from "./draft-storage";
+import { clearReturnTo } from "./return-to";
+import { getStoredTokens, STORAGE_KEY } from "./token-storage";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(
   /\/$/,
@@ -24,22 +27,17 @@ export interface Account {
 
 let refreshPromise: Promise<Tokens | null> | null = null;
 
-const STORAGE_KEY = "auth_tokens";
-
-export function getStoredTokens(): Tokens | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Tokens) : null;
-  } catch {
-    return null;
-  }
-}
+export { getStoredTokens };
 
 export function setStoredTokens(tokens: Tokens | null): void {
   if (typeof window === "undefined") return;
   if (tokens) localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-  else localStorage.removeItem(STORAGE_KEY);
+  else {
+    localStorage.removeItem(STORAGE_KEY);
+    // Shared computers: sign-out and a failed refresh both wipe the person's drafts and return trip.
+    clearAllDrafts();
+    clearReturnTo();
+  }
 }
 
 async function rotateRefreshToken(

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { SettingsPage } from "@/components/admin/settings-page";
 import {
   validateCommission,
+  validateCount,
   validateDays,
   validatePercent,
 } from "@/lib/admin-settings";
@@ -45,6 +46,24 @@ vi.mock("@/lib/admin-settings", async (importOriginal) => ({
         {
           key: "refund_window_days",
           value: 7,
+          updatedAt: null,
+          updatedByName: null,
+        },
+        {
+          key: "daily_application_limit",
+          value: 50,
+          updatedAt: null,
+          updatedByName: null,
+        },
+        {
+          key: "daily_package_request_limit",
+          value: 20,
+          updatedAt: null,
+          updatedByName: null,
+        },
+        {
+          key: "daily_accept_limit",
+          value: 20,
           updatedAt: null,
           updatedByName: null,
         },
@@ -134,6 +153,23 @@ describe("validateDays", () => {
   });
 });
 
+describe("validateCount", () => {
+  it.each(["1", "50", " 20 ", "1000"])("accepts %j", (text) => {
+    expect(validateCount(text, 1000)).toBeUndefined();
+  });
+
+  it.each(["", "   ", "1.5", "-1", "abc", "1e2", "5 times"])(
+    "asks for a whole number for %j",
+    (text) => {
+      expect(validateCount(text, 1000)).toBe("Enter a whole number.");
+    },
+  );
+
+  it.each(["0", "00", "1001"])("asks for 1 to 1000 for %j", (text) => {
+    expect(validateCount(text, 1000)).toBe("Use 1 to 1000.");
+  });
+});
+
 describe("SettingsPage", () => {
   beforeEach(() => {
     mocks.mutate.mockClear();
@@ -151,6 +187,9 @@ describe("SettingsPage", () => {
       "Online payments",
       "Processing charge",
       "Refund window",
+      "Daily applications",
+      "Daily package requests",
+      "Daily accepts",
       "Tutor verification",
       "Tutor phone verification",
       "Student phone verification",

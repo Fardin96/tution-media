@@ -128,6 +128,24 @@ beforeEach(() => {
       updatedByName: null,
     },
     {
+      key: "daily_application_limit",
+      value: 50,
+      updatedAt: null,
+      updatedByName: null,
+    },
+    {
+      key: "daily_package_request_limit",
+      value: 20,
+      updatedAt: null,
+      updatedByName: null,
+    },
+    {
+      key: "daily_accept_limit",
+      value: 20,
+      updatedAt: null,
+      updatedByName: null,
+    },
+    {
       key: "require_tutor_verification",
       value: false,
       updatedAt: null,

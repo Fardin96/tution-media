@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useIntentPrefetch } from "@/lib/prefetch";
 import { ApplicationActions } from "@/components/applications/application-actions";
 import { StatusPill, TonePill } from "@/components/applications/status-pill";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import {
   areaText,
   durationText,
@@ -39,6 +40,9 @@ export function ApplicationCard({
   const isTutor = role === "TUTOR";
   const counterpart = isTutor ? application.student : application.tutor;
   const counterpartName = counterpart.name;
+  const badge = counterpart.verifiedBadge ? (
+    <VerifiedBadge size={16} className="ms-1.5" />
+  ) : null;
 
   const heading = headingText(target, counterpartName);
   const details = [
@@ -64,10 +68,12 @@ export function ApplicationCard({
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-pretty text-[var(--color-neutral-charcoal)]">
               {heading}
+              {heading === counterpartName && badge}
             </h2>
             {heading !== counterpartName && (
               <p className="mt-0.5 text-sm text-pretty text-[var(--color-text-secondary)]">
                 {counterpartName}
+                {badge}
               </p>
             )}
             {!isTutor && application.tutor.ratingCount > 0 && (

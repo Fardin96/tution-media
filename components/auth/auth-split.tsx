@@ -52,6 +52,8 @@ export interface AuthSplitProps {
   role?: Extract<UserRole, "STUDENT" | "TUTOR" | "ADMIN">;
   /** A safe return path (see safeNext). It follows the user across the sign-in / sign-up switch. */
   next?: string;
+  /** Sign-up only: the role picked when the page opens; the user can still change it. */
+  defaultRole?: PublicRole;
 }
 
 // Soft brand-blue light wash; drifts via the hero's mesh animation layer.
@@ -82,10 +84,13 @@ export function AuthSplit({
   hideSwitch = false,
   role: fixedRole,
   next,
+  defaultRole,
 }: AuthSplitProps) {
   const copy = COPY[mode];
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<PublicRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<PublicRole | null>(
+    defaultRole ?? null,
+  );
   const onError = useCallback(
     (message: string) =>
       toast.error(

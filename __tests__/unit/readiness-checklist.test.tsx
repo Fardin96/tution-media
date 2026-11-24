@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import { ReadinessChecklist } from "@/components/profile/readiness-checklist";
+import { readReturnTo } from "@/lib/return-to";
 import type { TutorRequirement } from "@/lib/tutor-requirements";
 
 // The checklist's links prefetch through the query client, as they do inside the app.
@@ -129,5 +131,49 @@ describe("ReadinessChecklist", () => {
       screen.getByRole("link", { name: "Fix your default requirement set" }),
     ).toHaveAttribute("href", "/dashboard/tutor/requirements");
     expect(screen.getByText("2 things to fix.")).toBeInTheDocument();
+  });
+});
+
+describe("ReadinessChecklist actions and return trip", () => {
+  it("renders an action row as a button that calls the action", async () => {
+    const user = userEvent.setup();
+    const onVerify = vi.fn();
+    render(
+      <ReadinessChecklistWithClient
+        missing={["phone_verification", "name"]}
+        actions={{ phone_verification: onVerify }}
+      />,
+    );
+    const button = screen.getByRole("button", {
+      name: "Verify your phone number",
+    });
+    expect(button.tagName).toBe("BUTTON");
+    expect(
+      within(screen.getByRole("region")).getByRole("link", {
+        name: "Add your name",
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(button);
+    expect(onVerify).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the return trip when a Fix link is followed", async () => {
+    const user = userEvent.setup();
+    window.sessionStorage.clear();
+    render(
+      <ReadinessChecklistWithClient
+        missing={["name"]}
+        returnTo={{
+          path: "/dashboard/tutor/packages/new",
+          label: "new package",
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("link", { name: "Add your name" }));
+    expect(readReturnTo()).toMatchObject({
+      path: "/dashboard/tutor/packages/new",
+      label: "new package",
+    });
   });
 });

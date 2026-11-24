@@ -5,6 +5,7 @@ import { card, focusRing } from "@/components/profile/styles";
 import { formatDistanceKm } from "@/lib/browse";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { RatingInline } from "./browse-ui";
 
 export interface TutorResult {
@@ -14,6 +15,7 @@ export interface TutorResult {
   instituteName?: string | null;
   ratingAvg: number;
   ratingCount: number;
+  verifiedBadge: boolean;
   areas?: { id: number; name: string }[];
   subjects?: { id: number; name: string }[];
   /** Present only in the nearby list. */
@@ -54,25 +56,28 @@ export function TutorResultCard({
         <div className="flex items-center gap-3">
           <UserAvatar src={tutor.avatarUrl} name={tutor.name} size={44} />
           <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-            <h3 className="truncate font-semibold text-[var(--color-neutral-charcoal)]">
+            <h3 className="flex min-w-0 items-center gap-1.5 font-semibold text-[var(--color-neutral-charcoal)]">
               <Link
                 href={
                   locked
-                    ? `/sign-in?next=${encodeURIComponent(profilePath)}`
+                    ? `/sign-up?role=student&next=${encodeURIComponent(profilePath)}`
                     : profilePath
                 }
                 className={cn(
-                  "rounded-sm after:absolute after:inset-0 after:rounded-[24px] hover:underline",
+                  "min-w-0 truncate rounded-sm after:absolute after:inset-0 after:rounded-[24px] hover:underline",
                   focusRing,
                 )}
               >
                 {tutor.name}
                 {locked && (
                   <span className="sr-only">
-                    , sign in to see the full profile
+                    , sign up to see the full profile
                   </span>
                 )}
               </Link>
+              {tutor.verifiedBadge && (
+                <VerifiedBadge size={16} className="shrink-0" />
+              )}
             </h3>
             <div className="shrink-0">
               <RatingInline

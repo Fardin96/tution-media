@@ -40,6 +40,7 @@ import { useApplication, type ApplicationDetail } from "@/lib/applications";
 import { LinkPendingLabel } from "@/components/ui/link-pending-label";
 import { PendingLabel } from "@/components/ui/pending-label";
 import { useIntentPrefetch } from "@/lib/prefetch";
+import { VerifiedBadgeTip } from "@/components/ui/verified-badge";
 import { adminFeeQueryOptions } from "@/lib/admin-fees";
 import { myFeeQueryOptions } from "@/lib/fees";
 
@@ -164,6 +165,12 @@ export function ApplicationDetailPage({
         ? `${app.tutor.name} → ${app.student.name}`
         : app.tutor.name;
     const heading = headingText(app.target, counterpart);
+    const counterpartVerified = isAdmin
+      ? false
+      : isTutor
+        ? app.student.verifiedBadge
+        : app.tutor.verifiedBadge;
+    const badge = counterpartVerified ? <VerifiedBadgeTip size={20} /> : null;
     const contact = app.counterpartContact;
     const fee = isTutor || isAdmin ? app.fee : null;
     const feeOpen =
@@ -176,12 +183,16 @@ export function ApplicationDetailPage({
         <header className="grid gap-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
-                {heading}
-              </h1>
+              <div className="flex min-w-0 flex-wrap items-center">
+                <h1 className="text-2xl font-semibold tracking-tight text-balance text-[var(--color-neutral-charcoal)] sm:text-3xl">
+                  {heading}
+                </h1>
+                {heading === counterpart && badge}
+              </div>
               {heading !== counterpart && (
                 <p className="mt-1 text-sm text-pretty text-[var(--color-text-secondary)] sm:text-base">
                   {counterpart}
+                  {badge}
                 </p>
               )}
             </div>

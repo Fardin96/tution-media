@@ -86,6 +86,8 @@ export interface ProfileForm {
   studentIdNumber: string;
   /** Tutor only: the university or college they study at. */
   instituteName: string;
+  /** Tutor only: the picked school or university, or null when the name is typed. */
+  institutionId: number | null;
   gender: Gender | "";
   phoneNumber: string;
   whatsappNumber: string;
@@ -114,7 +116,8 @@ export type FieldKind =
   | "gender"
   | "area"
   | "areas"
-  | "subjects";
+  | "subjects"
+  | "institution";
 
 export interface FieldDef {
   key: FieldKey;
@@ -218,12 +221,11 @@ export const SECTIONS: Record<ProfileRole, Section[]> = {
         { key: "gender", kind: "gender", label: "Gender" },
         {
           key: "instituteName",
-          kind: "text",
+          kind: "institution",
           label: "University or college",
-          hint: "Students see this on your profile.",
+          hint: "Pick it from the list, or type the full name if it isn't there.",
           placeholder: "University of Dhaka",
-          maxLength: 120,
-          autoComplete: "organization",
+          maxLength: 150,
         },
         {
           key: "studentIdNumber",
@@ -271,6 +273,7 @@ export const emptyForm = (fullName = ""): ProfileForm => ({
   name: fullName,
   studentIdNumber: "",
   instituteName: "",
+  institutionId: null,
   gender: "",
   phoneNumber: "",
   whatsappNumber: "",
@@ -295,6 +298,8 @@ export function formFromProfile(
     studentIdNumber: profile.studentIdNumber ?? "",
     instituteName:
       "instituteName" in profile ? (profile.instituteName ?? "") : "",
+    institutionId:
+      "institutionId" in profile ? (profile.institutionId ?? null) : null,
     gender: "gender" in profile ? profile.gender : "",
     phoneNumber: profile.phoneNumber,
     whatsappNumber: profile.whatsappNumber ?? "",
@@ -390,7 +395,11 @@ export function toPayload(
     if (key === "subjectIds") continue;
     if (key === "instituteName") {
       // Tutor-only; the student sections never list it, so students never send it.
-      if (role === "TUTOR") body.instituteName = form.instituteName.trim();
+      // The id goes with the name: a picked id wins, null unlinks a typed name.
+      if (role === "TUTOR") {
+        body.instituteName = form.instituteName.trim();
+        body.institutionId = form.institutionId;
+      }
       continue;
     }
     if (key === "areaIds") {
@@ -652,6 +661,14 @@ export async function saveTutorLists(form: ProfileForm, keys: FieldKey[]) {
 }
 
 export const profileOf = (me: Me) => me.student ?? me.tutor;
+
+/** The signed-in account from /me. Shares the `me` key, so every /me write refreshes it. */
+export function useMeAccount() {
+  return useQuery({
+    queryKey: queryKeys.me,
+    queryFn: () => profileApi.me(),
+  });
+}
 
 /**
  * Saves a video's home-page agreement. The dashboard keeps its video list in state, not in the

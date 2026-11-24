@@ -121,6 +121,8 @@
   --color-semantic-error-surface: #fef3f2;
   --color-semantic-success-text: #067647;
   --color-semantic-success-surface: #ecfdf3;
+  /* Verified badge fill. White tick on it: 5.02:1 (green-700). */
+  --color-verified: #15803d;
   --color-semantic-warning-text: #b54708;
   --color-semantic-warning-surface: #fffaeb;
   /* Dashboard status text (good, warn, bad) for charts and pills. */
@@ -367,12 +369,38 @@ li[data-blink]::after {
     opacity: 1;
   }
 }
+/* Profile strength: the section a to-do row points at blinks its outline twice. */
+[data-attention] {
+  position: relative;
+  z-index: 1;
+  outline: none;
+}
+[data-attention]::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 28px;
+  pointer-events: none;
+  border: 2px solid var(--color-primary-core);
+  box-shadow:
+    0 0 0 2px var(--color-primary-core),
+    0 0 24px 4px color-mix(in oklab, var(--color-primary-core) 45%, transparent);
+  opacity: 0;
+  animation: widget-blink 700ms ease-in-out 2;
+}
+[data-attention-round][data-attention]::after {
+  border-radius: 9999px;
+}
 @media (prefers-reduced-motion: reduce) {
+  [data-attention]::after {
+    animation-duration: 900ms;
+  }
   li[data-blink]::after {
     animation-duration: 900ms;
   }
 }
 @media (forced-colors: active) {
+  [data-attention]::after,
   li[data-blink]::after {
     border-color: Highlight;
     box-shadow: 0 0 0 2px Highlight;

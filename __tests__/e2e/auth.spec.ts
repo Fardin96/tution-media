@@ -45,7 +45,7 @@ test.describe("Auth pages", () => {
     await page.goto("/");
     await expect(
       page.getByRole("link", { name: "Get Started" }),
-    ).toHaveAttribute("href", "/sign-in");
+    ).toHaveAttribute("href", "/sign-up?role=student");
     // The one remaining View All is the Emerging Masters link. Its href follows the
     // defaults (`/tutors?sort=emerging` after the regen), so it is matched by pattern.
     const viewAll = page.getByRole("link", { name: "View All" });
@@ -53,12 +53,14 @@ test.describe("Auth pages", () => {
     await expect(viewAll).toHaveAttribute("href", /^\/tutors\?sort=emerging$/);
   });
 
-  test("Register Now opens sign in first", async ({ page, isMobile }) => {
+  test("Register Now opens sign up", async ({ page, isMobile }) => {
     await page.goto("/");
     if (isMobile) await page.getByRole("button", { name: "Open menu" }).click();
     await page.getByRole("link", { name: "Register Now" }).click();
-    await expect(page).toHaveURL(/\/sign-in$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sign in");
+    await expect(page).toHaveURL(/\/sign-up$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Create your account",
+    );
   });
 
   test("dashboard redirects unauthenticated users to sign in", async ({

@@ -73,6 +73,9 @@ export const queryKeys = {
     areas: <F extends object>(filters: F) =>
       ["admin", "areas", filters] as const,
     areasAll: ["admin", "areas"] as const,
+    institutionsAll: ["admin", "institutions"] as const,
+    institutions: <F extends object>(filters: F) =>
+      ["admin", "institutions", filters] as const,
     settings: ["admin", "settings"] as const,
     /** Every landing block and page, as the admin editor lists them. */
     siteContent: ["admin", "site-content"] as const,
@@ -261,6 +264,8 @@ export function invalidateNotifications(
 export function invalidateTutorRequirements(
   queryClient: QueryClient,
 ): Promise<void> {
+  // The default set is one of the profile-strength items, so the public badge can move with it.
+  refreshOwnPublicProfile();
   return Promise.all([
     queryClient.invalidateQueries({
       queryKey: queryKeys.tutor.requirements.all,
@@ -283,14 +288,23 @@ export function invalidatePackages(queryClient: QueryClient): Promise<void> {
  * The signed-in tutor's own public page is also expired on the server, so a save shows at once
  * there too. That refresh is fire-and-forget and is skipped when nobody is signed in.
  */
-export function invalidateTutorProfile(
-  queryClient: QueryClient,
-  tutorId: string,
-): Promise<void> {
+/**
+ * Expires the signed-in tutor's own public profile on the server. A student's /me has no tutor
+ * id, so the refresh does nothing for them. Called only when the change can move the public page
+ * (profile, phone, ID, default set, credentials).
+ */
+export function refreshOwnPublicProfile(): void {
   const tokens = getStoredTokens();
   if (tokens) {
     quietly(() => refreshMyTutorProfile(tokens.accessToken));
   }
+}
+
+export function invalidateTutorProfile(
+  queryClient: QueryClient,
+  tutorId: string,
+): Promise<void> {
+  refreshOwnPublicProfile();
   return queryClient
     .invalidateQueries({
       queryKey: queryKeys.tutors.profile(tutorId),
@@ -310,6 +324,8 @@ export function invalidateTutorZones(queryClient: QueryClient): Promise<void> {
 export function invalidatePhoneVerification(
   queryClient: QueryClient,
 ): Promise<void> {
+  // A verified phone is one of the two badge requirements, so the public page can change too.
+  refreshOwnPublicProfile();
   return Promise.all([
     queryClient.invalidateQueries({
       queryKey: queryKeys.phoneVerification.status,
